@@ -319,10 +319,6 @@ class SurveyDataBuilder:
         bodies = current_system["bodies"]
     
         summary = {
-            "system_name": current_system["name"],
-            "system_address": current_system["address"],
-            "position": current_system["position"],
-            "body_count": current_system["body_count"],
             "scan_records": len(bodies),
             "stars": 0,
             "planets": 0,
@@ -380,13 +376,23 @@ class SurveyDataBuilder:
 
     def build_body_record(self, body):
         return {
-            ...
+            "body_id": body.get("BodyID"),
+            "body_name": body.get("BodyName"),
+            "parents": body.get("Parents"),
+            "planet_class": body.get("PlanetClass"),
+            "terraform_state": body.get("TerraformState"),
+            "surface_pressure": body.get("SurfacePressure"),
+            "materials": body.get("Materials"),
+            "periapsis": body.get("Periapsis"),
+            "was_discovered": body.get("WasDiscovered"),
+            "was_mapped": body.get("WasMapped"),
+            "was_footfalled": body.get("WasFootfalled"),
         }
 
 
 EXPLORATION_HISTORY_FILE = (run_directory / "exploration_history.jsonl")
 
-def append_summary_to_history_file(summary):
+def append_system_record_to_history_file(summary):
     with EXPLORATION_HISTORY_FILE.open("a", encoding="utf-8") as file:
         file.write(json.dumps(summary) + "\n")
 
@@ -435,10 +441,9 @@ def main():
                 if newly_complete:
                     print("FSS survey complete.")
 
-                    summary = survey_data_builder.build_system_summary()
-
-                    append_summary_to_history_file(summary)
-                    pp(summary)
+                    survey_data_builder = SurveyDataBuilder(survey_state)
+                    system_record = survey_data_builder.build_system_record()
+                    append_system_record_to_history_file(system_record)
 
     except KeyboardInterrupt:
         print("\nJournal monitoring stopped.")
