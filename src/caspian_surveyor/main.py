@@ -185,6 +185,23 @@ class SurveyState:
     def __init__(self):
         self.current_system = None
 
+    
+    def _get_current_system(self, event):
+        current_system = self.current_system
+
+        if current_system is None:
+            return None
+
+        event_address = event.get("SystemAddress")
+
+        if event_address is None:
+            return current_system
+
+        if event_address != current_system["address"]:
+            return None
+
+        return current_system
+
     def begin_system(self, event):
         self.current_system = {
             "name": event.get("StarSystem"),
@@ -202,13 +219,21 @@ class SurveyState:
         logger.info("Survey state initialized for system: %s", self.current_system["name"])
 
     def record_discovery_scan(self, event):
-        if not self._matches_current_system(event):
-            return
+        current_system = self._get_current_system(event)
 
-        self.current_system["body_count"] = event.get("BodyCount")
-        self.current_system["discovery_progress"] = event.get("Progress")
+        if current_system is None:
+            return False
+
+        current_system["body_count"] = event.get("BodyCount")
+        current_system["discovery_progress"] = event.get("Progress")
 
     def record_body_scan(self, event):
+
+        current_system = self._get_current_system(event)
+
+        if current_system is None:
+            return False
+
         if not self._matches_current_system(event):
             return
 
@@ -218,7 +243,7 @@ class SurveyState:
             logger.warning("Scan event received without BodyID.")
             return
 
-        body = self.current_system["bodies"].setdefault(body_id,{})
+        body = current_system["bodies"].setdefault(body_id,{})
         scan_type = event.get("ScanType")
         scan_types = body.setdefault("_scan_types",[])
 
@@ -228,16 +253,18 @@ class SurveyState:
         body.update(event)
 
     def mark_all_bodies_found(self, event):
-        if not self._matches_current_system(event):
+        current_system = self._get_current_system(event)
+
+        if current_system is None:
             return False
 
-        already_complete = self.current_system["fss_complete"]
+        already_complete = current_system["fss_complete"]
 
-        self.current_system["fss_complete"] = True
-        self.current_system["discovery_progress"] = 1.0
+        current_system["fss_complete"] = True
+        current_system["discovery_progress"] = 1.0
 
-        if self.current_system["body_count"] is None:
-            self.current_system["body_count"] = event.get("Count")
+        if current_system["body_count"] is None:
+            current_system["body_count"] = event.get("Count")
 
         return not already_complete
 
@@ -261,7 +288,7 @@ class SurveyDataBuilder:
             ...
         }
 
-    def build_system_summary(survey_state):
+    def build_system_summary(self, survey_state):
         current_system = survey_state.current_system
     
         if current_system is None:
@@ -340,7 +367,7 @@ class SurveyDataBuilder:
                 "position": current_system["position"],
             },
 
-            "summary": self.build_system_summary(),
+            "summary": self.build_system_summary(self.survey_state),
 
             "bodies": {},
         }
@@ -379,6 +406,7 @@ def main():
 
     reader = JournalReader(latest_journal, poll_interval=1.0)
     survey_state = SurveyState()
+    survey_data_builder = SurveyDataBuilder(survey_state)
     print(f"Monitoring:\t\t{latest_journal}")
 
     try:
@@ -403,9 +431,7 @@ def main():
                 if newly_complete:
                     print("FSS survey complete.")
 
-                    summary = build_system_summary(
-                        survey_state
-                    )
+                    summary = survey_data_builder.build_system_summary(survey_state)
 
                     append_summary_to_history_file(summary)
                     pp(summary)
