@@ -283,13 +283,35 @@ class SurveyDataBuilder:
     def __init__(self, survey_state):
         self.survey_state = survey_state
 
-    def build_body_record(self, body):
+
+    def build_system_record(self):
+        current_system = self.survey_state.current_system
+
+        if current_system is None:
+            return None
+
+        bodies = {}
+
+        for body_id, body in current_system["bodies"].items():
+            bodies[body_id] = self.build_body_record(body)
+
         return {
-            ...
+            "schema_version": 1,
+
+            "system": {
+                "name": current_system["name"],
+                "address": current_system["address"],
+                "position": current_system["position"],
+                "body_count": current_system["body_count"],
+            },
+
+            "summary": self.build_system_summary(),
+
+            "bodies": bodies,
         }
 
-    def build_system_summary(self, survey_state):
-        current_system = survey_state.current_system
+    def build_system_summary(self):
+        current_system = self.survey_state.current_system
     
         if current_system is None:
             return None
@@ -355,29 +377,11 @@ class SurveyDataBuilder:
     
         return summary
 
-    def build_system_record(self):
-        current_system = self.survey_state.current_system
 
-        record = {
-            "schema_version": 1,
-
-            "system": {
-                "name": current_system["name"],
-                "address": current_system["address"],
-                "position": current_system["position"],
-            },
-
-            "summary": self.build_system_summary(self.survey_state),
-
-            "bodies": {},
+    def build_body_record(self, body):
+        return {
+            ...
         }
-
-        for body_id, body in current_system["bodies"].items():
-            record["bodies"][body_id] = (
-                self.build_body_record(body)
-            )
-
-        return record
 
 
 EXPLORATION_HISTORY_FILE = (run_directory / "exploration_history.jsonl")
@@ -431,7 +435,7 @@ def main():
                 if newly_complete:
                     print("FSS survey complete.")
 
-                    summary = survey_data_builder.build_system_summary(survey_state)
+                    summary = survey_data_builder.build_system_summary()
 
                     append_summary_to_history_file(summary)
                     pp(summary)
