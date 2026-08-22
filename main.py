@@ -1,10 +1,11 @@
-from pathlib import Path
-import sys
-from datetime import datetime
-import logging
 import json
+import logging
+import sys
 import time
+
 from pprint import pp
+from datetime import datetime
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
