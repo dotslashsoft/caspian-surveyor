@@ -8,24 +8,22 @@ with open(system_data_information, "r") as open_json:
 
 system_dict = json.loads(last_line)
 
-for key, value in system_dict.items():
-    if key == "schema_version":
-        print(key, value)
+for section_name, section_data in system_dict.items():
 
-    if key == "system":
-        for key, value in value.items():
-            print(key, value)
+    if section_name == "system":
+        for field_name, field_value in section_data.items():
+            print(field_name, field_value)
 
-    if key == "summary":
-        for key, x in value.items():
-            print(key,x)
+    if section_name == "summary":
+        for field_name, field_value in section_data.items():
+            print(field_name, field_value)
 
-    if key == "bodies":
-        for key1, value1 in value.items():
-            for key2, value2 in value1.items():
+    if section_name == "bodies":
+        for body_id, body_data in section_data.items():
+            for field_name, field_value in body_data.items():
 
-                if key2 == "materials" and value2 is not None:
-                    for each_material in value2:
-                        print(f"materials:\t{each_material}")
+                if field_name == "materials" and field_value is not None:
+                    for material in field_value:
+                        print(material["Name"], material["Percent"])
                 else:
-                    print(key2, value2)
+                    print(field_name, field_value)
