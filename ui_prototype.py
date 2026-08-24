@@ -1,20 +1,11 @@
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QHeaderView, QTableView
+from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QTableView
 from PySide6 import QtCore
-from PySide6.QtGui import QFont, QKeySequence, QShortcut
-import traverse_exploration_history
+from PySide6.QtGui import QFont
 import keyboard
+import data_structures
 
-
-
-# pre-launch read
-system_record = traverse_exploration_history.load_latest_system_record()
-ui_data = traverse_exploration_history.build_system_ui_data(system_record)
-
-for planet in ui_data["planet_data"]:
-    print(planet["planet_name"])
-    print(planet["planet_class"])
-
+ui_data = data_structures.load_latest_system_record()
 
 class SystemTable(QMainWindow):
 
@@ -30,9 +21,8 @@ class SystemTable(QMainWindow):
             self.toggle_requested.emit
         )
 
-
         self.setWindowTitle("Caspian Surveyor")
-        self.resize(400, 400)
+        self.resize(455, 515)
         self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setWindowFlag(QtCore.Qt.WindowType.FramelessWindowHint)
         self.setWindowFlag(QtCore.Qt.WindowType.WindowStaysOnTopHint)
@@ -42,15 +32,25 @@ class SystemTable(QMainWindow):
         # UPDATE - I now know how the fuck this 
         #          works. PROGRESS BABY!
         data = [
-            ["SYSTEM", (ui_data["system_name"])],
-            ["BODIES", str(ui_data["body_count"])],
-            ["STARS", str(ui_data["stars"])],
-            ["PLANETS", str(ui_data["planets"])],
-            ["LANDABLE", str(ui_data["landable"])],
+            ["SYSTEM", str(ui_data.system.name)],
+            ["ADDRESS", str(ui_data.system.address)],
+            ["POSITION", str(ui_data.system.position)],
+            ["BODY COUNT", str(ui_data.system.body_count)],
+            ["SCANNED", str(ui_data.summary.scan_records)],
+            ["STARS", str(ui_data.summary.stars)],
+            ["PLANETS", str(ui_data.summary.planets)],
+            ["ASTEROID BELTS", str(ui_data.summary.belt_clusters)],
+            ["UNKNOWN", str(ui_data.summary.unknown_scan_objects)],
+            ["LANDABLE", str(ui_data.summary.landable)],
+            ["HMC WORLDS", str(ui_data.summary.hmc)],
+            ["TERRAFORM HMC", str(ui_data.summary.tf_hmc)],
+            ["WATER WORLDS", str(ui_data.summary.water_worlds)],
+            ["TERRAFORM WW", str(ui_data.summary.tf_water_worlds)],
+            ["EARTHLIKE WORLDS", str(ui_data.summary.earthlike_worlds)],
+            ["AMMONIA WORLDS", str(ui_data.summary.ammonia_worlds)],
         ]
         # create table
         self.table = QTableWidget()
-        self.table_view = QTableView()
         self.table.setFont(QFont("Eurostile", 12))
         self.table.setStyleSheet("QTableWidget { background: transparent; }")
         self.table.viewport().setStyleSheet("background: transparent;")
