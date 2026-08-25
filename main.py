@@ -3,7 +3,6 @@ import logging
 import sys
 import time
 
-from pprint import pp
 from datetime import datetime
 from pathlib import Path
 
@@ -30,19 +29,15 @@ def display_directory_info():
 
 
 def list_journal_directory_contents():
-
     logger.debug("Searching journal directory: %s", journal_directory)
-
     journal_files = list(journal_directory.glob("Journal.*.log"))
-
     logger.debug("Found %d journal files.", len(journal_files))
 
     if not journal_files:
         logger.warning("No Elite Dangerous journal files found.")
         return None
-
+    
     latest_journal = max(journal_files, key=lambda path: path.stat().st_mtime)
-
     logger.info("Latest journal selected: %s", latest_journal)
 
     return latest_journal
@@ -54,15 +49,10 @@ class LogManager:
 
     def __init__(self, log_dir=DEFAULT_LOG_DIR):
         self.log_dir = Path(log_dir)
-
         self.script_name = Path(sys.argv[0]).stem
-
         self.datetimestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
         self.log_filename = (f"{self.script_name}_{self.datetimestamp}.log")
-
         self.full_log_path = (self.log_dir / self.log_filename)
-
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
     def set_log_config(self):
@@ -75,11 +65,6 @@ class LogManager:
 
     def get_log_dir(self):
         return str(self.log_dir)
-
-    def create_log_file(self):
-        self.full_log_path.touch()
-
-        print(f"Log file created at:\t{self.full_log_path}")
 
 class JournalReader:
 
@@ -406,7 +391,6 @@ def append_system_record_to_history_file(summary):
 
 def main():
     log_manager = LogManager()
-    log_manager.create_log_file()
     log_manager.set_log_config()
 
     display_directory_info()

@@ -63,15 +63,15 @@ class FullStarSystemPayload():
     bodies: Dict[str, CelestialBody] = field(default_factory=dict)
 
     def __post_init__(self):
-        # 1. Convert nested system dict
+        # Convert nested system dict
         if isinstance(self.system, dict):
             self.system = SystemInfo(**self.system)
             
-        # 2. Convert nested summary dict
+        # Convert nested summary dict
         if isinstance(self.summary, dict):
             self.summary = SummaryInfo(**self.summary)
             
-        # 3. Convert the dynamic "bodies" dictionary
+        # Convert the dynamic "bodies" dictionary
         if isinstance(self.bodies, dict):
             self.bodies = {
                 key: (CelestialBody(**value) if isinstance(value, dict) else value)
@@ -116,7 +116,3 @@ if __name__ == "__main__":
 
     if latest_payload is not None:
         print("Successfully loaded the most recent entry!")
-        # print(f"SYSTEM NAME: {latest_payload.system.name}")
-        # print(f"ADDRESS: {latest_payload.system.address}")
-        # print(f"POSITION: {latest_payload.system.position}")
-        # print(f"TOTAL BODIES: {latest_payload.system.body_count}")
