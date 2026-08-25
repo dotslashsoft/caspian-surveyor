@@ -3,33 +3,53 @@ from PySide6 import QtCore
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QHBoxLayout, 
-    QVBoxLayout, QFrame, QGraphicsDropShadowEffect
+    QVBoxLayout, QFrame, QGraphicsDropShadowEffect, QStackedWidget, QSizePolicy
 )
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QFont, QFontDatabase
 import data_structures
 
 import keyboard
 
 class MetricWidget(QWidget):
-    """Reusable HUD data block (Label on top, Value below)"""
-    
-    def __init__(self, key: str, default_value: str = "--"):
+    def __init__(
+        self,
+        key: str,
+        default_value: str | int | float = "--"
+    ):
+        from PySide6.QtGui import QFont
         super().__init__()
+
+        self.setFont(QFont("Eurostile"))
+
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Fixed
+        )
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 2, 8, 2)
         layout.setSpacing(1)
 
-        # color of headings (SYSTEM, BODIES, STARS, etc.)
         self.key_label = QLabel(key)
-        self.key_label.setStyleSheet("color: #7d8b99; font-size: 9px; font-weight: bold; letter-spacing: 1px;  font-family: Eurostile;")
+        self.key_label.setStyleSheet("""
+            color: #7d8b99;
+            font-family: Eurostile;
+            font-size: 9px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        """)
 
-        # color of values (Blaea Thio EC-Z b41-1, 12, 3, true, etc.)
-        self.val_label = QLabel(default_value)
-        self.val_label.setStyleSheet("color: #56cffc; font-size: 13px; font-weight: bold; font-family: Eurostile;")
+        self.val_label = QLabel(str(default_value))
+        self.val_label.setStyleSheet("""
+            color: #56cffc;
+            font-family: Eurostile;
+            font-size: 13px;
+            font-weight: bold;
+        """)
 
         layout.addWidget(self.key_label)
         layout.addWidget(self.val_label)
+
 
     def set_value(self, value: str | int | float):
         self.val_label.setText(str(value))
@@ -42,14 +62,121 @@ class JournalWorker(QtCore.QObject):
 
 
 class SystemInfoOverlay(QWidget):
-    toggle_requested  = QtCore.Signal()
+    toggle_requested = QtCore.Signal()
     exit_requested = QtCore.Signal()
-    
+    cycle_next = QtCore.Signal()
+    cycle_previous = QtCore.Signal()
+    cycle_default = QtCore.Signal()
+
+    PANEL_STYLE = """
+        QFrame#HUDPanel {
+            background-color: rgba(0, 0, 0, 100);
+            border-top: 1px solid #002e4d;
+            border-bottom: 1px solid #004d80;
+            border-radius: 4px;
+            border-left: none;
+            border-right: none;
+            font-family: Eurostile;
+        }
+    """
+
     def __init__(self):
         super().__init__()
+
+        self._connect_signals()
+        self._register_hotkeys()
+        self._load_initial_data()
+        self._configure_window()
+        self._build_ui()
+        self._start_background_services()
+
+    # Temporary sanity check
+    def debug_planetary_bodies(self):
+        for body in self.planetary_bodies:
+            print(body.body_id)
+            print(body.body_name)
+            print(body.planet_class)
+
+
+    def refresh_system_data(self):
+        ui_data = data_structures.load_latest_system_record()
+
+        if ui_data is None:
+            return
+
+        system_changed = (
+            self.ui_data is None
+            or ui_data.system.address != self.ui_data.system.address
+        )
+
+        self.ui_data = ui_data
+        self.planetary_bodies = ui_data.planetary_bodies
+
+        if system_changed:
+            self.current_body_index = 0
+
+            if self.planetary_bodies:
+                self.update_body_display()
+
+        self.metric_system.set_value(ui_data.system.name.upper())
+        self.metric_planets.set_value(ui_data.summary.planets)
+        self.metric_elw.set_value(ui_data.summary.earthlike_worlds)
+        self.metric_tfww.set_value(ui_data.summary.tf_water_worlds)
+        self.metric_tfhmc.set_value(ui_data.summary.tf_hmc)
+        self.metric_water_world.set_value(ui_data.summary.water_worlds)
+        self.metric_hmc.set_value(ui_data.summary.hmc)
+        self.metric_landable.set_value(ui_data.summary.landable)
+
+        self.position_top_center()
+
+    def _load_initial_data(self):
+        self.ui_data = data_structures.load_latest_system_record()
+
+        if self.ui_data is not None:
+            self.planetary_bodies = self.ui_data.planetary_bodies
+        else:
+            self.planetary_bodies = []
+
+        self.current_body_index = 0
+
+    def _configure_window(self):
+        self.setWindowFlags(
+            Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.Tool
+        )
+
+        self.setAttribute(
+            Qt.WidgetAttribute.WA_TranslucentBackground,
+            True
+        )
+
+    def _build_ui(self):
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.display_stack = QStackedWidget()
+
+        self.system_page = self._build_system_page()
+        self.body_page = self._build_body_page()
+
+        self.display_stack.addWidget(self.system_page)
+        self.display_stack.addWidget(self.body_page)
+        self.display_stack.setCurrentIndex(0)
+
+        outer_layout.addWidget(self.display_stack)
+
+
+    def _connect_signals(self):
         self.toggle_requested.connect(self.toggle_widget)
         self.exit_requested.connect(QApplication.instance().quit)
-        
+
+        self.cycle_next.connect(self.cycle_display_next)
+        self.cycle_previous.connect(self.cycle_display_previous)
+        self.cycle_default.connect(self.cycle_display_default)
+
+
+    def _register_hotkeys(self):
         keyboard.add_hotkey(
             "ctrl+shift+m",
             self.toggle_requested.emit
@@ -60,144 +187,247 @@ class SystemInfoOverlay(QWidget):
             self.exit_requested.emit
         )
 
-        self.ui_data = data_structures.load_latest_system_record()
-
-        if self.ui_data is not None:
-            self.planetary_bodies = self.ui_data.planetary_bodies
-        else:
-            self.planetary_bodies = []
-
-        self.current_body_index = 0
-        self.debug_planetary_bodies()
-        ### window flags for overlay ###
-        self.setWindowFlags(
-            Qt.WindowType.WindowStaysOnTopHint |       # Always stay over the game window
-            Qt.WindowType.FramelessWindowHint |        # Remove OS title bar and borders
-            Qt.WindowType.Tool                         # Hides from taskbar / Alt+Tab
+        keyboard.add_hotkey(
+            "ctrl+alt+right",
+            self.cycle_next.emit
         )
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)  # Alpha transparency
-        self.init_ui()
 
-        # create worker thread
+        keyboard.add_hotkey(
+            "ctrl+alt+left",
+            self.cycle_previous.emit
+        )
+
+        keyboard.add_hotkey(
+            "ctrl+alt+home",
+            self.cycle_default.emit
+        )
+
+
+    def _build_system_page(self):
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        panel = self._create_hud_panel()
+
+        hud_layout = QHBoxLayout(panel)
+        hud_layout.setContentsMargins(12, 6, 12, 6)
+        hud_layout.setSpacing(6)
+
+        title_widget = self._create_title_widget()
+
+        hud_layout.addWidget(title_widget)
+        hud_layout.addWidget(self._create_separator())
+
+        self.metric_system = MetricWidget(
+            "SYSTEM",
+            self.ui_data.system.name.upper()
+        )
+
+        self.metric_planets = MetricWidget(
+            "PLANETS",
+            self.ui_data.summary.planets
+        )
+
+        self.metric_elw = MetricWidget(
+            "ELW",
+            self.ui_data.summary.earthlike_worlds
+        )
+
+        self.metric_tfww = MetricWidget(
+            "TFWW",
+            self.ui_data.summary.tf_water_worlds
+        )
+
+        self.metric_tfhmc = MetricWidget(
+            "TFHMC",
+            self.ui_data.summary.tf_hmc
+        )
+
+        self.metric_water_world = MetricWidget(
+            "WW",
+            self.ui_data.summary.water_worlds
+        )
+
+        self.metric_hmc = MetricWidget(
+            "HMC",
+            self.ui_data.summary.hmc
+        )
+
+        self.metric_landable = MetricWidget(
+            "LANDABLE",
+            self.ui_data.summary.landable
+        )
+
+        metrics = [
+            self.metric_system,
+            self.metric_planets,
+            self.metric_elw,
+            self.metric_tfww,
+            self.metric_tfhmc,
+            self.metric_water_world,
+            self.metric_hmc,
+            self.metric_landable,
+        ]
+
+        self._add_metrics(hud_layout, metrics)
+
+        page_layout.addWidget(panel)
+
+        self.system_panel = panel
+        panel = self._create_hud_panel()
+        print(self.metric_system.val_label.font().family())
+        print(self.metric_system.key_label.font().family())
+
+        return page
+
+    def _build_body_page(self):
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        panel = self._create_hud_panel()
+
+        hud_layout = QHBoxLayout(panel)
+        hud_layout.setContentsMargins(12, 6, 12, 6)
+        hud_layout.setSpacing(6)
+
+        self.metric_body_name = MetricWidget("PLANET", "--")
+        self.metric_body_class = MetricWidget("CLASS", "--")
+        self.metric_body_tf = MetricWidget("TF", "--")
+        self.metric_body_signals = MetricWidget("SIGNALS", "--")
+        self.metric_body_temp = MetricWidget("TEMP K", "--")
+
+        metrics = [
+            self.metric_body_name,
+            self.metric_body_class,
+            self.metric_body_tf,
+            self.metric_body_signals,
+            self.metric_body_temp,
+        ]
+
+        self._add_metrics(hud_layout, metrics)
+
+        page_layout.addWidget(panel)
+        panel = self._create_hud_panel()
+
+        return page
+
+    def _create_hud_panel(self):
+        panel = QFrame()
+        panel.setObjectName("HUDPanel")
+        panel.setStyleSheet(self.PANEL_STYLE)
+        return panel
+
+
+    def _add_metrics(self, layout, metrics):
+        for index, metric in enumerate(metrics):
+            layout.addWidget(metric)
+
+            if index < len(metrics) - 1:
+                layout.addWidget(self._create_separator())
+
+    def _create_title_widget(self):
+        title_widget = QWidget()
+
+        title_widget.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Fixed
+        )
+
+        layout = QVBoxLayout(title_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        app_title = QLabel("CASPIAN")
+        app_title.setStyleSheet(
+            "color: #56cffc;"
+            "font-size: 12px;"
+            "font-weight: 900;"
+            "letter-spacing: 2px;"
+        )
+
+        app_sub = QLabel("SURVEYOR")
+        app_sub.setStyleSheet(
+            "color: #7d8b99;"
+            "font-size: 8px;"
+            "font-weight: bold;"
+            "letter-spacing: 1px;"
+        )
+
+        layout.addWidget(app_title)
+        layout.addWidget(app_sub)
+
+        return title_widget
+
+    def _start_background_services(self):
         self.journal_thread = QtCore.QThread()
         self.journal_worker = JournalWorker()
 
         self.journal_worker.moveToThread(self.journal_thread)
-        self.journal_thread.started.connect(self.journal_worker.run)
+        self.journal_thread.started.connect(
+            self.journal_worker.run
+        )
 
         self.journal_thread.start()
+
         self.update_timer = QtCore.QTimer(self)
-        self.update_timer.timeout.connect(self.refresh_system_data)
+        self.update_timer.timeout.connect(
+            self.refresh_system_data
+        )
         self.update_timer.start(5000)
-        # Temporary sanity check
-
-    def debug_planetary_bodies(self):
-        for body in self.planetary_bodies:
-            print(body.body_id)
-            print(body.body_name)
-            print(body.planet_class)
-
-
-    def refresh_system_data(self):
-        ui_data = data_structures.load_latest_system_record()
-    
-        if ui_data is None:
-            return
-    
-        self.metric_system.set_value(ui_data.system.name.upper())
-        self.metric_body_count.set_value(ui_data.system.body_count)
-        self.metric_stars.set_value(ui_data.summary.stars)
-        self.metric_planets.set_value(ui_data.summary.planets)
-        self.metric_tfhmc.set_value(ui_data.summary.hmc)
-        self.metric_tfww.set_value(ui_data.summary.tf_water_worlds)
-        self.metric_elw.set_value(ui_data.summary.earthlike_worlds)
-    
-        self.position_top_center()
 
     def toggle_widget(self):
         if self.isVisible():
             self.hide()
         else:
             self.show()
-            
-    def init_ui(self):
-        # but have you heard of titan ass theory™?
-        outer_layout = QVBoxLayout(self)
-        outer_layout.setContentsMargins(10, 10, 10, 10)
-        ui_data = data_structures.load_latest_system_record()
-        # seriously.
-        panel = QFrame()
-        panel.setObjectName("HUDPanel")
-        # solid border -> translucent -
-        panel.setStyleSheet("""
-                #HUDPanel {
-                    background-color: rgba(0, 0, 0, 100);
-                    border-top: 1px solid #002e4d;
-                    border-bottom: 1px solid #004d80;
-                    border-radius: 4px;
-                    border-left: none;
-                    border-right: none;
-                }
-        """)
 
-        # the universe is but an atom. (heh)
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(15)
-        # full background glowy thing color. 
-        # it's okay to laugh
-        # OG was orange. Please look up EDHM and never use orange again. Game changer
-        # shadow.setColor(QColor(255, 113, 0, 100))
-        #shadow.setColor(QColor(0, 166, 220, 50))
-        shadow.setColor(QColor(0, 0, 0, 0))
-        shadow.setOffset(0, 0)
-        panel.setGraphicsEffect(shadow)
+    def cycle_display_next(self):
+        if not self.planetary_bodies:
+            return
 
-        # on the ass of
-        hud_layout = QHBoxLayout(panel)
-        hud_layout.setContentsMargins(12, 6, 12, 6)
-        hud_layout.setSpacing(6)
+        self.current_body_index = (
+            self.current_body_index + 1
+        ) % len(self.planetary_bodies)
 
-        # a extra-universal titan
-        title_box = QVBoxLayout()
-        title_box.setSpacing(0)
-        app_title = QLabel("CASPIAN")
-        # color of CASPIAN
-        app_title.setStyleSheet("color: #56cffc; font-size: 12px; font-weight: 900; letter-spacing: 2px;")
-        app_title.setFont("Eurostile")
-        # color of SURVEYOR
-        # yes, I'm aware it's obvious. NOW. But in weeks to come
-        # when my ADHD ass forgets, you'll be happy a simple bug 
-        # fix doesn't take 10 days
-        app_sub = QLabel("SURVEYOR")
-        app_sub.setStyleSheet("color: #7d8b99; font-size: 8px; font-weight: bold; letter-spacing: 1px;")
-        app_sub.setFont("Eurostile")
-        title_box.addWidget(app_title)
-        title_box.addWidget(app_sub)
-        hud_layout.addLayout(title_box)
+        self.update_body_display()
+        self.display_stack.setCurrentIndex(1)
 
-        hud_layout.addWidget(self._create_separator())
+    def cycle_display_previous(self):
+        if not self.planetary_bodies:
+            return
 
-        # prove me wrong
-        
-        self.metric_system = MetricWidget("SYSTEM", ui_data.system.name.upper())
-        self.metric_body_count = MetricWidget("BODIES", str(ui_data.system.body_count))
-        self.metric_stars = MetricWidget("STARS", str(ui_data.summary.stars))
-        self.metric_planets = MetricWidget("PLANETS", str(ui_data.summary.planets))
-        self.metric_elw = MetricWidget("ELW", str(ui_data.summary.earthlike_worlds))
-        self.metric_tfww = MetricWidget("TFWW", str(ui_data.summary.tf_water_worlds))
-        self.metric_tfhmc = MetricWidget("TFHMC", str(ui_data.summary.tf_hmc))
+        self.current_body_index = (
+            self.current_body_index - 1
+        ) % len(self.planetary_bodies)
 
+        self.update_body_display()
+        self.display_stack.setCurrentIndex(1)
 
+    def cycle_display_default(self):
+        self.display_stack.setCurrentIndex(0)
 
-        for metric in [self.metric_system, self.metric_body_count, self.metric_stars, 
-                       self.metric_planets, self.metric_elw, self.metric_tfww, self.metric_tfhmc  ]:
-            hud_layout.addWidget(metric)
-            if metric != self.metric_tfhmc:
-                hud_layout.addWidget(self._create_separator())
-
-        outer_layout.addWidget(panel)
-        self.setLayout(outer_layout)
+    def update_body_display(self):
+        body = self.planetary_bodies[self.current_body_index]
     
+        self.metric_body_name.set_value(body.body_name)
+        self.metric_body_class.set_value(body.planet_class)
+
+        if body.signals:
+            signal_text = "\n".join(
+                f"{signal.type_localised}: {signal.count}"
+                for signal in body.signals
+            )
+
+            self.metric_body_signals.set_value(signal_text)
+        else:
+            self.metric_body_signals.set_value("--")
+
+        self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+            
 
     def _create_separator(self) -> QFrame:
         """Creates a subtle vertical divider line between metrics."""
@@ -209,13 +439,20 @@ class SystemInfoOverlay(QWidget):
 
     def position_top_center(self):
         screen_geometry = QApplication.primaryScreen().geometry()
-        self.adjustSize()
+
+        self.resize(self.sizeHint())
+
         x = (screen_geometry.width() - self.width()) // 2
         y = 20
         self.move(x, y)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    print([
+        family
+        for family in QFontDatabase.families()
+        if "euro" in family.lower()
+    ])
     overlay = SystemInfoOverlay()
     overlay.show()
     overlay.position_top_center()

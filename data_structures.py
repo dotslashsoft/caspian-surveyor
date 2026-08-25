@@ -32,20 +32,60 @@ class MaterialInfo:
     Name: str
     Percent: float
 
+# {
+#   "timestamp": "2026-08-25T18:43:19Z",
+#   "event": "FSSBodySignals",
+#   "BodyName": "Blaea Thio NU-X c14-11 8 c",
+#   "BodyID": 54,
+#   "SystemAddress": 3062412350594,
+#   "Signals": [
+#     {
+#       "Type": "$SAA_SignalType_Biological;",
+#       "Type_Localised": "Biological",
+#       "Count": 4
+#     }
+#   ]
+# }
+
+@dataclass
+class SignalInfo:
+    type: str
+    type_localised: str
+    count: int
+
 @dataclass
 class CelestialBody:
     body_id: int
     body_name: str
     parents: List[Dict[str, int]] = field(default_factory=list)
-    periapsis: float = 0.0
+    periapsis: Optional[float] = None
     was_discovered: bool = False
     was_mapped: bool = False
     was_footfalled: bool = False
+    distance_from_arrival: Optional[float] = None
     # Use Optional/Any for values that can be null or different types
     planet_class: Optional[str] = None
     terraform_state: Optional[str] = None
-    surface_pressure: Optional[float] = None
     materials: Optional[List[MaterialInfo]] = None
+    surface_temperature: Optional[float] = None
+    atmosphere: Optional[str] = None
+    atmosphere_type: Optional[str] = None
+    radius: Optional[float] = None
+    surface_gravity: Optional[float] = None
+    surface_pressure: Optional[float] = None
+    semi_major_axis: Optional[float] = None
+    eccentricity: Optional[float] = None
+    orbital_inclination: Optional[float] = None
+    orbital_period: Optional[float] = None
+    ascending_node: Optional[float] = None
+    mean_anomaly: Optional[float] = None
+    rotational_period: Optional[float] = None
+    axial_tilt: Optional[float] = None
+    tidal_lock: bool = False
+    signals: Optional[List[SignalInfo]] = None
+
+    
+
 
     def __post_init__(self):
         # Automatically turn the raw materials list into MaterialInfo objects
@@ -54,6 +94,20 @@ class CelestialBody:
                 MaterialInfo(**m) if isinstance(m, dict) else m 
                 for m in self.materials
             ]
+
+        # Automatically turn raw signal dictionaries into SignalInfo objects
+        if isinstance(self.signals, list):
+            self.signals = [
+                SignalInfo(
+                    type=signal.get("Type"),
+                    type_localised=signal.get("Type_Localised"),
+                    count=signal.get("Count")
+                )
+                if isinstance(signal, dict)
+                else signal
+                for signal in self.signals
+            ]
+
 
 @dataclass
 class FullStarSystemPayload():

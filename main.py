@@ -213,8 +213,27 @@ class SurveyState:
         current_system["body_count"] = event.get("BodyCount")
         current_system["discovery_progress"] = event.get("Progress")
 
-    def record_body_scan(self, event):
+    def record_body_signals(self, event):
+        current_system = self._get_current_system(event)
 
+        if current_system is None:
+            return False
+
+        body_id = event.get("BodyID")
+
+        if body_id is None:
+            logger.warning("FSSBodySignals event received without BodyID.")
+            return False
+
+        body = current_system["bodies"].setdefault(body_id, {})
+
+        body["BodyID"] = body_id
+        body["BodyName"] = event.get("BodyName")
+        body["Signals"] = event.get("Signals", [])
+
+        return True
+
+    def record_body_scan(self, event):
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -367,12 +386,29 @@ class SurveyDataBuilder:
             "parents": body.get("Parents"),
             "planet_class": body.get("PlanetClass"),
             "terraform_state": body.get("TerraformState"),
-            "surface_pressure": body.get("SurfacePressure"),
             "materials": body.get("Materials"),
             "periapsis": body.get("Periapsis"),
             "was_discovered": body.get("WasDiscovered"),
             "was_mapped": body.get("WasMapped"),
             "was_footfalled": body.get("WasFootfalled"),
+            ###############################################
+            "surface_temperature": body.get("SurfaceTemperature"),
+            "atmosphere": body.get("Atmosphere"),
+            "atmosphere_type": body.get("AtmosphereType"),
+            "radius": body.get("Radius"),
+            "surface_gravity": body.get("SurfaceGravity"),
+            "surface_pressure": body.get("SurfacePressure"),
+            "semi_major_axis": body.get("SemiMajorAxis"),
+            "eccentricity": body.get("Eccentricity"),
+            "orbital_inclination": body.get("OrbitalInclination"),
+            "orbital_period": body.get("OrbitalPeriod"),
+            "ascending_node": body.get("AscendingNode"),
+            "mean_anomaly": body.get("MeanAnomaly"),
+            "rotational_period": body.get("RotationPeriod"),
+            "axial_tilt": body.get("AxialTilt"),
+            "tidal_lock": body.get("TidalLock"),
+            "distance_from_arrival": body.get("DistanceFromArrivalLS"),
+            "signals": body.get("Signals")
         }
 
 
@@ -418,6 +454,9 @@ def main():
 
             elif event_type == "Scan":
                 survey_state.record_body_scan(event)
+
+            elif event_type == "FSSBodySignals":
+                survey_state.record_body_signals(event)
 
             elif event_type == "FSSAllBodiesFound":
                 newly_complete = (
