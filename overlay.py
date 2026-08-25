@@ -47,8 +47,6 @@ class SystemInfoOverlay(QWidget):
     
     def __init__(self):
         super().__init__()
-
-
         self.toggle_requested.connect(self.toggle_widget)
         self.exit_requested.connect(QApplication.instance().quit)
         
@@ -62,6 +60,15 @@ class SystemInfoOverlay(QWidget):
             self.exit_requested.emit
         )
 
+        self.ui_data = data_structures.load_latest_system_record()
+
+        if self.ui_data is not None:
+            self.planetary_bodies = self.ui_data.planetary_bodies
+        else:
+            self.planetary_bodies = []
+
+        self.current_body_index = 0
+        self.debug_planetary_bodies()
         ### window flags for overlay ###
         self.setWindowFlags(
             Qt.WindowType.WindowStaysOnTopHint |       # Always stay over the game window
@@ -78,12 +85,18 @@ class SystemInfoOverlay(QWidget):
         self.journal_worker.moveToThread(self.journal_thread)
         self.journal_thread.started.connect(self.journal_worker.run)
 
-        self.journal_worker.system_updated.connect(self.update_system_data)
-
         self.journal_thread.start()
         self.update_timer = QtCore.QTimer(self)
         self.update_timer.timeout.connect(self.refresh_system_data)
-        self.update_timer.start(1000)
+        self.update_timer.start(5000)
+        # Temporary sanity check
+
+    def debug_planetary_bodies(self):
+        for body in self.planetary_bodies:
+            print(body.body_id)
+            print(body.body_name)
+            print(body.planet_class)
+
 
     def refresh_system_data(self):
         ui_data = data_structures.load_latest_system_record()
@@ -91,11 +104,13 @@ class SystemInfoOverlay(QWidget):
         if ui_data is None:
             return
     
-        self.metric_system.set_value(ui_data.system.name)
+        self.metric_system.set_value(ui_data.system.name.upper())
         self.metric_body_count.set_value(ui_data.system.body_count)
         self.metric_stars.set_value(ui_data.summary.stars)
         self.metric_planets.set_value(ui_data.summary.planets)
-        self.metric_hmc.set_value(ui_data.summary.hmc)
+        self.metric_tfhmc.set_value(ui_data.summary.hmc)
+        self.metric_tfww.set_value(ui_data.summary.tf_water_worlds)
+        self.metric_elw.set_value(ui_data.summary.earthlike_worlds)
     
         self.position_top_center()
 
@@ -164,20 +179,25 @@ class SystemInfoOverlay(QWidget):
 
         # prove me wrong
         
-        self.metric_system = MetricWidget("SYSTEM", ui_data.system.name)
+        self.metric_system = MetricWidget("SYSTEM", ui_data.system.name.upper())
         self.metric_body_count = MetricWidget("BODIES", str(ui_data.system.body_count))
         self.metric_stars = MetricWidget("STARS", str(ui_data.summary.stars))
         self.metric_planets = MetricWidget("PLANETS", str(ui_data.summary.planets))
-        self.metric_hmc = MetricWidget("HMC", str(ui_data.summary.hmc))
+        self.metric_elw = MetricWidget("ELW", str(ui_data.summary.earthlike_worlds))
+        self.metric_tfww = MetricWidget("TFWW", str(ui_data.summary.tf_water_worlds))
+        self.metric_tfhmc = MetricWidget("TFHMC", str(ui_data.summary.tf_hmc))
+
+
 
         for metric in [self.metric_system, self.metric_body_count, self.metric_stars, 
-                       self.metric_planets, self.metric_hmc]:
+                       self.metric_planets, self.metric_elw, self.metric_tfww, self.metric_tfhmc  ]:
             hud_layout.addWidget(metric)
-            if metric != self.metric_hmc:
+            if metric != self.metric_tfhmc:
                 hud_layout.addWidget(self._create_separator())
 
         outer_layout.addWidget(panel)
         self.setLayout(outer_layout)
+    
 
     def _create_separator(self) -> QFrame:
         """Creates a subtle vertical divider line between metrics."""
@@ -193,20 +213,6 @@ class SystemInfoOverlay(QWidget):
         x = (screen_geometry.width() - self.width()) // 2
         y = 20
         self.move(x, y)
-
-    def update_system_data(self, data: dict):
-        self.metric_system.set_value(data.get("StarSystem", "--"))
-        self.metric_body_count.set_value(data.get("SystemAddress", "--"))
-        
-        pos = data.get("StarPos", [0.0, 0.0, 0.0])
-        self.metric_stars.set_value(f"{pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}")
-        
-        self.metric_planets.set_value(data.get("BodyCount", "--"))
-        self.metric_hmc.set_value(f"{data.get('ScannedCount', 0)} / {data.get('BodyCount', '--')}")
-        
-        # enjoy ^_^
-        self.position_top_center()
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

@@ -63,20 +63,34 @@ class FullStarSystemPayload():
     bodies: Dict[str, CelestialBody] = field(default_factory=dict)
 
     def __post_init__(self):
-        # Convert nested system dict
         if isinstance(self.system, dict):
             self.system = SystemInfo(**self.system)
-            
-        # Convert nested summary dict
+
         if isinstance(self.summary, dict):
             self.summary = SummaryInfo(**self.summary)
-            
-        # Convert the dynamic "bodies" dictionary
+
         if isinstance(self.bodies, dict):
             self.bodies = {
-                key: (CelestialBody(**value) if isinstance(value, dict) else value)
+                key: (
+                    CelestialBody(**value)
+                    if isinstance(value, dict)
+                    else value
+                )
                 for key, value in self.bodies.items()
             }
+
+    @property
+    def planetary_bodies(self) -> list[CelestialBody]:
+        return sorted(
+            (
+                body
+                for body in self.bodies.values()
+                if body.planet_class is not None
+            ),
+            key=lambda body: body.body_id
+        )
+
+
 
 
 def load_latest_system_record():
@@ -109,6 +123,8 @@ def load_latest_system_record():
     except json.JSONDecodeError:
         print("Error: The last line of the file is broken or incomplete JSON.")
         return None
+
+
 
 
 if __name__ == "__main__":
