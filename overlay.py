@@ -1,11 +1,10 @@
 import sys
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QHBoxLayout, 
     QVBoxLayout, QFrame, QStackedWidget, QSizePolicy
 )
-from PySide6.QtGui import QPainter, QPolygon, QRegion
 import data_structures
 import keyboard
 import logging
