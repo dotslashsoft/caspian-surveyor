@@ -7,8 +7,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QPainter, QPolygon, QRegion
 import data_structures
-
 import keyboard
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MetricWidget(QWidget):
     def __init__(

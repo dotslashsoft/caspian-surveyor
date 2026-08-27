@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 import json
 import main
+import logging
+
+logger = logging.getLogger(__name__)
 
 exploration_history_jsonl = main.EXPLORATION_HISTORY_FILE
 
