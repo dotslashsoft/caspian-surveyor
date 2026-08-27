@@ -1,70 +1,18 @@
 import json
 import logging
-import sys
 import time
-
-from datetime import datetime
 from pathlib import Path
+import bootstrap.cs_log_factory as cs_log_factory
+import bootstrap.cs_baseline_config as cs_baseline_config
 
-logger = logging.getLogger(__name__)
+
 
 ### ### ### ### ### ### ### ### ### ### ### ### 
-
-run_directory = Path.cwd()
-
-journal_directory = (
-    Path.home()
-    / "Saved Games"
-    / "Frontier Developments"
-    / "Elite Dangerous"
-)
+logger = cs_log_factory.logger
+run_directory = cs_baseline_config.run_directory
+journal_directory = cs_baseline_config.journal_directory
 
 
-def display_directory_info():
-    """Display directory information for early testing."""
-
-    print(f"Run Directory:\t\t{run_directory}")
-    print(f"Journal Directory:\t{journal_directory}")
-
-
-
-def list_journal_directory_contents():
-    logger.debug("Searching journal directory: %s", journal_directory)
-    journal_files = list(journal_directory.glob("Journal.*.log"))
-    logger.debug("Found %d journal files.", len(journal_files))
-
-    if not journal_files:
-        logger.warning("No Elite Dangerous journal files found.")
-        return None
-    
-    latest_journal = max(journal_files, key=lambda path: path.stat().st_mtime)
-    logger.info("Latest journal selected: %s", latest_journal)
-
-    return latest_journal
-
-class LogManager:
-
-    DEFAULT_LOG_DIR = run_directory / "logs"
-    DEFAULT_LOG_LEVEL = logging.DEBUG
-
-    def __init__(self, log_dir=DEFAULT_LOG_DIR):
-        self.log_dir = Path(log_dir)
-        self.script_name = Path(sys.argv[0]).stem
-        self.datetimestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_filename = (f"{self.script_name}_{self.datetimestamp}.log")
-        self.full_log_path = (self.log_dir / self.log_filename)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-
-    def set_log_config(self):
-        logging.basicConfig(
-            filename=self.full_log_path,
-            filemode="a",
-            level=self.DEFAULT_LOG_LEVEL,
-            format="%(asctime)s - %(levelname)s - %(message)s"
-        )
-
-    def get_log_dir(self):
-        return str(self.log_dir)
 
 class JournalReader:
 
@@ -391,7 +339,6 @@ class SurveyDataBuilder:
             "was_discovered": body.get("WasDiscovered"),
             "was_mapped": body.get("WasMapped"),
             "was_footfalled": body.get("WasFootfalled"),
-            ###############################################
             "surface_temperature": body.get("SurfaceTemperature"),
             "atmosphere": body.get("Atmosphere"),
             "atmosphere_type": body.get("AtmosphereType"),
@@ -412,8 +359,22 @@ class SurveyDataBuilder:
         }
 
 
-EXPLORATION_HISTORY_FILE = (run_directory / "exploration_history.jsonl")
+def list_journal_directory_contents():
+    logger.debug("Searching journal directory: %s", journal_directory)
+    journal_files = list(journal_directory.glob("Journal.*.log"))
+    logger.debug("Found %d journal files.", len(journal_files))
 
+    if not journal_files:
+        logger.warning("No Elite Dangerous journal files found.")
+        return None
+    
+    latest_journal = max(journal_files, key=lambda path: path.stat().st_mtime)
+    logger.info("Latest journal selected: %s", latest_journal)
+
+    return latest_journal
+
+
+EXPLORATION_HISTORY_FILE = (run_directory / "exploration_history.jsonl")
 def append_system_record_to_history_file(summary):
     with EXPLORATION_HISTORY_FILE.open("a", encoding="utf-8") as file:
         file.write(json.dumps(summary) + "\n")
@@ -426,10 +387,10 @@ def append_system_record_to_history_file(summary):
 ###############################################################
 
 def main():
-    log_manager = LogManager()
+    log_manager = cs_log_factory.LogManager()
     log_manager.set_log_config()
 
-    display_directory_info()
+    # display_directory_info()
 
     latest_journal = list_journal_directory_contents()
     if latest_journal is None:

@@ -32,21 +32,6 @@ class MaterialInfo:
     Name: str
     Percent: float
 
-# {
-#   "timestamp": "2026-08-25T18:43:19Z",
-#   "event": "FSSBodySignals",
-#   "BodyName": "Blaea Thio NU-X c14-11 8 c",
-#   "BodyID": 54,
-#   "SystemAddress": 3062412350594,
-#   "Signals": [
-#     {
-#       "Type": "$SAA_SignalType_Biological;",
-#       "Type_Localised": "Biological",
-#       "Count": 4
-#     }
-#   ]
-# }
-
 @dataclass
 class SignalInfo:
     type: str
@@ -99,9 +84,9 @@ class CelestialBody:
         if isinstance(self.signals, list):
             self.signals = [
                 SignalInfo(
-                    type=signal.get("Type"),
-                    type_localised=signal.get("Type_Localised"),
-                    count=signal.get("Count")
+                    type=signal.get("Type", "--"),
+                    type_localised=signal.get("Type_Localised", "--"),
+                    count=signal.get("Count", "--")
                 )
                 if isinstance(signal, dict)
                 else signal

@@ -1,11 +1,11 @@
 import sys
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QPoint
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QHBoxLayout, 
-    QVBoxLayout, QFrame, QGraphicsDropShadowEffect, QStackedWidget, QSizePolicy
+    QVBoxLayout, QFrame, QStackedWidget, QSizePolicy
 )
-from PySide6.QtGui import QColor, QFont, QFontDatabase
+from PySide6.QtGui import QPainter, QPolygon, QRegion
 import data_structures
 
 import keyboard
@@ -51,8 +51,13 @@ class MetricWidget(QWidget):
         layout.addWidget(self.val_label)
 
 
-    def set_value(self, value: str | int | float):
+    def set_value(self, value: str | int | float | None):
         self.val_label.setText(str(value))
+
+        if value is None:
+            self.val_label.setText("--")
+        else:
+            self.val_label.setText(str(value))
 
 class JournalWorker(QtCore.QObject):
     system_updated = QtCore.Signal(object)
@@ -160,6 +165,7 @@ class SystemInfoOverlay(QWidget):
         self.system_page = self._build_system_page()
         self.body_page = self._build_body_page()
 
+        assert self.system_page is not None
         self.display_stack.addWidget(self.system_page)
         self.display_stack.addWidget(self.body_page)
         self.display_stack.setCurrentIndex(0)
@@ -169,7 +175,7 @@ class SystemInfoOverlay(QWidget):
 
     def _connect_signals(self):
         self.toggle_requested.connect(self.toggle_widget)
-        self.exit_requested.connect(QApplication.instance().quit)
+        self.exit_requested.connect(self.exit_overlay)
 
         self.cycle_next.connect(self.cycle_display_next)
         self.cycle_previous.connect(self.cycle_display_previous)
@@ -220,6 +226,9 @@ class SystemInfoOverlay(QWidget):
         hud_layout.addWidget(title_widget)
         hud_layout.addWidget(self._create_separator())
 
+        if self.ui_data == None:
+            return
+        
         self.metric_system = MetricWidget(
             "SYSTEM",
             self.ui_data.system.name.upper()
@@ -385,6 +394,14 @@ class SystemInfoOverlay(QWidget):
         else:
             self.show()
 
+    def exit_overlay(self):
+        app_instance = QApplication.instance()
+
+        if app_instance is not None:
+            app_instance.quit()
+        else:
+            print("Error: QApplication has not been initialized yet.")
+
     def cycle_display_next(self):
         if not self.planetary_bodies:
             return
@@ -412,8 +429,8 @@ class SystemInfoOverlay(QWidget):
 
     def update_body_display(self):
         body = self.planetary_bodies[self.current_body_index]
-    
         self.metric_body_name.set_value(body.body_name)
+
         self.metric_body_class.set_value(body.planet_class)
 
         if body.signals:
@@ -448,11 +465,6 @@ class SystemInfoOverlay(QWidget):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    print([
-        family
-        for family in QFontDatabase.families()
-        if "euro" in family.lower()
-    ])
     overlay = SystemInfoOverlay()
     overlay.show()
     overlay.position_top_center()
