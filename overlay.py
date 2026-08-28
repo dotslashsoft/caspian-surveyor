@@ -8,8 +8,11 @@ from PySide6.QtWidgets import (
 import data_structures
 import keyboard
 import logging
+import bootstrap.cs_log_factory as cs_log_factory
 
 logger = logging.getLogger(__name__)
+log_manager = cs_log_factory.LogManager()
+log_manager.set_log_config()
 
 class MetricWidget(QWidget):
     def __init__(
@@ -17,10 +20,7 @@ class MetricWidget(QWidget):
         key: str,
         default_value: str | int | float = "--"
     ):
-        from PySide6.QtGui import QFont
         super().__init__()
-
-        self.setFont(QFont("Eurostile"))
 
         self.setSizePolicy(
             QSizePolicy.Policy.Preferred,
@@ -29,7 +29,7 @@ class MetricWidget(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 2, 8, 2)
-        layout.setSpacing(1)
+        layout.setSpacing(6)
 
         self.key_label = QLabel(key)
         self.key_label.setStyleSheet("""
@@ -65,6 +65,7 @@ class JournalWorker(QtCore.QObject):
 
     def run(self):
         print("Journal worker is running")
+        logger.info("Journal worker is running")
 
 
 class SystemInfoOverlay(QWidget):
@@ -79,7 +80,7 @@ class SystemInfoOverlay(QWidget):
             background-color: rgba(0, 0, 0, 100);
             border-top: 1px solid #002e4d;
             border-bottom: 1px solid #004d80;
-            border-radius: 4px;
+            border-radius: 8px;
             border-left: none;
             border-right: none;
             font-family: Eurostile;
@@ -348,23 +349,25 @@ class SystemInfoOverlay(QWidget):
         )
 
         layout = QVBoxLayout(title_widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout.setContentsMargins(5, 10, 5, 10)
+        layout.setSpacing(6)
 
         app_title = QLabel("CASPIAN")
         app_title.setStyleSheet(
             "color: #56cffc;"
             "font-size: 12px;"
-            "font-weight: 900;"
+            "font-weight: 800;"
             "letter-spacing: 2px;"
+            "font-family: Eurostile;"
         )
 
         app_sub = QLabel("SURVEYOR")
         app_sub.setStyleSheet(
             "color: #7d8b99;"
-            "font-size: 8px;"
+            "font-size: 9px;"
             "font-weight: bold;"
             "letter-spacing: 1px;"
+            "font-family: Eurostile;"
         )
 
         layout.addWidget(app_title)
@@ -457,9 +460,7 @@ class SystemInfoOverlay(QWidget):
 
     def position_top_center(self):
         screen_geometry = QApplication.primaryScreen().geometry()
-
         self.resize(self.sizeHint())
-
         x = (screen_geometry.width() - self.width()) // 2
         y = 20
         self.move(x, y)
