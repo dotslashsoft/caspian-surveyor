@@ -221,6 +221,22 @@ class SurveyState:
 
         return not already_complete
 
+    def record_dss_complete(self, event):
+        current_system = self._get_current_system(event)
+
+        if current_system is None:
+            return False
+
+        body_id = event.get("BodyID")
+
+        if body_id is None:
+            return False
+
+        body = current_system["bodies"].setdefault(body_id, {})
+        body["DSSScanComplete"] = True
+
+        return True
+
     def _matches_current_system(self, event):
         if self.current_system is None:
             return False
@@ -355,7 +371,8 @@ class SurveyDataBuilder:
             "axial_tilt": body.get("AxialTilt"),
             "tidal_lock": body.get("TidalLock"),
             "distance_from_arrival": body.get("DistanceFromArrivalLS"),
-            "signals": body.get("Signals")
+            "signals": body.get("Signals"),
+            "dss_scan_complete": body.get("DSSScanComplete", False),
         }
 
 
@@ -418,6 +435,9 @@ def main():
 
             elif event_type == "FSSBodySignals":
                 survey_state.record_body_signals(event)
+
+            elif event_type == "SAAScanComplete":
+                survey_state.record_dss_complete(event)
 
             elif event_type == "FSSAllBodiesFound":
                 newly_complete = (

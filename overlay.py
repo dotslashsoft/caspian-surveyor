@@ -97,14 +97,6 @@ class SystemInfoOverlay(QWidget):
         self._build_ui()
         self._start_background_services()
 
-    # Temporary sanity check
-    def debug_planetary_bodies(self):
-        for body in self.planetary_bodies:
-            print(body.body_id)
-            print(body.body_name)
-            print(body.planet_class)
-
-
     def refresh_system_data(self):
         ui_data = data_structures.load_latest_system_record()
 
@@ -289,8 +281,8 @@ class SystemInfoOverlay(QWidget):
 
         self.system_panel = panel
         panel = self._create_hud_panel()
-        print(self.metric_system.val_label.font().family())
-        print(self.metric_system.key_label.font().family())
+        # print(self.metric_system.val_label.font().family())
+        # print(self.metric_system.key_label.font().family())
 
         return page
 
@@ -308,16 +300,51 @@ class SystemInfoOverlay(QWidget):
 
         self.metric_body_name = MetricWidget("PLANET", "--")
         self.metric_body_class = MetricWidget("CLASS", "--")
-        self.metric_body_tf = MetricWidget("TF", "--")
+        self.metric_tf_state = MetricWidget("TF", "--")
         self.metric_body_signals = MetricWidget("SIGNALS", "--")
         self.metric_body_temp = MetricWidget("TEMP K", "--")
+        self.metric_body_dss = MetricWidget("DSS SCAN", False)
 
         metrics = [
             self.metric_body_name,
             self.metric_body_class,
-            self.metric_body_tf,
+            self.metric_tf_state,
             self.metric_body_signals,
             self.metric_body_temp,
+            self.metric_body_dss
+        ]
+
+        self._add_metrics(hud_layout, metrics)
+
+        page_layout.addWidget(panel)
+        panel = self._create_hud_panel()
+
+        return page
+
+    def _build_exobio_page(self):
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        panel = self._create_hud_panel()
+
+        hud_layout = QHBoxLayout(panel)
+        hud_layout.setContentsMargins(12, 6, 12, 6)
+        hud_layout.setSpacing(6)
+
+        self.metric_body_name = MetricWidget("PLANET", "--")
+        self.metric_exobio_signals = MetricWidget("EXOSIGNALS", "--")
+        self.metric_exobio_genus = MetricWidget("GENUS", "--")
+        self.metric_exobio_species = MetricWidget("SPECIES", "--")
+        self.metric_exibio_variant = MetricWidget("VARIANT", "--")
+
+        metrics = [
+            self.metric_body_name,
+            self.metric_exobio_signals,
+            self.metric_exobio_genus,
+            self.metric_exobio_species,
+            self.metric_exibio_variant,
         ]
 
         self._add_metrics(hud_layout, metrics)
@@ -448,8 +475,14 @@ class SystemInfoOverlay(QWidget):
         else:
             self.metric_body_signals.set_value("--")
 
-        self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+        if body.terraform_state:
+            self.metric_tf_state.set_value(body.terraform_state)
+        else:
+            self.metric_tf_state.set_value("--")
             
+
+        self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+        self.metric_body_dss.set_value(body.dss_scan_complete)
 
     def _create_separator(self) -> QFrame:
         """Creates a subtle vertical divider line between metrics."""

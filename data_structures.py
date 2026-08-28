@@ -42,6 +42,23 @@ class SignalInfo:
     count: int
 
 @dataclass
+class OrganicScanInfo:
+    scan_type: str
+    genus: str
+    genus_localised: str
+    species: str
+    species_localised: str
+    variant: str
+    variant_localised: str
+    was_logged: bool
+
+@dataclass
+class GenusInfo:
+    genus: str
+    genus_localised: str
+
+
+@dataclass
 class CelestialBody:
     body_id: int
     body_name: str
@@ -51,7 +68,6 @@ class CelestialBody:
     was_mapped: bool = False
     was_footfalled: bool = False
     distance_from_arrival: Optional[float] = None
-    # Use Optional/Any for values that can be null or different types
     planet_class: Optional[str] = None
     terraform_state: Optional[str] = None
     materials: Optional[List[MaterialInfo]] = None
@@ -71,7 +87,9 @@ class CelestialBody:
     axial_tilt: Optional[float] = None
     tidal_lock: bool = False
     signals: Optional[List[SignalInfo]] = None
-
+    dss_scan_complete: bool = False
+    genuses: Optional[list[GenusInfo]] = None
+    organic_scans: list[OrganicScanInfo] = field(default_factory=list)
     
 
 
