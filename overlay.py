@@ -151,6 +151,7 @@ class SystemInfoOverlay(QWidget):
             Qt.WindowType.WindowStaysOnTopHint
             | Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.Tool
+            | Qt.WindowType.WindowTransparentForInput
         )
 
         self.setAttribute(
