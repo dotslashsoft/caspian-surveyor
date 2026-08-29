@@ -281,8 +281,6 @@ class SystemInfoOverlay(QWidget):
 
         self.system_panel = panel
         panel = self._create_hud_panel()
-        # print(self.metric_system.val_label.font().family())
-        # print(self.metric_system.key_label.font().family())
 
         return page
 
