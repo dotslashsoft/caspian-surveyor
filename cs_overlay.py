@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QHBoxLayout, 
     QVBoxLayout, QFrame, QStackedWidget, QSizePolicy
 )
-import data_structures
+import cs_data_structures
 import keyboard
 import logging
 import bootstrap.cs_log_factory as cs_log_factory
@@ -98,7 +98,7 @@ class SystemInfoOverlay(QWidget):
         self._start_background_services()
 
     def refresh_system_data(self):
-        ui_data = data_structures.load_latest_system_record()
+        ui_data = cs_data_structures.load_latest_system_record()
 
         if ui_data is None:
             return
@@ -129,7 +129,7 @@ class SystemInfoOverlay(QWidget):
         self.position_top_center()
 
     def _load_initial_data(self):
-        self.ui_data = data_structures.load_latest_system_record()
+        self.ui_data = cs_data_structures.load_latest_system_record()
 
         if self.ui_data is not None:
             self.planetary_bodies = self.ui_data.planetary_bodies

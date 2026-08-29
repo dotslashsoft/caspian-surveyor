@@ -1,5 +1,5 @@
-import main
-import data_structures
+import caspian_surveyor
+import cs_data_structures
 import math
 
 

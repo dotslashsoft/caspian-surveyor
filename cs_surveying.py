@@ -1,118 +1,7 @@
-import json
-import logging
-import time
-from pathlib import Path
 import bootstrap.cs_log_factory as cs_log_factory
-import bootstrap.cs_baseline_config as cs_baseline_config
-
-
 
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = cs_log_factory.logger
-run_directory = cs_baseline_config.run_directory
-journal_directory = cs_baseline_config.journal_directory
-
-
-
-class JournalReader:
-
-    def __init__(self, journal_path, poll_interval=1.0):
-        self.journal_path = Path(journal_path)
-        self.poll_interval = poll_interval
-
-    def follow(self):
-        logger.info("Beginning journal monitoring: %s", self.journal_path)
-        try:
-            with self.journal_path.open("r", encoding="utf-8") as journal_file:
-                # Move immediately to the end of the file.
-                # Only process events written after monitoring begins.
-                journal_file.seek(0, 2)
-                logger.debug("Journal reader positioned at end of file.")
-
-                while True:
-                    current_position = journal_file.tell()
-                    line = journal_file.readline()
-                    # No new journal data.
-                    if not line:
-                        time.sleep(self.poll_interval)
-                        continue
-
-                    # Elite may still be writing the line.
-                    if not line.endswith("\n"):
-                        logger.debug(
-                            "Incomplete journal line encountered; "
-                            "waiting for remaining data.")
-
-                        journal_file.seek(current_position)
-                        time.sleep(self.poll_interval)
-
-                        continue
-
-                    try:
-                        event = json.loads(line)
-
-                    except json.JSONDecodeError:
-                        logger.exception(
-                            "Unable to parse journal line."
-                        )
-
-                        continue
-
-                    event_name = event.get("event", "Unknown")
-
-                    logger.debug("Journal event received: %s", event_name)
-
-                    if (
-                        logger.isEnabledFor(logging.DEBUG)
-                        and event_name in DEBUG_PAYLOAD_EVENTS
-                    ):
-                        logger.debug("Event payload: %s", json.dumps(event))
-
-                    yield event
-
-        except OSError:
-            logger.exception("Unable to open or read journal file: %s", self.journal_path)
-            raise
-
-### event constants ###
-
-EVENT_MESSAGES = {
-    "FSDJump": "Entered new star system",
-    "FSSDiscoveryScan": "Discovery scan completed",
-    "FSSAllBodiesFound": "All system bodies discovered",
-    "DockSRV": "SRV docked with ship",
-    "Liftoff": "Lifted off from planetary surface",
-    "SupercruiseEntry": "Entered supercruise",
-    "LeaveBody": "Left planetary body",
-}
-
-EVENT_CONFIG = {
-    "FSDJump": {
-        "message": "Entered new star system",
-        "category": "navigation",
-        "important": True,
-    },
-    "Scan": {
-        "message": "Body scan received",
-        "category": "exploration",
-        "important": True,
-    },
-    "Music": {
-        "message": "Music state changed",
-        "category": "game",
-        "important": False,
-    },
-}
-
-DEBUG_PAYLOAD_EVENTS = {
-    "Location",
-    "FSDJump",
-    "FSSDiscoveryScan",
-    "Scan",
-    "FSSAllBodiesFound",
-}
-
-
 
 class SurveyState:
 
@@ -187,9 +76,6 @@ class SurveyState:
         if current_system is None:
             return False
 
-        if not self._matches_current_system(event):
-            return
-
         body_id = event.get("BodyID")
 
         if body_id is None:
@@ -236,16 +122,6 @@ class SurveyState:
         body["DSSScanComplete"] = True
 
         return True
-
-    def _matches_current_system(self, event):
-        if self.current_system is None:
-            return False
-
-        event_address = event.get("SystemAddress")
-        if event_address is None:
-            return True
-
-        return (event_address == self.current_system["address"])
 
 class SurveyDataBuilder:
 
@@ -352,10 +228,11 @@ class SurveyDataBuilder:
             "terraform_state": body.get("TerraformState"),
             "materials": body.get("Materials"),
             "periapsis": body.get("Periapsis"),
-            "was_discovered": body.get("WasDiscovered"),
-            "was_mapped": body.get("WasMapped"),
-            "was_footfalled": body.get("WasFootfalled"),
             "surface_temperature": body.get("SurfaceTemperature"),
+            "was_discovered": body.get("WasDiscovered", False),
+            "was_mapped": body.get("WasMapped", False),
+            "was_footfalled": body.get("WasFootfalled", False),
+            "tidal_lock": body.get("TidalLock", False),
             "atmosphere": body.get("Atmosphere"),
             "atmosphere_type": body.get("AtmosphereType"),
             "radius": body.get("Radius"),
@@ -369,89 +246,7 @@ class SurveyDataBuilder:
             "mean_anomaly": body.get("MeanAnomaly"),
             "rotational_period": body.get("RotationPeriod"),
             "axial_tilt": body.get("AxialTilt"),
-            "tidal_lock": body.get("TidalLock"),
             "distance_from_arrival": body.get("DistanceFromArrivalLS"),
             "signals": body.get("Signals"),
             "dss_scan_complete": body.get("DSSScanComplete", False),
         }
-
-
-def list_journal_directory_contents():
-    logger.debug("Searching journal directory: %s", journal_directory)
-    journal_files = list(journal_directory.glob("Journal.*.log"))
-    logger.debug("Found %d journal files.", len(journal_files))
-
-    if not journal_files:
-        logger.warning("No Elite Dangerous journal files found.")
-        return None
-    
-    latest_journal = max(journal_files, key=lambda path: path.stat().st_mtime)
-    logger.info("Latest journal selected: %s", latest_journal)
-
-    return latest_journal
-
-
-EXPLORATION_HISTORY_FILE = (run_directory / "exploration_history.jsonl")
-def append_system_record_to_history_file(summary):
-    with EXPLORATION_HISTORY_FILE.open("a", encoding="utf-8") as file:
-        file.write(json.dumps(summary) + "\n")
-
-
-###############################################################
-#                                                             #
-### ###                 main process                    ### ###
-#                                                             #
-###############################################################
-
-def main():
-    log_manager = cs_log_factory.LogManager()
-    log_manager.set_log_config()
-
-    # display_directory_info()
-
-    latest_journal = list_journal_directory_contents()
-    if latest_journal is None:
-        return
-
-    reader = JournalReader(latest_journal, poll_interval=1.0)
-    survey_state = SurveyState()
-    survey_data_builder = SurveyDataBuilder(survey_state)
-    print(f"Monitoring:\t\t{latest_journal}")
-
-    try:
-        for event in reader.follow():
-            event_type = event.get("event")
-
-            print(f"{event.get('timestamp')} | {event_type}")
-
-            if event_type == "FSDJump":
-                survey_state.begin_system(event)
-
-            elif event_type == "FSSDiscoveryScan":
-                survey_state.record_discovery_scan(event)
-
-            elif event_type == "Scan":
-                survey_state.record_body_scan(event)
-
-            elif event_type == "FSSBodySignals":
-                survey_state.record_body_signals(event)
-
-            elif event_type == "SAAScanComplete":
-                survey_state.record_dss_complete(event)
-
-            elif event_type == "FSSAllBodiesFound":
-                newly_complete = (
-                    survey_state.mark_all_bodies_found(event))
-
-                if newly_complete:
-                    print("FSS survey complete.")
-
-                    survey_data_builder = SurveyDataBuilder(survey_state)
-                    system_record = survey_data_builder.build_system_record()
-                    append_system_record_to_history_file(system_record)
-
-    except KeyboardInterrupt:
-        print("\nJournal monitoring stopped.")
-
-if __name__ == "__main__":
-    main()

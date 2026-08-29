@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 import json
-import main
 import logging
+import cs_history
 
 logger = logging.getLogger(__name__)
 
-exploration_history_jsonl = main.EXPLORATION_HISTORY_FILE
+exploration_history_jsonl = cs_history.EXPLORATION_HISTORY_FILE
 
 @dataclass
 class SystemInfo:
@@ -151,8 +151,6 @@ class FullStarSystemPayload():
         )
 
 
-
-
 def load_latest_system_record():
     try:
         with open(exploration_history_jsonl, "r", encoding="utf-8") as file:
@@ -183,12 +181,3 @@ def load_latest_system_record():
     except json.JSONDecodeError:
         print("Error: The last line of the file is broken or incomplete JSON.")
         return None
-
-
-
-
-if __name__ == "__main__":
-    latest_payload = load_latest_system_record()
-
-    if latest_payload is not None:
-        print("Successfully loaded the most recent entry!")
