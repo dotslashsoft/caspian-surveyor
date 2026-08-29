@@ -3,6 +3,14 @@ from typing import List, Dict, Optional
 import json
 import logging
 import cs_history
+import bootstrap.cs_baseline_config as cs_baseline_config
+
+
+current_system_json = (
+    cs_baseline_config.run_directory
+    / "runtime"
+    / "current_system.json"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -151,33 +159,19 @@ class FullStarSystemPayload():
         )
 
 
-def load_latest_system_record():
+def load_current_system_record():
     try:
-        with open(exploration_history_jsonl, "r", encoding="utf-8") as file:
-            lines = file.readlines()
+        with open(current_system_json, "r", encoding="utf-8") as file:
+            raw_data = json.load(file)
 
-            if not lines:
-                print("The file is empty.")
-                return None
+        system_record = FullStarSystemPayload(**raw_data)
 
-            last_line = lines[-1].strip()
-
-            if not last_line and len(lines) > 1:
-                last_line = lines[-2].strip()
-
-            if not last_line:
-                print("The file appears to be empty.")
-                return None
-
-            raw_data = json.loads(last_line)
-            system_record = FullStarSystemPayload(**raw_data)
-
-            return system_record
+        return system_record
 
     except FileNotFoundError:
-        print(f"Error: The file '{exploration_history_jsonl}' was not found.")
+        print(f"Error: The file '{current_system_json}' was not found.")
         return None
 
     except json.JSONDecodeError:
-        print("Error: The last line of the file is broken or incomplete JSON.")
+        print("Error: The current system file contains broken or incomplete JSON.")
         return None

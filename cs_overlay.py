@@ -98,24 +98,24 @@ class SystemInfoOverlay(QWidget):
         self._start_background_services()
 
     def refresh_system_data(self):
-        ui_data = cs_data_structures.load_latest_system_record()
+        ui_data = cs_data_structures.load_current_system_record()
 
         if ui_data is None:
             return
+        
+        self.planetary_bodies = ui_data.planetary_bodies
 
         system_changed = (
             self.ui_data is None
             or ui_data.system.address != self.ui_data.system.address
         )
 
-        self.ui_data = ui_data
-        self.planetary_bodies = ui_data.planetary_bodies
-
         if system_changed:
             self.current_body_index = 0
 
-            if self.planetary_bodies:
-                self.update_body_display()
+        if self.planetary_bodies:
+            self.current_body_index %= len(self.planetary_bodies)
+            self.update_body_display()
 
         self.metric_system.set_value(ui_data.system.name.upper())
         self.metric_planets.set_value(ui_data.summary.planets)
@@ -129,7 +129,7 @@ class SystemInfoOverlay(QWidget):
         self.position_top_center()
 
     def _load_initial_data(self):
-        self.ui_data = cs_data_structures.load_latest_system_record()
+        self.ui_data = cs_data_structures.load_current_system_record()
 
         if self.ui_data is not None:
             self.planetary_bodies = self.ui_data.planetary_bodies

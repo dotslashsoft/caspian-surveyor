@@ -121,6 +121,7 @@ DEBUG_PAYLOAD_EVENTS = {
     "FSSDiscoveryScan",
     "Scan",
     "FSSAllBodiesFound",
+    "SAAScanComplete"
 }
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
-import bootstrap.cs_log_factory as cs_log_factory
+import logging
 
 ### ### ### ### ### ### ### ### ### ### ### ### 
-logger = cs_log_factory.logger
+logger = logging.getLogger(__name__)
 
 class SurveyState:
 
@@ -41,7 +41,7 @@ class SurveyState:
 
         logger.info("Survey state initialized for system: %s", self.current_system["name"])
 
-    def record_discovery_scan(self, event):
+    def record_discovery_scan(self, event) -> bool:
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -50,7 +50,9 @@ class SurveyState:
         current_system["body_count"] = event.get("BodyCount")
         current_system["discovery_progress"] = event.get("Progress")
 
-    def record_body_signals(self, event):
+        return True
+
+    def record_body_signals(self, event) -> bool:
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -70,7 +72,7 @@ class SurveyState:
 
         return True
 
-    def record_body_scan(self, event):
+    def record_body_scan(self, event) -> bool:
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -80,18 +82,20 @@ class SurveyState:
 
         if body_id is None:
             logger.warning("Scan event received without BodyID.")
-            return
+            return False
 
-        body = current_system["bodies"].setdefault(body_id,{})
+        body = current_system["bodies"].setdefault(body_id, {})
         scan_type = event.get("ScanType")
-        scan_types = body.setdefault("_scan_types",[])
+        scan_types = body.setdefault("_scan_types", [])
 
-        if (scan_type and scan_type not in scan_types):
+        if scan_type and scan_type not in scan_types:
             scan_types.append(scan_type)
 
         body.update(event)
 
-    def mark_all_bodies_found(self, event):
+        return True
+
+    def mark_all_bodies_found(self, event) -> bool:
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -107,7 +111,7 @@ class SurveyState:
 
         return not already_complete
 
-    def record_dss_complete(self, event):
+    def record_dss_complete(self, event) -> bool:
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -223,7 +227,7 @@ class SurveyDataBuilder:
         return {
             "body_id": body.get("BodyID"),
             "body_name": body.get("BodyName"),
-            "parents": body.get("Parents"),
+            "parents": body.get("Parents", []),
             "planet_class": body.get("PlanetClass"),
             "terraform_state": body.get("TerraformState"),
             "materials": body.get("Materials"),
