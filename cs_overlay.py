@@ -78,6 +78,7 @@ class SystemInfoOverlay(QWidget):
     cycle_default = QtCore.Signal()
     cycle_up = QtCore.Signal()
     cycle_down = QtCore.Signal()
+    toggle_legend = QtCore.Signal()
 
     PANEL_STYLE = """
         QFrame#HUDPanel {
@@ -176,6 +177,7 @@ class SystemInfoOverlay(QWidget):
 
         self.system_page = self._build_system_page()
         self.body_page = self._build_body_page()
+        self.legend_page = self._build_legend_page()
 
         assert self.system_page is not None
         self.display_stack.addWidget(self.system_page)
@@ -183,6 +185,9 @@ class SystemInfoOverlay(QWidget):
         self.display_stack.setCurrentIndex(0)
 
         outer_layout.addWidget(self.display_stack)
+        outer_layout.addWidget(self.legend_page)
+
+        self.legend_page.hide()
 
 
     def _connect_signals(self):
@@ -194,6 +199,7 @@ class SystemInfoOverlay(QWidget):
         self.cycle_default.connect(self.cycle_display_default)
         self.cycle_down.connect(self.cycle_display_down)
         self.cycle_up.connect(self.cycle_display_up)
+        self.toggle_legend.connect(self.display_orbital_legend)
 
 
     def _register_hotkeys(self):
@@ -230,6 +236,11 @@ class SystemInfoOverlay(QWidget):
         keyboard.add_hotkey(
             "ctrl+alt+up",
             self.cycle_up.emit
+        )
+
+        keyboard.add_hotkey(
+            "ctrl+alt+]",
+            self.toggle_legend.emit
         )
 
 
@@ -386,6 +397,44 @@ class SystemInfoOverlay(QWidget):
 
         return page
 
+    # LEGEND
+    def _build_legend_page(self) -> QWidget:
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        panel = self._create_hud_panel()
+
+        hud_layout = QHBoxLayout(panel)
+        hud_layout.setContentsMargins(12, 6, 12, 6)
+        hud_layout.setSpacing(6)
+
+        self.legend_body_radius = MetricWidget("R⊕", "Radius in Earth radii", 12)
+        self.legend_body_axial_tilt = MetricWidget("ε", "Axial tilt / obliquity", 12)
+        self.legend_body_eccentricity = MetricWidget("e", "Orbital eccentricity", 12)
+        self.legend_body_orbital_inclination = MetricWidget("i", "Orbital inclination", 12)
+        self.legend_body_orbital_period = MetricWidget("P", "Orbital period", 12)
+        self.legend_body_rotational_period = MetricWidget("T", "Rotational period", 12)
+        self.legend_body_periapsis = MetricWidget("ω", "Argument of periapsis", 12)
+        self.legend_body_semi_major_axis = MetricWidget("a", "Semi-major axis", 12)
+
+        metrics = [
+            self.legend_body_radius,
+            self.legend_body_axial_tilt,
+            self.legend_body_eccentricity,
+            self.legend_body_orbital_inclination,
+            self.legend_body_orbital_period,
+            self.legend_body_rotational_period,
+            self.legend_body_periapsis,
+            self.legend_body_semi_major_axis,
+        ]
+
+        self._add_metrics(hud_layout, metrics)
+        page_layout.addWidget(panel)
+
+        return page
+
     def _build_body_page(self):
         page = QWidget()
 
@@ -514,6 +563,16 @@ class SystemInfoOverlay(QWidget):
             self.hide()
         else:
             self.show()
+
+    def display_orbital_legend(self):
+        if self.legend_page.isVisible():
+            self.legend_page.hide()
+            self.display_stack.show()
+
+        else:
+            self.display_stack.hide()
+            self.legend_page.show()
+
 
     def exit_overlay(self):
         app_instance = QApplication.instance()
