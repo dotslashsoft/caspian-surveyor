@@ -1,4 +1,5 @@
 import sys
+import math
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
@@ -18,7 +19,8 @@ class MetricWidget(QWidget):
     def __init__(
         self,
         key: str,
-        default_value: str | int | float = "--"
+        default_value: str | int | float = "--",
+        key_font_size: int = 9
     ):
         super().__init__()
 
@@ -32,10 +34,10 @@ class MetricWidget(QWidget):
         layout.setSpacing(6)
 
         self.key_label = QLabel(key)
-        self.key_label.setStyleSheet("""
+        self.key_label.setStyleSheet(f"""
             color: #7d8b99;
             font-family: Eurostile;
-            font-size: 9px;
+            font-size: {key_font_size}px;
             font-weight: bold;
             letter-spacing: 1px;
         """)
@@ -74,6 +76,8 @@ class SystemInfoOverlay(QWidget):
     cycle_next = QtCore.Signal()
     cycle_previous = QtCore.Signal()
     cycle_default = QtCore.Signal()
+    cycle_up = QtCore.Signal()
+    cycle_down = QtCore.Signal()
 
     PANEL_STYLE = """
         QFrame#HUDPanel {
@@ -188,6 +192,8 @@ class SystemInfoOverlay(QWidget):
         self.cycle_next.connect(self.cycle_display_next)
         self.cycle_previous.connect(self.cycle_display_previous)
         self.cycle_default.connect(self.cycle_display_default)
+        self.cycle_down.connect(self.cycle_display_down)
+        self.cycle_up.connect(self.cycle_display_up)
 
 
     def _register_hotkeys(self):
@@ -214,6 +220,16 @@ class SystemInfoOverlay(QWidget):
         keyboard.add_hotkey(
             "ctrl+alt+home",
             self.cycle_default.emit
+        )
+
+        keyboard.add_hotkey(
+            "ctrl+alt+down",
+            self.cycle_down.emit
+        )
+
+        keyboard.add_hotkey(
+            "ctrl+alt+up",
+            self.cycle_up.emit
         )
 
 
@@ -293,7 +309,7 @@ class SystemInfoOverlay(QWidget):
 
         return page
 
-    def _build_body_page(self):
+    def _build_body_summary_page(self):
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
@@ -326,6 +342,66 @@ class SystemInfoOverlay(QWidget):
         self.body_metric_separators = self._add_metrics(hud_layout, metrics)
 
         page_layout.addWidget(panel)
+
+        return page
+
+    def _build_body_orbital_page(self):
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        panel = self._create_hud_panel()
+
+        hud_layout = QHBoxLayout(panel)
+        hud_layout.setContentsMargins(12, 6, 12, 6)
+        hud_layout.setSpacing(6)
+
+        self.metric_orbital_body_name = MetricWidget("PLANET", "--")
+        self.metric_body_radius = MetricWidget("R⊕", "--", 12)
+        self.metric_body_axial_tilt = MetricWidget("ε", "--", 12)
+        self.metric_body_eccentricity = MetricWidget("e", "--", 12)
+        self.metric_body_orbital_inclination = MetricWidget("i", "--", 12)
+        self.metric_body_orbital_period = MetricWidget("P", "--", 12)
+        self.metric_body_rotational_period = MetricWidget("T", "--", 12)
+        self.metric_body_periapsis = MetricWidget("ω", "--", 12)
+        self.metric_body_semi_major_axis = MetricWidget("a", "--", 12)
+
+
+        metrics = [
+            self.metric_orbital_body_name,
+            self.metric_body_radius,
+            self.metric_body_axial_tilt,
+            self.metric_body_eccentricity,
+            self.metric_body_orbital_inclination,
+            self.metric_body_orbital_period,
+            self.metric_body_rotational_period,
+            self.metric_body_periapsis,
+            self.metric_body_semi_major_axis,
+        ]
+
+        self._add_metrics(hud_layout, metrics)
+
+        page_layout.addWidget(panel)
+
+        return page
+
+    def _build_body_page(self):
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.display_body_stack = QStackedWidget()
+
+        self.body_summary_page = self._build_body_summary_page()
+        self.body_orbital_page = self._build_body_orbital_page()
+
+        self.display_body_stack.addWidget(self.body_summary_page)
+        self.display_body_stack.addWidget(self.body_orbital_page)
+        self.display_body_stack.setCurrentIndex(0)
+
+        page_layout.addWidget(self.display_body_stack)
 
         return page
 
@@ -469,12 +545,43 @@ class SystemInfoOverlay(QWidget):
         self.display_stack.setCurrentIndex(1)
         self.update_body_display()
 
+
+    def cycle_display_down(self):
+        if not self.planetary_bodies:
+            return
+
+        next_page = (
+            self.display_body_stack.currentIndex() + 1
+        ) % self.display_body_stack.count()
+
+        self.display_body_stack.setCurrentIndex(next_page)
+
+    def cycle_display_up(self):
+        if not self.planetary_bodies:
+            return
+
+        previous_page = (
+            self.display_body_stack.currentIndex() - 1
+        ) % self.display_body_stack.count()
+
+        self.display_body_stack.setCurrentIndex(previous_page)
+
+
     def cycle_display_default(self):
         self.display_stack.setCurrentIndex(0)
 
     def update_body_display(self):
+
+        # used for orbital body calculations
+        EARTH_RADIUS_M = 6_371_000
+        AU_M = 149_597_870_700
+        SECONDS_PER_DAY = 86_400
+
         body = self.planetary_bodies[self.current_body_index]
         self.metric_body_name.set_value(body.body_name)
+
+        # detail page
+        self.metric_orbital_body_name.set_value(body.body_name)
 
         self.metric_body_class.set_value(body.planet_class)
         self.metric_body_landable.set_value(body.landable)
@@ -498,6 +605,79 @@ class SystemInfoOverlay(QWidget):
 
         self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
         self.metric_body_dss.set_value(body.dss_scan_complete)
+
+
+        # body orbital calculations for friendly display
+        if body.radius is not None:
+            radius_earth = body.radius / EARTH_RADIUS_M
+            self.metric_body_radius.set_value(f"{radius_earth:.3f}")
+        else:
+            self.metric_body_radius.set_value("--")
+
+
+        if body.axial_tilt is not None:
+            axial_tilt_degrees = math.degrees(body.axial_tilt)
+            self.metric_body_axial_tilt.set_value(
+                f"{axial_tilt_degrees:.2f}°"
+            )
+        else:
+            self.metric_body_axial_tilt.set_value("--")
+
+
+        if body.eccentricity is not None:
+            self.metric_body_eccentricity.set_value(
+                f"{body.eccentricity:.6f}"
+            )
+        else:
+            self.metric_body_eccentricity.set_value("--")
+
+
+        if body.orbital_inclination is not None:
+            self.metric_body_orbital_inclination.set_value(
+                f"{body.orbital_inclination:.2f}°"
+            )
+        else:
+            self.metric_body_orbital_inclination.set_value("--")
+
+
+        if body.orbital_period is not None:
+            orbital_days = body.orbital_period / SECONDS_PER_DAY
+            self.metric_body_orbital_period.set_value(
+                f"{orbital_days:.2f} d"
+            )
+        else:
+            self.metric_body_orbital_period.set_value("--")
+
+
+        if body.rotational_period is not None:
+            rotational_days = (
+                body.rotational_period / SECONDS_PER_DAY
+            )
+
+            self.metric_body_rotational_period.set_value(
+                f"{rotational_days:.2f} d"
+            )
+        else:
+            self.metric_body_rotational_period.set_value("--")
+
+
+        if body.periapsis is not None:
+            self.metric_body_periapsis.set_value(
+                f"{body.periapsis:.2f}°"
+            )
+        else:
+            self.metric_body_periapsis.set_value("--")
+
+
+        if body.semi_major_axis is not None:
+            semi_major_axis_au = body.semi_major_axis / AU_M
+
+            self.metric_body_semi_major_axis.set_value(
+                f"{semi_major_axis_au:.3f} AU"
+            )
+        else:
+            self.metric_body_semi_major_axis.set_value("--")
+
 
     def _create_separator(self) -> QFrame:
         """Creates a subtle vertical divider line between metrics."""
