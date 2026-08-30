@@ -72,6 +72,7 @@ class CelestialBody:
     body_name: str
     parents: List[Dict[str, int]] = field(default_factory=list)
     periapsis: Optional[float] = None
+    landable: bool = False
     was_discovered: bool = False
     was_mapped: bool = False
     was_footfalled: bool = False

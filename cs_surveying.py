@@ -253,4 +253,5 @@ class SurveyDataBuilder:
             "distance_from_arrival": body.get("DistanceFromArrivalLS"),
             "signals": body.get("Signals"),
             "dss_scan_complete": body.get("DSSScanComplete", False),
+            "landable": body.get("Landable", False)
         }

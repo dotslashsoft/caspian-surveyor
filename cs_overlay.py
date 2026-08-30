@@ -1,6 +1,6 @@
 import sys
 from PySide6 import QtCore
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QHBoxLayout, 
     QVBoxLayout, QFrame, QStackedWidget, QSizePolicy
@@ -97,18 +97,32 @@ class SystemInfoOverlay(QWidget):
         self._build_ui()
         self._start_background_services()
 
+    def event(self, event):
+        result = super().event(event)
+
+        if event.type() == QEvent.Type.LayoutRequest:
+            self.resize(self.sizeHint())
+
+        return result
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
+        self.position_top_center()
+
     def refresh_system_data(self):
         ui_data = cs_data_structures.load_current_system_record()
 
         if ui_data is None:
             return
-        
-        self.planetary_bodies = ui_data.planetary_bodies
 
         system_changed = (
             self.ui_data is None
             or ui_data.system.address != self.ui_data.system.address
         )
+
+        self.ui_data = ui_data
+        self.planetary_bodies = ui_data.planetary_bodies
 
         if system_changed:
             self.current_body_index = 0
@@ -126,8 +140,7 @@ class SystemInfoOverlay(QWidget):
         self.metric_hmc.set_value(ui_data.summary.hmc)
         self.metric_landable.set_value(ui_data.summary.landable)
 
-        self.position_top_center()
-
+        
     def _load_initial_data(self):
         self.ui_data = cs_data_structures.load_current_system_record()
 
@@ -276,11 +289,7 @@ class SystemInfoOverlay(QWidget):
         ]
 
         self._add_metrics(hud_layout, metrics)
-
         page_layout.addWidget(panel)
-
-        self.system_panel = panel
-        panel = self._create_hud_panel()
 
         return page
 
@@ -299,6 +308,7 @@ class SystemInfoOverlay(QWidget):
         self.metric_body_name = MetricWidget("PLANET", "--")
         self.metric_body_class = MetricWidget("CLASS", "--")
         self.metric_tf_state = MetricWidget("TF", "--")
+        self.metric_body_landable = MetricWidget("LANDABLE", False)
         self.metric_body_signals = MetricWidget("SIGNALS", "--")
         self.metric_body_temp = MetricWidget("TEMP K", "--")
         self.metric_body_dss = MetricWidget("DSS SCAN", False)
@@ -307,15 +317,15 @@ class SystemInfoOverlay(QWidget):
             self.metric_body_name,
             self.metric_body_class,
             self.metric_tf_state,
+            self.metric_body_landable,
             self.metric_body_signals,
             self.metric_body_temp,
             self.metric_body_dss
         ]
 
-        self._add_metrics(hud_layout, metrics)
+        self.body_metric_separators = self._add_metrics(hud_layout, metrics)
 
         page_layout.addWidget(panel)
-        panel = self._create_hud_panel()
 
         return page
 
@@ -331,14 +341,14 @@ class SystemInfoOverlay(QWidget):
         hud_layout.setContentsMargins(12, 6, 12, 6)
         hud_layout.setSpacing(6)
 
-        self.metric_body_name = MetricWidget("PLANET", "--")
+        self.metric_exobio_body_name = MetricWidget("PLANET", "--")
         self.metric_exobio_signals = MetricWidget("EXOSIGNALS", "--")
         self.metric_exobio_genus = MetricWidget("GENUS", "--")
         self.metric_exobio_species = MetricWidget("SPECIES", "--")
         self.metric_exibio_variant = MetricWidget("VARIANT", "--")
 
         metrics = [
-            self.metric_body_name,
+            self.metric_exobio_body_name,
             self.metric_exobio_signals,
             self.metric_exobio_genus,
             self.metric_exobio_species,
@@ -346,9 +356,7 @@ class SystemInfoOverlay(QWidget):
         ]
 
         self._add_metrics(hud_layout, metrics)
-
         page_layout.addWidget(panel)
-        panel = self._create_hud_panel()
 
         return page
 
@@ -360,11 +368,18 @@ class SystemInfoOverlay(QWidget):
 
 
     def _add_metrics(self, layout, metrics):
+        separators = {}
+
         for index, metric in enumerate(metrics):
             layout.addWidget(metric)
 
             if index < len(metrics) - 1:
-                layout.addWidget(self._create_separator())
+                separator = self._create_separator()
+                layout.addWidget(separator)
+
+                separators[metric] = separator
+
+        return separators
 
     def _create_title_widget(self):
         title_widget = QWidget()
@@ -440,8 +455,8 @@ class SystemInfoOverlay(QWidget):
             self.current_body_index + 1
         ) % len(self.planetary_bodies)
 
-        self.update_body_display()
         self.display_stack.setCurrentIndex(1)
+        self.update_body_display()
 
     def cycle_display_previous(self):
         if not self.planetary_bodies:
@@ -451,8 +466,8 @@ class SystemInfoOverlay(QWidget):
             self.current_body_index - 1
         ) % len(self.planetary_bodies)
 
-        self.update_body_display()
         self.display_stack.setCurrentIndex(1)
+        self.update_body_display()
 
     def cycle_display_default(self):
         self.display_stack.setCurrentIndex(0)
@@ -462,22 +477,24 @@ class SystemInfoOverlay(QWidget):
         self.metric_body_name.set_value(body.body_name)
 
         self.metric_body_class.set_value(body.planet_class)
+        self.metric_body_landable.set_value(body.landable)
 
         if body.signals:
-            signal_text = "\n".join(
-                f"{signal.type_localised}: {signal.count}"
-                for signal in body.signals
-            )
+            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
 
             self.metric_body_signals.set_value(signal_text)
         else:
             self.metric_body_signals.set_value("--")
 
-        if body.terraform_state:
+        if body.terraform_state == "Terraformable":
+            self.metric_tf_state.setVisible(True)
+            self.body_metric_separators[self.metric_tf_state].setVisible(True)
+
             self.metric_tf_state.set_value(body.terraform_state)
+
         else:
-            self.metric_tf_state.set_value("--")
-            
+            self.metric_tf_state.setVisible(False)
+            self.body_metric_separators[self.metric_tf_state].setVisible(False)
 
         self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
         self.metric_body_dss.set_value(body.dss_scan_complete)
@@ -492,7 +509,7 @@ class SystemInfoOverlay(QWidget):
 
     def position_top_center(self):
         screen_geometry = QApplication.primaryScreen().geometry()
-        self.resize(self.sizeHint())
+
         x = (screen_geometry.width() - self.width()) // 2
         y = 15
         self.move(x, y)
