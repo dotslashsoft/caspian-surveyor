@@ -9,11 +9,8 @@ from PySide6.QtWidgets import (
 import cs_data_structures
 import keyboard
 import logging
-import bootstrap.cs_log_factory as cs_log_factory
 
 logger = logging.getLogger(__name__)
-log_manager = cs_log_factory.LogManager()
-log_manager.set_log_config()
 
 class MetricWidget(QWidget):
     def __init__(

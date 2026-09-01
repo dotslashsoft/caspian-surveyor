@@ -4,7 +4,7 @@ import time
 import bootstrap.cs_baseline_config as cs_baseline_config
 from pathlib import Path
 
-### ### ### ### ### ### ### ### ### ### ### ### 
+### ### ### ### ### ### ### ### ### ### ### ###
 logger = logging.getLogger(__name__)
 run_directory = cs_baseline_config.run_directory
 journal_directory = cs_baseline_config.journal_directory
@@ -59,7 +59,7 @@ class JournalReader:
 
                     if (
                         logger.isEnabledFor(logging.DEBUG)
-                        and event_name in DEBUG_PAYLOAD_EVENTS
+                        and event_name in DEBUG_LOG_PAYLOAD_EVENTS
                     ):
                         logger.debug("Event payload: %s", json.dumps(event))
 
@@ -121,41 +121,14 @@ def get_journal_file_by_index(index):
 
 ### event constants ###
 
-EVENT_MESSAGES = {
-    "FSDJump": "Entered new star system",
-    "FSSDiscoveryScan": "Discovery scan completed",
-    "FSSAllBodiesFound": "All system bodies discovered",
-    "DockSRV": "SRV docked with ship",
-    "Liftoff": "Lifted off from planetary surface",
-    "SupercruiseEntry": "Entered supercruise",
-    "LeaveBody": "Left planetary body",
-}
-
-EVENT_CONFIG = {
-    "FSDJump": {
-        "message": "Entered new star system",
-        "category": "navigation",
-        "important": True,
-    },
-    "Scan": {
-        "message": "Body scan received",
-        "category": "exploration",
-        "important": True,
-    },
-    "Music": {
-        "message": "Music state changed",
-        "category": "game",
-        "important": False,
-    },
-}
-
-DEBUG_PAYLOAD_EVENTS = {
+DEBUG_LOG_PAYLOAD_EVENTS = {
     "Location",
     "FSDJump",
     "FSSDiscoveryScan",
     "Scan",
     "FSSAllBodiesFound",
-    "SAAScanComplete"
+    "SAAScanComplete",
+    "Shutdown"
 }
 
 if __name__ == "__main__":
