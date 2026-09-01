@@ -104,24 +104,21 @@ def get_latest_system_events(journal_file: Path) -> list[dict]:
 
     return latest_system_events
 
-def get_previous_journal_file():
-    logger.debug("Searching journal directory for previous file: %s", journal_directory)
+def get_journal_file_by_index(index):
+    logger.debug("Searching journal directory for file index %d: %s", index, journal_directory)
+
     journal_files = list(journal_directory.glob("Journal.*.log"))
     logger.debug("Found %d journal files.", len(journal_files))
 
-    # Check if there are fewer than 2 files
-    if len(journal_files) < 2:
-        logger.warning("Not enough Elite Dangerous journal files found to select a previous one.")
+    if index >= len(journal_files):
         return None
-    
-    # Sort files by modification time, newest first
-    journal_files.sort(key=lambda path: path.stat().st_mtime, reverse=True)
-    
-    # Select the second item in the sorted list
-    previous_journal = journal_files[1]
-    logger.info("Previous journal selected: %s", previous_journal)
 
-    return previous_journal
+    journal_files.sort(key=lambda path: path.stat().st_mtime,reverse=True)
+    journal_file = journal_files[index]
+
+    logger.info("Journal file selected at index %d: %s", index, journal_file)
+
+    return journal_file
 
 
 ### event constants ###

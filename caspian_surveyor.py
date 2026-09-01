@@ -16,18 +16,26 @@ def main():
     log_manager.set_log_config()
 
     latest_journal = Journal.get_latest_journal_file()
+
     if latest_journal is None:
         return
 
-    reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
-    survey_state = Survey.SurveyState()
+    latest_journal_events = Journal.get_latest_system_events(latest_journal)
+
+    state_recovery = Survey.StateRecovery()
+    reconstructed_system = state_recovery.reconstruct_system_data(latest_journal_events)
+
+    survey_state = state_recovery.survey_state
     survey_data_builder = Survey.SurveyDataBuilder(survey_state)
     data_orchestrator = cs_history.DataOrchestrator()
 
-    print(f"Monitoring:\t\t{latest_journal}")
+    if reconstructed_system is not None:
+        system_record = survey_data_builder.build_system_record()
+        cs_runtime.write_current_system_record(system_record)
 
+    journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
     try:
-        for event in reader.follow():
+        for event in journal_reader.follow():
             event_type = event.get("event")
             state_updated = False
 

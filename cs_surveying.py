@@ -257,65 +257,76 @@ class SurveyDataBuilder:
             "landable": body.get("Landable", False)
         }
 
-def reconstruct_system_data(previous_journal_events, latest_journal_events):
-    if not latest_journal_events:
-        return False
+class StateRecovery:
 
-    current_system_address = (latest_journal_events[0].get("SystemAddress"))
+    def __init__(self):
+        self.survey_state = SurveyState()
 
-    previous_system_address = (
-        previous_journal_events[0].get("SystemAddress")
-        if previous_journal_events
-        else None)
+    def reconstruct_system_data(self, latest_journal_events):
+        if not latest_journal_events:
+            return None
 
-    survey_state = SurveyState()
+        oldest_matching_index = self.find_oldest_matching_journal_index(latest_journal_events)
 
-    if previous_system_address == current_system_address:
-        survey_state.begin_system(previous_journal_events[0])
-        replay_system_events(survey_state, previous_journal_events[1:])
-        replay_system_events(survey_state, latest_journal_events[1:])
+        if oldest_matching_index is None:
+            return None
+        
+        for journal_index in range(oldest_matching_index, -1, -1):
+            journal_file = Journal.get_journal_file_by_index(journal_index)
 
-    else:
-        survey_state.begin_system(latest_journal_events[0])
-        replay_system_events(survey_state, latest_journal_events[1:])
+            if journal_file is None:
+                return None
+            journal_events = Journal.get_latest_system_events(journal_file)
 
-    return survey_state.current_system
+            if journal_index == oldest_matching_index:
+                self.survey_state.begin_system(journal_events[0])
 
+            self.replay_system_events(self.survey_state, journal_events[1:])
 
-def replay_system_events(survey_state, events):
-    for event in events:
-        event_type = event.get("event")
-
-        if event_type == "FSSDiscoveryScan":
-            survey_state.record_discovery_scan(event)
-
-        elif event_type == "Scan":
-            survey_state.record_body_scan(event)
-
-        elif event_type == "FSSBodySignals":
-            survey_state.record_body_signals(event)
-
-        elif event_type == "SAAScanComplete":
-            survey_state.record_dss_complete(event)
-
-        elif event_type == "FSSAllBodiesFound":
-            survey_state.mark_all_bodies_found(event)
+        return self.survey_state.current_system
 
 
+    def replay_system_events(self, survey_state, events):
 
+        for event in events:
+            event_type = event.get("event")
 
-#### BRANDON'S TOTALLY LEGIT TESTING AREA ####
-# journal_file = Journal.get_latest_journal_file()
-# previous_journal_file = Journal.get_previous_journal_file()
+            if event_type == "FSSDiscoveryScan":
+                survey_state.record_discovery_scan(event)
 
-# assert journal_file and previous_journal_file is not None
+            elif event_type == "Scan":
+                survey_state.record_body_scan(event)
 
-# journal_current_events = (Journal.get_latest_system_events(journal_file))
-# previous_journal_events = (Journal.get_latest_system_events(previous_journal_file))
+            elif event_type == "FSSBodySignals":
+                survey_state.record_body_signals(event)
 
-# reconstructed_system = reconstruct_system_data(
-#     previous_journal_events,
-#     journal_current_events
-# )
+            elif event_type == "SAAScanComplete":
+                survey_state.record_dss_complete(event)
 
-# print(reconstructed_system)
+            elif event_type == "FSSAllBodiesFound":
+                survey_state.mark_all_bodies_found(event)
+
+    def find_oldest_matching_journal_index(self, latest_journal_events):
+        if not latest_journal_events:
+            return None
+
+        current_system_address = (latest_journal_events[0].get("SystemAddress"))
+
+        journal_index = 1
+
+        while True:
+            journal_file = Journal.get_journal_file_by_index(journal_index)
+
+            if journal_file is None:
+                return journal_index - 1
+
+            journal_events = Journal.get_latest_system_events(journal_file)
+
+            previous_system_address = (journal_events[0].get("SystemAddress")
+                if journal_events
+                else None)
+
+            if previous_system_address != current_system_address:
+                return journal_index - 1
+
+            journal_index += 1
