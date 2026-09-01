@@ -1,5 +1,6 @@
 import logging
 import cs_journal_toolbox as Journal
+from runtime import cs_runtime
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 
@@ -256,35 +257,65 @@ class SurveyDataBuilder:
             "landable": body.get("Landable", False)
         }
 
-def construct_current_system_data(current_system_events):
-    if not current_system_events:
+def reconstruct_system_data(previous_journal_events, latest_journal_events):
+    if not latest_journal_events:
         return False
 
-    system_event = current_system_events[0]
+    current_system_address = (latest_journal_events[0].get("SystemAddress"))
 
-    return system_event
+    previous_system_address = (
+        previous_journal_events[0].get("SystemAddress")
+        if previous_journal_events
+        else None)
 
-# #### BRANDON'S TOTALLY LEGIT TESTING AREA ####
+    survey_state = SurveyState()
+
+    if previous_system_address == current_system_address:
+        survey_state.begin_system(previous_journal_events[0])
+        replay_system_events(survey_state, previous_journal_events[1:])
+        replay_system_events(survey_state, latest_journal_events[1:])
+
+    else:
+        survey_state.begin_system(latest_journal_events[0])
+        replay_system_events(survey_state, latest_journal_events[1:])
+
+    return survey_state.current_system
+
+
+def replay_system_events(survey_state, events):
+    for event in events:
+        event_type = event.get("event")
+
+        if event_type == "FSSDiscoveryScan":
+            survey_state.record_discovery_scan(event)
+
+        elif event_type == "Scan":
+            survey_state.record_body_scan(event)
+
+        elif event_type == "FSSBodySignals":
+            survey_state.record_body_signals(event)
+
+        elif event_type == "SAAScanComplete":
+            survey_state.record_dss_complete(event)
+
+        elif event_type == "FSSAllBodiesFound":
+            survey_state.mark_all_bodies_found(event)
+
+
+
+
+#### BRANDON'S TOTALLY LEGIT TESTING AREA ####
 # journal_file = Journal.get_latest_journal_file()
 # previous_journal_file = Journal.get_previous_journal_file()
-# # temporarily rid the squiggles because FUCK THEM, that's why
+
 # assert journal_file and previous_journal_file is not None
 
 # journal_current_events = (Journal.get_latest_system_events(journal_file))
 # previous_journal_events = (Journal.get_latest_system_events(previous_journal_file))
 
-# # create separate SurveyState() instances
-# survey_state = SurveyState()
-# previous_state = SurveyState()
-
-# # current
-# survey_state.begin_system(
-#     journal_current_events[0]
+# reconstructed_system = reconstruct_system_data(
+#     previous_journal_events,
+#     journal_current_events
 # )
-# print(f"Current:\t{survey_state.current_system}")
 
-# # previous
-# previous_state.begin_system(
-#     previous_journal_events[0]
-# )
-# print(f"Previous:\t{previous_state.current_system}")
+# print(reconstructed_system)
