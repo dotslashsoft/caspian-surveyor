@@ -1,13 +1,11 @@
 import json
 import logging
 import time
-import bootstrap.cs_log_factory as cs_log_factory
 import bootstrap.cs_baseline_config as cs_baseline_config
 from pathlib import Path
-import runtime.cs_runtime as cs_runtime
 
 ### ### ### ### ### ### ### ### ### ### ### ### 
-logger = cs_log_factory.logger
+logger = logging.getLogger(__name__)
 run_directory = cs_baseline_config.run_directory
 journal_directory = cs_baseline_config.journal_directory
 
