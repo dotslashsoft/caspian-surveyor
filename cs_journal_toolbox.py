@@ -4,6 +4,7 @@ import time
 import bootstrap.cs_log_factory as cs_log_factory
 import bootstrap.cs_baseline_config as cs_baseline_config
 from pathlib import Path
+import runtime.cs_runtime as cs_runtime
 
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = cs_log_factory.logger
@@ -71,7 +72,7 @@ class JournalReader:
             raise
         
 
-def list_journal_directory_contents():
+def get_latest_journal_file():
     logger.debug("Searching journal directory: %s", journal_directory)
     journal_files = list(journal_directory.glob("Journal.*.log"))
     logger.debug("Found %d journal files.", len(journal_files))
@@ -84,6 +85,44 @@ def list_journal_directory_contents():
     logger.info("Latest journal selected: %s", latest_journal)
 
     return latest_journal
+
+
+def get_latest_system_events(journal_file: Path) -> list[dict]:
+    latest_system_events = []
+
+    with journal_file.open("r", encoding="utf-8") as file:
+        for line in file:
+            event = json.loads(line)
+
+            event_type = event.get("event")
+
+            if event_type in {"FSDJump", "Location"}:
+                latest_system_events = [event]
+
+            elif latest_system_events:
+                latest_system_events.append(event)
+
+    return latest_system_events
+
+def get_previous_journal_file():
+    logger.debug("Searching journal directory for previous file: %s", journal_directory)
+    journal_files = list(journal_directory.glob("Journal.*.log"))
+    logger.debug("Found %d journal files.", len(journal_files))
+
+    # Check if there are fewer than 2 files
+    if len(journal_files) < 2:
+        logger.warning("Not enough Elite Dangerous journal files found to select a previous one.")
+        return None
+    
+    # Sort files by modification time, newest first
+    journal_files.sort(key=lambda path: path.stat().st_mtime, reverse=True)
+    
+    # Select the second item in the sorted list
+    previous_journal = journal_files[1]
+    logger.info("Previous journal selected: %s", previous_journal)
+
+    return previous_journal
+
 
 ### event constants ###
 

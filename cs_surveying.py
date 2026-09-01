@@ -1,5 +1,5 @@
 import logging
-
+import cs_journal_toolbox as Journal
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 
@@ -255,3 +255,36 @@ class SurveyDataBuilder:
             "dss_scan_complete": body.get("DSSScanComplete", False),
             "landable": body.get("Landable", False)
         }
+
+def construct_current_system_data(current_system_events):
+    if not current_system_events:
+        return False
+
+    system_event = current_system_events[0]
+
+    return system_event
+
+# #### BRANDON'S TOTALLY LEGIT TESTING AREA ####
+# journal_file = Journal.get_latest_journal_file()
+# previous_journal_file = Journal.get_previous_journal_file()
+# # temporarily rid the squiggles because FUCK THEM, that's why
+# assert journal_file and previous_journal_file is not None
+
+# journal_current_events = (Journal.get_latest_system_events(journal_file))
+# previous_journal_events = (Journal.get_latest_system_events(previous_journal_file))
+
+# # create separate SurveyState() instances
+# survey_state = SurveyState()
+# previous_state = SurveyState()
+
+# # current
+# survey_state.begin_system(
+#     journal_current_events[0]
+# )
+# print(f"Current:\t{survey_state.current_system}")
+
+# # previous
+# previous_state.begin_system(
+#     previous_journal_events[0]
+# )
+# print(f"Previous:\t{previous_state.current_system}")

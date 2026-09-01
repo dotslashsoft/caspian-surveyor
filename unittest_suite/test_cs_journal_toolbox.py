@@ -1,26 +1,37 @@
 import unittest
-from cs_journal_toolbox import list_journal_directory_contents, JournalReader
+
+import bootstrap.cs_baseline_config as cs_baseline_config
+import cs_journal_toolbox as Journal
 
 
-class TestCs_journal_toolboxFunctions(unittest.TestCase):
-    def test_list_journal_directory_contents(self):
-        # TODO: Test list_journal_directory_contents
-        pass
+class TestJournalToolbox(unittest.TestCase):
+
+    def test_get_current_system_events(self):
+        fake_journal = (
+            cs_baseline_config.run_directory
+            / "unittest_suite"
+            / "fake_journal.log"
+        )
+
+        events = Journal.get_current_system_events(
+            fake_journal
+        )
+
+        self.assertEqual(
+            events[0]["event"],
+            "FSDJump"
+        )
+
+        self.assertEqual(
+            events[0]["StarSystem"],
+            "SYSTEM B"
+        )
+
+        self.assertEqual(
+            len(events),
+            4
+        )
 
 
-class TestJournalReader(unittest.TestCase):
-    def setUp(self):
-        # TODO: Initialize instance if needed
-        pass
-
-    def test_init(self):
-        # TODO: Test JournalReader.__init__
-        pass
-
-    def test_follow(self):
-        # TODO: Test JournalReader.follow
-        pass
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

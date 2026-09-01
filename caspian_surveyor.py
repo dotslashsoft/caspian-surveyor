@@ -15,7 +15,7 @@ def main():
     log_manager = cs_log_factory.LogManager()
     log_manager.set_log_config()
 
-    latest_journal = Journal.list_journal_directory_contents()
+    latest_journal = Journal.get_latest_journal_file()
     if latest_journal is None:
         return
 
