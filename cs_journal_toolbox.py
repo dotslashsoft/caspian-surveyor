@@ -20,7 +20,7 @@ class JournalReader:
         self.consecutive_monitor_failures = 0
 
     def heal_monitor_journal_directory(self, directory_path, fatal_error_event):
-
+        logger.debug("heal_monitor_journal_directory called")
         while True:
             monitor_active = self.monitor_journal_directory(directory_path)
 
@@ -197,7 +197,10 @@ def get_latest_journal_file():
     if not journal_files:
         logger.warning("No Elite Dangerous journal files found.")
         return None
+    latest_journal = max(journal_files, key=lambda path: path.stat().st_mtime)
+    logger.info("Latest journal selected: %s", latest_journal)
 
+    return latest_journal
 
 def get_latest_system_events(journal_file: Path) -> list[dict]:
     latest_system_events = []
