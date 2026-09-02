@@ -39,10 +39,10 @@ def main():
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
     try:
         journal_monitor_thread = threading.Thread(
-            target=journal_reader.monitor_journal_directory,
-            args=(cs_baseline_config.journal_directory,),
+            target=journal_reader.heal_monitor_journal_directory, 
+            args=(cs_baseline_config.journal_directory,), 
             daemon=True
-        )
+            )
 
         journal_monitor_thread.start()
         for event in journal_reader.follow():

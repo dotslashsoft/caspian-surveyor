@@ -18,20 +18,30 @@ class JournalReader:
         self.poll_interval = poll_interval
         self.new_journal_queue = queue.Queue()
 
+    def heal_monitor_journal_directory(self, directory_path):
+        while True:
+            monitor_active = self.monitor_journal_directory(directory_path)
+
+            if not monitor_active:
+                logger.warning("Journal monitor stopped. Attempting to restart journal directory monitor.")
+                time.sleep(self.poll_interval)
+
+
     def monitor_journal_directory(self, directory_path):
         """Polls a directory for newly created journal file."""
 
         target_dir = Path(directory_path)
 
-        if not target_dir.is_dir():
-            raise ValueError(f"The path {directory_path} is not a valid directory.")
-
-        print(f"Monitoring folder: {target_dir.resolve()}")
-        existing_files = set(target_dir.glob("Journal.*.log"))
-        
         try:
+            if not target_dir.is_dir():
+                raise FileNotFoundError(f"Journal directory unavailable: {target_dir}")
+            
+            print(f"Monitoring folder: {target_dir.resolve()}")
+            existing_files = set(target_dir.glob("Journal.*.log"))
+
             while True:
                 time.sleep(self.poll_interval)
+
                 current_files = set(target_dir.glob("Journal.*.log"))
                 new_files = current_files - existing_files
                 
@@ -44,13 +54,12 @@ class JournalReader:
                 existing_files = current_files
                 
         except FileNotFoundError:
-            logger.error(f"Error: The directory '{target_dir}' disappeared or is unavailable.")
+            logger.exception(f"The directory '{target_dir}' disappeared or is unavailable.")
+            return False
             
         except PermissionError:
             logger.error(f"\nError: Lost read permissions for '{target_dir}'.")
-
-        except KeyboardInterrupt:
-            logger.info("\nMonitoring stopped.")
+            return False
 
     def follow(self):
         logger.info("Beginning journal monitoring: %s", self.journal_path)
