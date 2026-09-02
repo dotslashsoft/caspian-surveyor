@@ -24,10 +24,12 @@ class DataOrchestrator:
 
 
     def append_system_record_to_history_file(self):
+        logger.debug("Reached append_system_record_to_history_file.")
         if self.current_system_data is None:
             logger.warning("Unable to append system history: ""no current system data loaded.")
             return False
 
+        logger.debug("Reached actual with block to write to history file.")
         with self.exploration_history_file.open("a", encoding="utf-8") as file:
             file.write(json.dumps(self.current_system_data) + "\n")
 
