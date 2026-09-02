@@ -3,8 +3,11 @@ import cs_history
 import cs_surveying as Survey
 import cs_journal_toolbox as Journal
 import runtime.cs_runtime as cs_runtime
+import bootstrap.cs_baseline_config as cs_baseline_config
+import threading
+import logging
 ### ### ### ### ### ### ### ### ### ### ### ### 
-
+logger = logging.getLogger(__name__)
 #################################
 #                               #
 ### ###   main process    ### ###
@@ -35,12 +38,20 @@ def main():
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
     try:
+        journal_monitor_thread = threading.Thread(
+            target=journal_reader.monitor_journal_directory,
+            args=(cs_baseline_config.journal_directory,),
+            daemon=True
+        )
+
+        journal_monitor_thread.start()
         for event in journal_reader.follow():
             event_type = event.get("event")
             state_updated = False
 
             if event_type == "FSDJump":
                 # Finalize the system being left.
+                logger.debug(f"Result of survey_state.current_system:\t {survey_state.current_system}")
                 if survey_state.current_system is not None:
                     system_record = survey_data_builder.build_system_record()
 
