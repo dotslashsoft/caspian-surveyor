@@ -28,7 +28,14 @@ class JournalReader:
 
 
     def monitor_journal_directory(self, directory_path):
-        """Polls a directory for newly created journal file."""
+        """
+        Monitor the Elite Dangerous journal directory.
+
+        Returns:
+            False if monitoring terminates due to a recoverable
+            filesystem error.
+            None otherwise.
+        """
 
         target_dir = Path(directory_path)
 
