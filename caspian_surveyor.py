@@ -6,6 +6,7 @@ import runtime.cs_runtime as cs_runtime
 import bootstrap.cs_baseline_config as cs_baseline_config
 import threading
 import logging
+import sys
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 #################################
@@ -37,15 +38,21 @@ def main():
         cs_runtime.write_current_system_record(system_record)
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
+    fatal_error_event = threading.Event()
     try:
         journal_monitor_thread = threading.Thread(
-            target=journal_reader.heal_monitor_journal_directory, 
-            args=(cs_baseline_config.journal_directory,), 
-            daemon=True
-            )
-
+            target=journal_reader.heal_monitor_journal_directory,
+            args=(cs_baseline_config.journal_directory, fatal_error_event)
+        )
+        
         journal_monitor_thread.start()
-        for event in journal_reader.follow():
+
+        
+
+        for event in journal_reader.follow(fatal_error_event):
+            if fatal_error_event.is_set():
+                break
+
             event_type = event.get("event")
             state_updated = False
 
@@ -80,8 +87,12 @@ def main():
                 state_updated = survey_state.mark_all_bodies_found(event)
 
             if state_updated:
-                system_record = (survey_data_builder.build_system_record())
+                system_record = survey_data_builder.build_system_record()
                 cs_runtime.write_current_system_record(system_record)
+
+        if fatal_error_event.is_set():
+            logger.critical("Fatal journal monitoring error. Caspian Surveyor is shutting down.")
+            sys.exit(2)
 
     except KeyboardInterrupt:
         print("\nJournal monitoring stopped.")

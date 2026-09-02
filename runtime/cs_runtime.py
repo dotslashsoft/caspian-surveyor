@@ -15,7 +15,7 @@ def write_current_system_record(system_record: dict | None) -> bool:
 
     try:
         logger.debug("Creating RUNTIME_DIRECTORY if it doesn't exist.")
-        RUNTIME_DIRECTORY.mkdir(parents=True, exist_ok=True)
+        RUNTIME_DIRECTORY.mkdir(parents=False, exist_ok=True)
 
         logger.debug("Opening TEMP_SYSTEM_FILE and writing system record.")
         with TEMP_SYSTEM_FILE.open("w", encoding="utf-8") as file:
