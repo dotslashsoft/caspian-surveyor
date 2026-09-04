@@ -284,12 +284,36 @@ class SurveyState:
 
 
 class SurveyDataBuilder:
+    """
+    Builds consumable survey-data records from the current SurveyState.
+
+    Reads the current system survey state and constructs the structured
+    system record used by Caspian Surveyor, including system-level data,
+    derived summary statistics, and nested body records.
+
+    SurveyDataBuilder does not process Elite Dangerous journal events
+    directly. Journal events are first applied to SurveyState, which this
+    class then uses as the source for building output records.
+    """
+
 
     def __init__(self, survey_state):
         self.survey_state = survey_state
 
 
-    def build_system_record(self):
+    def build_system_record(self) -> dict[str, Any] | None:
+        """
+        Builds the output record for the current system survey state.
+
+        Constructs the system-level record, generates the system summary with
+        build_system_summary(), and converts each stored body into an output
+        record using build_body_record().
+
+        Returns:
+            The completed current-system record, or None if no current system
+            survey state exists.
+
+        """ 
         current_system = self.survey_state.current_system
 
         if current_system is None:
@@ -303,6 +327,15 @@ class SurveyDataBuilder:
         return {
             "schema_version": 1,
 
+            # dict[str, Any] means the outer dictionary uses string keys,
+            # while each value may be any Python type: str, int, float,
+            # bool, None, list, dict, etc.
+            #
+            # Any is used because the system record contains heterogeneous
+            # nested data. Effectively, I'm telling the Python type checker
+            # to stop being such a whiny bitch.
+            #
+            # ผ(•̀_•́ผ)
             "system": {
                 "name": current_system["name"],
                 "address": current_system["address"],
@@ -315,7 +348,18 @@ class SurveyDataBuilder:
             "bodies": bodies,
         }
 
-    def build_system_summary(self):
+    def build_system_summary(self) -> dict[str, int] | None:
+        """
+        Builds derived summary statistics for the current system survey state.
+
+        Examines the bodies stored in the current SurveyState and calculates
+        counts used by build_system_record(), such as planet classifications,
+        terraformable bodies, and landable bodies.
+
+        Returns:
+            The completed system-summary dictionary, or None if no current
+            system survey state exists.
+        """  
         current_system = self.survey_state.current_system
     
         if current_system is None:
@@ -379,7 +423,20 @@ class SurveyDataBuilder:
         return summary
 
 
-    def build_body_record(self, body):
+    def build_body_record(self, body: dict[str, Any]) -> dict[str, Any]:
+        """
+        Builds an output record for a single body in the current survey state.
+
+        Transforms body data stored by SurveyState into the body-record structure
+        used by build_system_record().
+
+        Args:
+            body: Survey-state dictionary containing data for a single body.
+
+        Returns:
+            The completed body-record dictionary.
+        """
+
         return {
             "body_id": body.get("BodyID"),
             "body_name": body.get("BodyName"),
