@@ -1,16 +1,43 @@
 import logging
 import cs_journal_toolbox as Journal
-from runtime import cs_runtime
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 
 class SurveyState:
+    """
+    Central location for maintaining the current system survey state.
+
+    Contains methods that initialize a new system survey and apply supported
+    Elite Dangerous journal events to the current survey state, including
+    discovery scans, body scans, body signals, DSS scans, and FSS completion.
+
+    Journal events are routed through process_journal_event() and applied to
+    the appropriate survey-state method.
+    """
 
     def __init__(self):
         self.current_system = None
 
     
     def _get_current_system(self, event):
+        """
+        It's in the name, my dude.
+
+        Returns the current system survey state when the supplied Elite Dangerous
+        journal event belongs to the active system. Uses "SystemAddress" to prevent
+        events from another system from modifying the current survey state.
+
+        If the event does not contain "SystemAddress", the current system is
+        returned without address validation.
+
+        Args:
+            event: Parsed Elite Dangerous journal event.
+
+        Returns:
+            The current system survey-state dictionary if the event belongs to the
+            active system; otherwise None.
+        """
+
         current_system = self.current_system
 
         if current_system is None:
@@ -26,7 +53,20 @@ class SurveyState:
 
         return current_system
 
-    def begin_system(self, event):
+    def begin_system(self, event) -> None:
+        """
+        Initializes a new system survey from an Elite Dangerous journal event.
+
+        Creates the initial system-state dictionary and assigns it to
+        self.current_system.
+
+        Args:
+            event: Parsed Elite Dangerous journal event containing the initial
+                system data.
+
+        Returns:
+            None.
+        """
         self.current_system = {
             "name": event.get("StarSystem"),
             "address": event.get("SystemAddress"),
@@ -43,6 +83,20 @@ class SurveyState:
         logger.info("Survey state initialized for system: %s", self.current_system["name"])
 
     def record_discovery_scan(self, event) -> bool:
+        """
+        Records FSS discovery scan data for the current system ("honk"),
+        including body count and discovery progress.
+
+        Processes the Elite Dangerous "FSSDiscoveryScan" journal event.
+
+        Args:
+            event: Parsed Elite Dangerous journal event containing FSS
+                discovery scan data.
+
+        Returns:
+            True if the current survey state was updated; otherwise False.
+        """
+
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -54,6 +108,19 @@ class SurveyState:
         return True
 
     def record_body_signals(self, event) -> bool:
+        """
+        Records signals discovered from an FSS body scan for a body in the
+        current system.
+
+        Args:
+            event: Parsed Elite Dangerous journal event containing FSS body
+            signal data.
+
+        Returns:
+            True if the body signal data was applied to the current survey
+            state; otherwise False.
+        """
+
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -74,6 +141,20 @@ class SurveyState:
         return True
 
     def record_body_scan(self, event) -> bool:
+        """
+        Records body data from an FSS body scan in the current system.
+
+        Creates or updates the body entry in the current system's body dictionary
+        using the event's BodyID.
+
+        Args:
+            event: Parsed Elite Dangerous journal event containing FSS body scan data.
+
+        Returns:
+            True if the body scan was applied to the current survey state;
+            otherwise False.
+        """
+
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -97,6 +178,28 @@ class SurveyState:
         return True
 
     def mark_all_bodies_found(self, event) -> bool:
+        """
+        Processes an "FSSAllBodiesFound" journal event for the current system.
+
+        Sets discovery progress to 1.0 and marks the system's FSS survey as complete.
+        If body count has not already been recorded, it is populated from the event.
+
+        Args:
+            event: Parsed Elite Dangerous "FSSAllBodiesFound" journal event.
+
+        Returns:
+            True if the event newly marked the current system as FSS complete;
+            otherwise False.
+
+        For Brandon:
+        
+        Bridge Keeper: WHAT DOES TRUE MEAN?
+
+        mark_all_bodies_found(): THE SYSTEM WAS NOT COMPLETE BEFORE, BUT IT IS NOW.
+
+        Bridge Keeper: Right. Off you go.
+        """     
+
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -113,6 +216,21 @@ class SurveyState:
         return not already_complete
 
     def record_dss_complete(self, event) -> bool:
+        """
+        It's in the name, my dude.
+
+        Processes an "SAAScanComplete" journal event for the specified body
+        within the current system.
+
+        Args:
+            event: Parsed Elite Dangerous journal event containing DSS
+                completion data.
+
+        Returns:
+            True if the DSS scan was applied to the current survey state;
+            otherwise False.
+        """
+
         current_system = self._get_current_system(event)
 
         if current_system is None:
@@ -127,6 +245,42 @@ class SurveyState:
         body["DSSScanComplete"] = True
 
         return True
+
+
+    def process_journal_event(self, event) -> bool:
+        """
+        One journal processor to rule them all.
+
+        Processes supported Elite Dangerous journal events and applies
+        their data to the current survey state. FSDJump is currently
+        handled separately.
+
+        Args:
+            event (dict[str, Any]): Parsed Elite Dangerous journal event.
+
+        Returns:
+            bool: True if the event updated survey state; otherwise False.
+        """
+        event_type = event.get("event")
+
+        if event_type == "FSSDiscoveryScan":
+            return self.record_discovery_scan(event)
+
+        elif event_type == "Scan":
+            return self.record_body_scan(event)
+
+        elif event_type == "FSSBodySignals":
+            return self.record_body_signals(event)
+
+        elif event_type == "SAAScanComplete":
+            return self.record_dss_complete(event)
+
+        elif event_type == "FSSAllBodiesFound":
+            return self.mark_all_bodies_found(event)
+
+        return False
+
+
 
 class SurveyDataBuilder:
 
@@ -287,24 +441,8 @@ class StateRecovery:
 
 
     def replay_system_events(self, survey_state, events):
-
         for event in events:
-            event_type = event.get("event")
-
-            if event_type == "FSSDiscoveryScan":
-                survey_state.record_discovery_scan(event)
-
-            elif event_type == "Scan":
-                survey_state.record_body_scan(event)
-
-            elif event_type == "FSSBodySignals":
-                survey_state.record_body_signals(event)
-
-            elif event_type == "SAAScanComplete":
-                survey_state.record_dss_complete(event)
-
-            elif event_type == "FSSAllBodiesFound":
-                survey_state.mark_all_bodies_found(event)
+            survey_state.process_journal_event(event)
 
     def find_oldest_matching_journal_index(self, latest_journal_events):
         if not latest_journal_events:

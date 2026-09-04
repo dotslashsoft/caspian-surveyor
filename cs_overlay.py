@@ -116,6 +116,7 @@ class SystemInfoOverlay(QWidget):
         ui_data = cs_data_structures.load_current_system_record()
 
         if ui_data is None:
+            logger.debug("refresh_sysstem_data() -> ui_data is None.")
             return
 
         system_changed = (
@@ -751,6 +752,7 @@ class SystemInfoOverlay(QWidget):
         self.move(x, y)
 
 if __name__ == "__main__":
+    logger.debug("Launching caspian surveyor HUD.")
     app = QApplication(sys.argv)
     overlay = SystemInfoOverlay()
     overlay.show()

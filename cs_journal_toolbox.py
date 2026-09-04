@@ -245,7 +245,8 @@ DEBUG_LOG_PAYLOAD_EVENTS = {
     "Scan",
     "FSSAllBodiesFound",
     "SAAScanComplete",
-    "Shutdown"
+    "Shutdown",
+    "FSSBodySignals"
 }
 
 if __name__ == "__main__":

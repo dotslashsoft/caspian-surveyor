@@ -71,20 +71,8 @@ def main():
                 system_record = survey_data_builder.build_system_record()
                 cs_runtime.write_current_system_record(system_record)
 
-            elif event_type == "FSSDiscoveryScan":
-                state_updated = survey_state.record_discovery_scan(event)
-
-            elif event_type == "Scan":
-                state_updated = survey_state.record_body_scan(event)
-
-            elif event_type == "FSSBodySignals":
-                state_updated = survey_state.record_body_signals(event)
-
-            elif event_type == "SAAScanComplete":
-                state_updated = survey_state.record_dss_complete(event)
-
-            elif event_type == "FSSAllBodiesFound":
-                state_updated = survey_state.mark_all_bodies_found(event)
+            else:
+                state_updated = survey_state.process_journal_event(event)
 
             if state_updated:
                 system_record = survey_data_builder.build_system_record()
