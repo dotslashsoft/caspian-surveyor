@@ -24,7 +24,7 @@ def main():
     if latest_journal is None:
         return
 
-    latest_journal_events = Journal.get_latest_system_events(latest_journal)
+    latest_journal_events = Journal.get_reconstruction_start_events(latest_journal)
 
     state_recovery = Survey.StateRecovery()
     reconstructed_system = state_recovery.reconstruct_system_data(latest_journal_events)

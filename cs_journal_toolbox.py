@@ -276,7 +276,7 @@ def get_latest_journal_file() -> Path | None:
 
     return latest_journal
 
-def get_latest_system_events(journal_file: Path) -> list[dict]:
+def get_reconstruction_start_events(journal_file: Path) -> list[dict]:
     """
     Retrieves journal events associated with the most recent system context.
 

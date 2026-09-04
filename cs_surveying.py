@@ -508,7 +508,7 @@ class StateRecovery:
 
             if journal_file is None:
                 return None
-            journal_events = Journal.get_latest_system_events(journal_file)
+            journal_events = Journal.get_reconstruction_start_events(journal_file)
 
             if journal_index == oldest_matching_index:
                 self.survey_state.begin_system(journal_events[0])
@@ -570,7 +570,7 @@ class StateRecovery:
             if journal_file is None:
                 return journal_index - 1
 
-            journal_events = Journal.get_latest_system_events(journal_file)
+            journal_events = Journal.get_reconstruction_start_events(journal_file)
 
             previous_system_address = (journal_events[0].get("SystemAddress")
                 if journal_events
