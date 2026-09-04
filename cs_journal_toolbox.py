@@ -8,18 +8,50 @@ import queue
 
 ### ### ### ### ### ### ### ### ### ### ### ###
 logger = logging.getLogger(__name__)
-run_directory = cs_baseline_config.run_directory
 journal_directory = cs_baseline_config.journal_directory
 
 class JournalReader:
+    """
+    One Journal class to rule them all.
 
-    def __init__(self, journal_path, poll_interval=1.0):
+    Monitors Elite Dangerous journal files for live activity, detects
+    journal rotation, and yields parsed journal events for downstream
+    processing.
+
+    Coordinates journal-directory monitoring, queue-based journal swaps,
+    and recovery from temporary journal-directory access failures.
+    """
+
+    def __init__(self, journal_path: str | Path, poll_interval: float = 1.0) -> None:
+        """
+        Initializes journal-reading and monitoring state.
+
+        Args:
+            journal_path: Path to the Elite Dangerous journal file to begin following.
+            poll_interval: Delay, in seconds, between journal and directory checks.
+                Defaults to 1.0.
+        """     
         self.journal_path = Path(journal_path)
         self.poll_interval = poll_interval
         self.new_journal_queue = queue.Queue()
         self.consecutive_monitor_failures = 0
 
     def heal_monitor_journal_directory(self, directory_path, fatal_error_event):
+        """
+        Supervises the Elite Dangerous journal-directory monitor.
+
+        Restarts journal-directory monitoring after recoverable failures. If the
+        journal monitor fails three consecutive times, logs a critical error,
+        sets fatal_error_event, and returns False.
+
+        Args:
+            directory_path: Path to the Elite Dangerous journal directory.
+            fatal_error_event: Shared event set when journal monitoring can no
+                longer be reliably restored.
+
+        Returns:
+            False if journal monitoring fails three consecutive times.
+        """  
         logger.debug("heal_monitor_journal_directory called")
         while True:
             monitor_active = self.monitor_journal_directory(directory_path)
@@ -60,13 +92,18 @@ class JournalReader:
 
     def monitor_journal_directory(self, directory_path):
         """
-        Monitor the Elite Dangerous journal directory.
+        Monitors the Elite Dangerous journal directory for newly created journal files.
+
+        When a new journal file is detected, its path is added to new_journal_queue
+        for follow() to process and begin reading.
 
         Runs continuously while the journal directory remains available.
 
+        Args:
+            directory_path: Path to the Elite Dangerous journal directory.
+
         Returns:
-            False if monitoring terminates due to a recoverable
-            filesystem error.
+            False if monitoring terminates due to a recoverable filesystem error.
         """
 
         target_dir = Path(directory_path)
@@ -106,7 +143,31 @@ class JournalReader:
             return False
 
     def follow(self, fatal_error_event):
+        """
+        Follows the active Elite Dangerous journal and yields parsed journal events.
 
+        Begins reading the initial journal from the end of the file because
+        historical events have already been handled during state reconstruction.
+
+        While following the active journal, checks the new-journal queue for
+        journal rotation. When a new journal path is received, closes the current
+        journal, opens the new journal, and begins reading it from the beginning.
+
+        Incomplete journal lines are retried after the polling interval, allowing
+        Elite Dangerous to finish writing the event before it is parsed.
+
+        Stops following journals when fatal_error_event is set.
+
+        Args:
+            fatal_error_event: Shared event used to signal that journal monitoring
+                can no longer continue reliably.
+
+        Yields:
+            Parsed Elite Dangerous journal events as dictionaries.
+
+        Raises:
+            OSError: If the active journal file cannot be opened or read.
+        """  
         logger.info("Beginning journal monitoring: %s", self.journal_path)
 
         current_path = self.journal_path
@@ -184,7 +245,20 @@ class JournalReader:
                     "Unable to open or read journal file: %s", current_path)
                 raise
 
-def get_latest_journal_file():
+def get_latest_journal_file() -> Path | None:
+    """
+    It's in the name, brodenheimer.
+
+    Finds the most recently modified Elite Dangerous journal file in the
+    configured journal directory.
+
+    Searches for files matching 'Journal.*.log' and selects the newest
+    journal based on filesystem modification time.
+
+    Returns:
+        Path to the latest Elite Dangerous journal file, or None if the
+        journal directory is unavailable or contains no matching files.
+    """
     logger.debug("Searching journal directory: %s", journal_directory)
 
     if not journal_directory.is_dir():
@@ -203,6 +277,22 @@ def get_latest_journal_file():
     return latest_journal
 
 def get_latest_system_events(journal_file: Path) -> list[dict]:
+    """
+    Retrieves journal events associated with the most recent system context.
+
+    Reads the supplied Elite Dangerous journal from beginning to end and
+    retains events beginning with the latest FSDJump or Location event.
+
+    Used by StateRecovery to begin reconstruction of the current system
+    survey state.
+
+    Args:
+        journal_file: Elite Dangerous journal file to inspect.
+
+    Returns:
+        Parsed journal events belonging to the most recent system context
+        found in the journal.
+    """ 
     latest_system_events = []
 
     with journal_file.open("r", encoding="utf-8") as file:
@@ -219,7 +309,20 @@ def get_latest_system_events(journal_file: Path) -> list[dict]:
 
     return latest_system_events
 
-def get_journal_file_by_index(index):
+def get_journal_file_by_index(index) -> Path | None:
+    """
+    Gets an Elite Dangerous journal file by recency index.
+
+    Journal files are sorted by modification time from newest to oldest,
+    with index 0 representing the most recently modified journal.
+
+    Args:
+        index: Position of the journal in the recency-sorted list.
+
+    Returns:
+        Path to the journal file at the requested index, or None if the
+        index exceeds the number of available journal files.
+    """
     logger.debug("Searching journal directory for file index %d: %s", index, journal_directory)
 
     journal_files = list(journal_directory.glob("Journal.*.log"))
@@ -239,6 +342,10 @@ def get_journal_file_by_index(index):
 ### event constants ###
 
 DEBUG_LOG_PAYLOAD_EVENTS = {
+"""
+Elite Dangerous journal events whose full payloads are logged when
+DEBUG logging is enabled.
+""" 
     "Location",
     "FSDJump",
     "FSSDiscoveryScan",
