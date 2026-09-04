@@ -1,5 +1,6 @@
 import logging
 import cs_journal_toolbox as Journal
+from typing import Any
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 
@@ -412,11 +413,31 @@ class SurveyDataBuilder:
         }
 
 class StateRecovery:
+    """
+    Reconstructs the current system survey state from Elite Dangerous
+    journal history.
 
+    Identifies the oldest relevant journal containing the current system,
+    initializes survey state from that journal, and replays supported
+    journal events forward chronologically through subsequent matching
+    journals.
+    """
     def __init__(self):
         self.survey_state = SurveyState()
 
-    def reconstruct_system_data(self, latest_journal_events):
+    def reconstruct_system_data(self, latest_journal_events)-> dict[str, Any] | None:
+        """
+        Loops from the returned value of find_oldest_matching_journal_index(), 
+        if the value is not None, and reconstructs system data from events within
+        journal[index] -> latest journal.
+
+        Args:
+            latest_journal_events: Parsed journal events for the current system,
+            returned by get_latest_system_events()
+
+        Returns:
+            reconstructed current system state as dict
+        """
         if not latest_journal_events:
             return None
 
@@ -440,11 +461,45 @@ class StateRecovery:
         return self.survey_state.current_system
 
 
-    def replay_system_events(self, survey_state, events):
+    def replay_system_events(self, survey_state, events) -> None:
+        """
+        Replays Elite Dangerous journal events into the current survey state.
+
+        Called by reconstruct_system_data() to process journal events in
+        chronological order. Each event is passed to process_journal_event(),
+        which applies supported event data to the supplied SurveyState instance.
+
+        Args:
+            survey_state: SurveyState instance being reconstructed.
+            events: Parsed Elite Dangerous journal events to replay.
+
+        Returns:
+            None.
+        """
         for event in events:
             survey_state.process_journal_event(event)
 
-    def find_oldest_matching_journal_index(self, latest_journal_events):
+    def find_oldest_matching_journal_index(self, latest_journal_events) -> int | None:
+        """
+        Finds the oldest contiguous journal containing events for the current system.
+
+        Walks backward through Elite Dangerous journals from newest to oldest,
+        comparing their SystemAddress against the SystemAddress from the latest
+        journal events. Stops when a journal belonging to a different system is
+        encountered.
+
+        Called by reconstruct_system_data() to determine where journal replay
+        should begin.
+
+        Args:
+            latest_journal_events: Parsed journal events for the current system,
+                returned by get_latest_system_events().
+
+        Returns:
+            The index of the oldest journal containing the matching SystemAddress,
+            or None if a matching journal index cannot be determined.
+        """
+
         if not latest_journal_events:
             return None
 
