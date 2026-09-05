@@ -1,6 +1,7 @@
 from pathlib import Path
+import os
 
-run_directory = Path.cwd()
+run_directory =  Path(os.environ["LOCALAPPDATA"]) / "CaspianSurveyor"
 """
 Working directory from which Caspian Surveyor was launched.
 
