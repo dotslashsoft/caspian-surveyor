@@ -8,6 +8,8 @@ import threading
 import logging
 import sys
 import keyboard
+import subprocess
+from pathlib import Path
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 #################################
@@ -85,6 +87,15 @@ def main() -> None:
     if not runtime_record_written:
         logger.critical("Current-system runtime record was not written. Exiting...")
         sys.exit(2)
+
+    def launch_overlay() -> subprocess.Popen:
+        if getattr(sys, "frozen", False):
+            overlay_path = Path(sys.executable).with_name("CaspianOverlay.exe")
+            return subprocess.Popen([str(overlay_path)])
+
+        overlay_path = Path(__file__).with_name("cs_overlay.py")
+        return subprocess.Popen([sys.executable, str(overlay_path)])
+    overlay_process = launch_overlay()
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
     fatal_error_event = threading.Event()
