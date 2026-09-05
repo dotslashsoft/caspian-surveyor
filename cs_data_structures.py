@@ -1,30 +1,28 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
 import json
 import logging
-import cs_history
-import bootstrap.cs_baseline_config as cs_baseline_config
+import runtime.cs_runtime as cs_runtime
 
-
-current_system_json = (
-    cs_baseline_config.run_directory
-    / "runtime"
-    / "current_system.json"
-)
 
 logger = logging.getLogger(__name__)
+CURRENT_SYSTEM_FILE = cs_runtime.CURRENT_SYSTEM_FILE
 
-exploration_history_jsonl = cs_history.EXPLORATION_HISTORY_FILE
 
 @dataclass
 class SystemInfo:
+    """
+    Stores system-level data from the current system record.
+    """
     name: str
     address: int
-    position: List[float] = field(default_factory=list)
+    position: list[float] = field(default_factory=list)
     body_count: int = 0
 
 @dataclass
 class SummaryInfo:
+    """
+    Stores derived summary counts for the current system.
+    """
     scan_records: int
     stars: int
     planets: int
@@ -40,17 +38,26 @@ class SummaryInfo:
 
 @dataclass
 class MaterialInfo:
+    """
+    Represents a material and its percentage on a planetary body.
+    """
     Name: str
     Percent: float
 
 @dataclass
 class SignalInfo:
+    """
+    Represents a detected planetary signal and its count.
+    """
     type: str
     type_localised: str
     count: int
 
 @dataclass
 class OrganicScanInfo:
+    """
+    Represents an exobiology scan record for a planetary body.
+    """
     scan_type: str
     genus: str
     genus_localised: str
@@ -62,48 +69,64 @@ class OrganicScanInfo:
 
 @dataclass
 class GenusInfo:
+    """
+    Represents exobiology genus information for a planetary body.
+    """
     genus: str
     genus_localised: str
 
 
 @dataclass
 class CelestialBody:
+    """
+    Represents the structured survey data for a single celestial body.
+
+    Stores physical, orbital, scan, signal, material, and exobiology data
+    loaded from the current system record.
+    """
     body_id: int
     body_name: str
-    parents: List[Dict[str, int]] = field(default_factory=list)
-    periapsis: Optional[float] = None
+    parents: list[dict[str, int]] = field(default_factory=list)
+    periapsis: float | None = None
     landable: bool = False
     was_discovered: bool = False
     was_mapped: bool = False
     was_footfalled: bool = False
-    distance_from_arrival: Optional[float] = None
-    planet_class: Optional[str] = None
-    terraform_state: Optional[str] = None
-    materials: Optional[List[MaterialInfo]] = None
-    surface_temperature: Optional[float] = None
-    atmosphere: Optional[str] = None
-    atmosphere_type: Optional[str] = None
-    radius: Optional[float] = None
-    surface_gravity: Optional[float] = None
-    surface_pressure: Optional[float] = None
-    semi_major_axis: Optional[float] = None
-    eccentricity: Optional[float] = None
-    orbital_inclination: Optional[float] = None
-    orbital_period: Optional[float] = None
-    ascending_node: Optional[float] = None
-    mean_anomaly: Optional[float] = None
-    rotational_period: Optional[float] = None
-    axial_tilt: Optional[float] = None
+    distance_from_arrival: float | None = None
+    planet_class: str | None = None
+    terraform_state: str | None = None
+    materials: list[MaterialInfo] | None = None
+    surface_temperature: float | None = None
+    atmosphere: str | None = None
+    atmosphere_type: str | None = None
+    radius: float | None = None
+    surface_gravity: float | None = None
+    surface_pressure: float | None = None
+    semi_major_axis: float | None = None
+    eccentricity: float | None = None
+    orbital_inclination: float | None = None
+    orbital_period: float | None = None
+    ascending_node: float | None = None
+    mean_anomaly: float | None = None
+    rotational_period: float | None = None
+    axial_tilt: float | None = None
     tidal_lock: bool = False
-    signals: Optional[List[SignalInfo]] = None
+    signals: list[SignalInfo] | None = None
     dss_scan_complete: bool = False
-    genuses: Optional[list[GenusInfo]] = None
+    genuses: list[GenusInfo] | None = None
     organic_scans: list[OrganicScanInfo] = field(default_factory=list)
     
 
 
-    def __post_init__(self):
-        # Automatically turn the raw materials list into MaterialInfo objects
+    def __post_init__(self) -> None:
+        """
+        Converts raw material and signal dictionaries into their corresponding
+        dataclass representations.
+
+        TODO:
+            Convert raw genus and organic-scan dictionaries into GenusInfo and
+            OrganicScanInfo instances when exobiology data integration is completed.
+        """
         if isinstance(self.materials, list):
             self.materials = [
                 MaterialInfo(**m) if isinstance(m, dict) else m 
@@ -116,7 +139,7 @@ class CelestialBody:
                 SignalInfo(
                     type=signal.get("Type", "--"),
                     type_localised=signal.get("Type_Localised", "--"),
-                    count=signal.get("Count", "--")
+                    count=signal.get("Count", 0)
                 )
                 if isinstance(signal, dict)
                 else signal
@@ -125,13 +148,23 @@ class CelestialBody:
 
 
 @dataclass
-class FullStarSystemPayload():
+class FullStarSystemPayload:
+    """
+    Represents the complete structured current-system payload.
+
+    Contains system information, derived summary data, and celestial-body
+    records converted from the runtime JSON structure.
+    """
     schema_version: int
     system: SystemInfo
     summary: SummaryInfo
-    bodies: Dict[str, CelestialBody] = field(default_factory=dict)
+    bodies: dict[str, CelestialBody] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
+        """
+        Converts nested system, summary, and body dictionaries into their
+        corresponding dataclass representations.
+        """
         if isinstance(self.system, dict):
             self.system = SystemInfo(**self.system)
 
@@ -150,6 +183,11 @@ class FullStarSystemPayload():
 
     @property
     def planetary_bodies(self) -> list[CelestialBody]:
+        """
+        Returns planetary bodies sorted by BodyID.
+
+        Excludes bodies without a planet classification.
+        """
         return sorted(
             (
                 body
@@ -160,9 +198,19 @@ class FullStarSystemPayload():
         )
 
 
-def load_current_system_record():
+def load_current_system_record() -> FullStarSystemPayload | None:
+    """
+    Loads and structures the current runtime system record.
+
+    Reads CURRENT_SYSTEM_FILE and converts the decoded JSON data into a
+    FullStarSystemPayload.
+
+    Returns:
+        The structured current-system payload, or None if the runtime file
+        does not exist or contains invalid JSON.
+    """
     try:
-        with open(current_system_json, "r", encoding="utf-8") as file:
+        with open(CURRENT_SYSTEM_FILE, "r", encoding="utf-8") as file:
             raw_data = json.load(file)
 
         system_record = FullStarSystemPayload(**raw_data)
@@ -170,9 +218,9 @@ def load_current_system_record():
         return system_record
 
     except FileNotFoundError:
-        print(f"Error: The file '{current_system_json}' was not found.")
+        logger.error("The file '%s' was not found.", CURRENT_SYSTEM_FILE)
         return None
 
     except json.JSONDecodeError:
-        print("Error: The current system file contains broken or incomplete JSON.")
+        logger.error("The current system file contains broken or incomplete JSON.")
         return None
