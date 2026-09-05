@@ -2,15 +2,14 @@ import json
 import bootstrap.cs_baseline_config as cs_baseline_config
 import logging
 from typing import Any
+import os
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 ### Runtime directory ###
-
-RUNTIME_DIRECTORY = (
-    cs_baseline_config.run_directory
-    / "runtime"
-)
+APPLICATION_DATA_DIRECTORY = Path(os.environ["LOCALAPPDATA"]) / "CaspianSurveyor"
+RUNTIME_DIRECTORY = APPLICATION_DATA_DIRECTORY / "runtime"
 """
 Path: runtime directory where current_system.json lives.
 """
@@ -64,7 +63,7 @@ def write_current_system_record(system_record: dict[str, Any] | None) -> bool:
 
     try:
         logger.debug("Creating RUNTIME_DIRECTORY if it doesn't exist.")
-        RUNTIME_DIRECTORY.mkdir(parents=False, exist_ok=True)
+        RUNTIME_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
         logger.debug("Opening TEMP_SYSTEM_FILE and writing system record.")
         with TEMP_SYSTEM_FILE.open("w", encoding="utf-8") as file:
