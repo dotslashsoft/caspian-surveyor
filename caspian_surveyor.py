@@ -24,11 +24,12 @@ def main() -> None:
 
         - establishes logging configuration
         - locates the latest Elite Dangerous journal
-            - returns if no journal is available
+            - exits with status code 2 if no journal is available
         - retrieves the starting events required for state reconstruction
         - creates StateRecovery and reconstructs the current survey state
         - initializes survey-data and history-management components
-        - writes the reconstructed current-system record when available
+        - writes the reconstructed current-system record before live 
+            monitoring begins
         - creates the fatal-error signaling event
         - starts the journal-directory monitoring thread
         - follows and processes live journal events
@@ -38,35 +39,44 @@ def main() -> None:
     are delegated to SurveyState and cause the runtime system record to be
     rebuilt when survey state changes.
 
-    Exits with status code 2 if journal monitoring reaches a fatal failure.
+    Exits with status code 2 if required journal data is unavailable,
+    system reconstruction fails, runtime persistence fails, or journal
+    monitoring reaches a fatal failure.
     """
 
     log_manager = cs_log_factory.LogManager()
     log_manager.set_log_config()
 
-    
     latest_journal = Journal.get_latest_journal_file()
 
     if latest_journal is None:
         logger.critical("No Elite Dangerous journal file was found. Caspian Surveyor is exiting.")
         sys.exit(2)
-
-    logger.info("Latest journal has been found: %s", latest_journal)
-
-    
+    logger.info("Latest journal has been found: %s", latest_journal)    
 
     latest_journal_events = Journal.get_reconstruction_start_events(latest_journal)
-
     state_recovery = Survey.StateRecovery()
     reconstructed_system = state_recovery.reconstruct_system_data(latest_journal_events)
+
+    if reconstructed_system is None:
+        logger.critical("SurveyState system reconstruction failed: returned None. Exiting...")
+        sys.exit(2)
 
     survey_state = state_recovery.survey_state
     survey_data_builder = Survey.SurveyDataBuilder(survey_state)
     data_orchestrator = cs_history.DataOrchestrator()
 
-    if reconstructed_system is not None:
-        system_record = survey_data_builder.build_system_record()
-        cs_runtime.write_current_system_record(system_record)
+    system_record = survey_data_builder.build_system_record()
+
+    try:
+        runtime_record_written = cs_runtime.write_current_system_record(system_record)
+    except OSError:
+        logger.exception("Failed to write the current-system runtime record. Exiting...")
+        sys.exit(2)
+
+    if not runtime_record_written:
+        logger.critical("Current-system runtime record was not written. Exiting...")
+        sys.exit(2)
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
     fatal_error_event = threading.Event()
@@ -92,26 +102,42 @@ def main() -> None:
                 logger.debug(f"Result of survey_state.current_system:\t {survey_state.current_system}")
                 if survey_state.current_system is not None:
                     system_record = survey_data_builder.build_system_record()
+                    runtime_record_written = cs_runtime.write_current_system_record(system_record)
 
-                    cs_runtime.write_current_system_record(system_record)
+                    if not runtime_record_written:
+                        logger.critical("Current-system runtime record was not written. Exiting...")
+                        sys.exit(2)
+
                     data_orchestrator.load_current_system_data_to_dict()
                     data_orchestrator.append_system_record_to_history_file()
 
                 # Begin the system just entered.
                 survey_state.begin_system(event)
                 system_record = survey_data_builder.build_system_record()
-                cs_runtime.write_current_system_record(system_record)
+                runtime_record_written = cs_runtime.write_current_system_record(system_record)
+
+                if not runtime_record_written:
+                    logger.critical("Current-system runtime record was not written. Exiting...")
+                    sys.exit(2)
 
             else:
                 state_updated = survey_state.process_journal_event(event)
 
             if state_updated:
                 system_record = survey_data_builder.build_system_record()
-                cs_runtime.write_current_system_record(system_record)
+                runtime_record_written = cs_runtime.write_current_system_record(system_record)
+
+                if not runtime_record_written:
+                    logger.critical("Current-system runtime record was not written. Exiting...")
+                    sys.exit(2)
 
         if fatal_error_event.is_set():
             logger.critical("Fatal journal monitoring error. Caspian Surveyor is shutting down.")
             sys.exit(2)
+
+    except OSError:
+        logger.exception("Failure to read/write a required file. Caspian Surveyor is exiting.")
+        sys.exit(2)
 
     except KeyboardInterrupt:
         print("\nJournal monitoring stopped.")
