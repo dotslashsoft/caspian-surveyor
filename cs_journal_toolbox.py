@@ -342,10 +342,6 @@ def get_journal_file_by_index(index) -> Path | None:
 ### event constants ###
 
 DEBUG_LOG_PAYLOAD_EVENTS = {
-"""
-Elite Dangerous journal events whose full payloads are logged when
-DEBUG logging is enabled.
-""" 
     "Location",
     "FSDJump",
     "FSSDiscoveryScan",
@@ -355,6 +351,11 @@ DEBUG logging is enabled.
     "Shutdown",
     "FSSBodySignals"
 }
+"""
+Elite Dangerous journal events whose full payloads are logged when
+DEBUG logging is enabled.
+""" 
+
 
 if __name__ == "__main__":
     pass

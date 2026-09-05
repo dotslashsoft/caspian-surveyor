@@ -9,6 +9,12 @@ CURRENT_SYSTEM_FILE = (cs_baseline_config.run_directory / "runtime" / "current_s
 
 
 class DataOrchestrator:
+    """
+    Coordinates persistence of completed system records to exploration history.
+
+    Loads the current system record from the runtime JSON file and appends
+    it to the exploration history JSONL file.
+    """
 
     def __init__(self, current_system_file=CURRENT_SYSTEM_FILE, exploration_history_file=EXPLORATION_HISTORY_FILE):
         logger.debug("Initializing current_system_file, exploration_history_file, and current_system_data.")
@@ -18,7 +24,19 @@ class DataOrchestrator:
 
 
     def load_current_system_data_to_dict(self):
-        
+        """
+        Loads the current system record from the runtime JSON file.
+
+        Reads CURRENT_SYSTEM_FILE, decodes the JSON data, and returns the
+        resulting current-system dictionary.
+
+        Returns:
+            Current-system data decoded from CURRENT_SYSTEM_FILE.
+
+        Raises:
+            OSError: If CURRENT_SYSTEM_FILE cannot be opened or read.
+            json.JSONDecodeError: If the file contents cannot be decoded as JSON.
+        """
         try:
             logger.info("Opening current_system_file...")
             with self.current_system_file.open("r", encoding="utf-8") as file:
@@ -34,7 +52,20 @@ class DataOrchestrator:
             logger.exception("Unable to decode current system data.")
             raise
 
-    def append_system_record_to_history_file(self):
+    def append_system_record_to_history_file(self) -> bool:
+        """
+        Appends the currently loaded system record to the exploration history.
+
+        Serializes the current-system dictionary as JSON and appends it as a
+        single record to EXPLORATION_HISTORY_FILE.
+
+        Raises:
+            RuntimeError: If no current-system data is loaded.
+            OSError: If the exploration-history file cannot be opened or written.
+
+        Returns:
+            True when the system record is appended successfully.
+        """
 
         logger.debug("Reached append_system_record_to_history_file.")
 

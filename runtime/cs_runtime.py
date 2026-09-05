@@ -5,10 +5,42 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-RUNTIME_DIRECTORY = (cs_baseline_config.run_directory / "runtime")
-CURRENT_SYSTEM_FILE = (RUNTIME_DIRECTORY / "current_system.json")
-TEMP_SYSTEM_FILE = (RUNTIME_DIRECTORY / "current_system.tmp")
+### Runtime directory ###
 
+RUNTIME_DIRECTORY = (
+    cs_baseline_config.run_directory
+    / "runtime"
+)
+"""
+Path: runtime directory where current_system.json lives.
+"""
+
+### Current system file ###
+
+CURRENT_SYSTEM_FILE = (
+    RUNTIME_DIRECTORY
+    / "current_system.json"
+)
+"""
+JSON formatted file that holds current system data.
+
+Path: current_system.json file
+"""
+
+### Temporary system file ###
+
+TEMP_SYSTEM_FILE = (
+    RUNTIME_DIRECTORY
+    / "current_system.tmp"
+)
+"""
+JSON formatted temporary file that holds current system data.
+Used temporarily to so the current system JSON file can be
+atomically overwritten.
+
+Path: current_system.tmp file
+"""
+##############################
 
 def write_current_system_record(system_record: dict[str, Any] | None) -> bool:
     """
