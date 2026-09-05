@@ -3,6 +3,7 @@ import bootstrap.cs_baseline_config as csconfig
 from pathlib import Path
 from datetime import datetime
 import sys
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,8 @@ class LogManager:
     and applies the default logging configuration.
     """
     ### 
-    DEFAULT_LOG_DIR = csconfig.run_directory / "logs"
+    APPLICATION_DATA_DIRECTORY = Path(os.environ["LOCALAPPDATA"]) / "CaspianSurveyor"
+    DEFAULT_LOG_DIR = APPLICATION_DATA_DIRECTORY / "logs"
     """Dude, it's in the name. just...read the fucking constant."""
 
     ###
