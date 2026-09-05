@@ -81,40 +81,6 @@ class MetricWidget(QWidget):
         else:
             self.val_label.setText(str(value))
 
-class JournalWorker(QtCore.QObject):
-    """
-    Bridge Keeper: What is your purpose?
-
-    JournalWorker: I...I don't know, I'm just kind of here.
-
-    Bridge Keeper: oh...um....okay then, you may pass.
-
-    JournalWorker: but...am I really even here?
-
-    Bridge Keeper: ...
-    """    
-
-    # TODO: Implement JournalWorker functionality or remove if no longer required.
-    system_updated = QtCore.Signal(object)
-
-    def run(self):
-        """
-        An anomaly left behind after the program-resilience overhaul and
-        architectural refactor.
-
-        TODO:
-            Remove JournalWorker and its associated QThread, then test the
-            overlay for regressions. The overlay should consume Caspian's
-            runtime/UI data rather than directly participating in journal
-            monitoring or journal-event processing.
-
-            cs_journal_toolbox owns journal-file access and monitoring.
-            cs_surveying owns interpretation of parsed journal events and
-            SurveyState updates.
-        """     
-        print("Journal worker is running")
-        logger.info("Journal worker is running")
-
 
 class SystemInfoOverlay(QWidget):
     """
@@ -150,7 +116,7 @@ class SystemInfoOverlay(QWidget):
         Initializes the overlay startup sequence.
 
         Connects signals, registers hotkeys, loads initial survey data,
-        configures and builds the HUD, and starts background update services.
+        configures and builds the HUD, and starts the HUD update timer.
         """  
         super().__init__()
 
@@ -159,7 +125,7 @@ class SystemInfoOverlay(QWidget):
         self._load_initial_data()
         self._configure_window()
         self._build_ui()
-        self._start_background_services()
+        self._start_update_timer()
 
     def event(self, event):
         """
@@ -197,7 +163,7 @@ class SystemInfoOverlay(QWidget):
 
         This method is unaware of polling or underlying data changes. It is
         currently called every five seconds by the update timer started in
-        _start_background_services().
+        _start_update_timer().
 
         TODO:
             Consider replacing timer-based polling with event-driven updates.
@@ -768,30 +734,10 @@ class SystemInfoOverlay(QWidget):
 
         return title_widget
 
-    def _start_background_services(self) -> None:
+    def _start_update_timer(self) -> None:
         """
-        Starts the overlay's background services.
-
-        Creates the JournalWorker QThread and starts the update timer, which
-        currently calls refresh_system_data() every five seconds.
-
-        TODO:
-            JournalWorker currently performs no meaningful work beyond logging
-            that it has started. Remove JournalWorker and its associated QThread
-            during the pre-alpha cleanup pass, then test the overlay for regressions.
-
-            If removed successfully, rename this method to reflect that its sole
-            responsibility is starting the UI update timer.
+        Starts the timer used to periodically refresh the overlay's system data.
         """
-        self.journal_thread = QtCore.QThread()
-        self.journal_worker = JournalWorker()
-
-        self.journal_worker.moveToThread(self.journal_thread)
-        self.journal_thread.started.connect(
-            self.journal_worker.run
-        )
-
-        self.journal_thread.start()
 
         self.update_timer = QtCore.QTimer(self)
         self.update_timer.timeout.connect(
@@ -829,20 +775,9 @@ class SystemInfoOverlay(QWidget):
     def exit_overlay(self) -> None:
         """
         Exits the Caspian Surveyor overlay application.
-
-        Requests the active QApplication instance to quit, terminating the
-        Qt event loop. Logs an error if no QApplication instance is available.
         """
-        # TODO:
-        # Gracefully shut down journal_thread before quitting QApplication.
-        # Use this as the baseline shutdown pattern for future worker threads
-        # and queues.
-        app_instance = QApplication.instance()
 
-        if self.journal_thread.isRunning():
-            self.journal_thread.requestInterruption()
-            self.journal_thread.quit()
-            self.journal_thread.wait()
+        app_instance = QApplication.instance()
 
         if app_instance is not None:
             app_instance.quit()

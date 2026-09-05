@@ -44,10 +44,16 @@ def main() -> None:
     log_manager = cs_log_factory.LogManager()
     log_manager.set_log_config()
 
+    
     latest_journal = Journal.get_latest_journal_file()
 
     if latest_journal is None:
-        return
+        logger.critical("No Elite Dangerous journal file was found. Caspian Surveyor is exiting.")
+        sys.exit(2)
+
+    logger.info("Latest journal has been found: %s", latest_journal)
+
+    
 
     latest_journal_events = Journal.get_reconstruction_start_events(latest_journal)
 
