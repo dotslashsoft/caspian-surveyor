@@ -13,12 +13,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MetricWidget(QWidget):
+    """
+    Reusable widget for displaying a labeled metric.
+
+    Renders a small, muted key label above a larger, highlighted value label.
+    Uses a fixed vertical size policy to keep metric displays visually
+    consistent within the overlay.
+    """
     def __init__(
         self,
         key: str,
         default_value: str | int | float = "--",
         key_font_size: int = 9
     ):
+        """
+        Initializes the MetricWidget's labels and styles.
+
+        Args:
+            key: The text title/label for the metric.
+            default_value: The starting value to display. Defaults to "--".
+            key_font_size: Font size in pixels for the key label. Defaults to 9.
+            TODO: I wonder why I haven't implemented value_font_size
+        """    
         super().__init__()
 
         self.setSizePolicy(
@@ -52,6 +68,12 @@ class MetricWidget(QWidget):
 
 
     def set_value(self, value: str | int | float | None):
+        """
+        Updates the metric value label text.
+
+        Args:
+            value: The data to display. If None, displays default "--".
+        """
         self.val_label.setText(str(value))
 
         if value is None:
@@ -60,14 +82,48 @@ class MetricWidget(QWidget):
             self.val_label.setText(str(value))
 
 class JournalWorker(QtCore.QObject):
+    """
+    Bridge Keeper: What is your purpose?
+
+    JournalWorker: I...I don't know, I'm just kind of here.
+
+    Bridge Keeper: oh...um....okay then, you may pass.
+
+    JournalWorker: but...am I really even here?
+
+    Bridge Keeper: ...
+    """    
+
+    # TODO: Implement JournalWorker functionality or remove if no longer required.
     system_updated = QtCore.Signal(object)
 
     def run(self):
+        """
+        An anomaly left behind after the program-resilience overhaul and
+        architectural refactor.
+
+        TODO:
+            Remove JournalWorker and its associated QThread, then test the
+            overlay for regressions. The overlay should consume Caspian's
+            runtime/UI data rather than directly participating in journal
+            monitoring or journal-event processing.
+
+            cs_journal_toolbox owns journal-file access and monitoring.
+            cs_surveying owns interpretation of parsed journal events and
+            SurveyState updates.
+        """     
         print("Journal worker is running")
         logger.info("Journal worker is running")
 
 
 class SystemInfoOverlay(QWidget):
+    """
+    Displays and manages the Caspian Surveyor HUD overlay.
+
+    Loads current survey data, builds and refreshes system/body display pages,
+    handles overlay navigation and hotkeys, and manages visibility and
+    positioning.
+    """
     toggle_requested = QtCore.Signal()
     exit_requested = QtCore.Signal()
     cycle_next = QtCore.Signal()
@@ -90,6 +146,12 @@ class SystemInfoOverlay(QWidget):
     """
 
     def __init__(self):
+        """
+        Initializes the overlay startup sequence.
+
+        Connects signals, registers hotkeys, loads initial survey data,
+        configures and builds the HUD, and starts background update services.
+        """  
         super().__init__()
 
         self._connect_signals()
@@ -100,6 +162,13 @@ class SystemInfoOverlay(QWidget):
         self._start_background_services()
 
     def event(self, event):
+        """
+        Handles Qt layout requests that may require the overlay to resize.
+
+        When the layout requests additional or reduced space, resizes the
+        overlay to its current size hint. The resulting resize is handled by
+        resizeEvent(), which repositions the overlay.
+        """    
         result = super().event(event)
 
         if event.type() == QEvent.Type.LayoutRequest:
@@ -108,11 +177,31 @@ class SystemInfoOverlay(QWidget):
         return result
 
     def resizeEvent(self, event):
+        """
+        Repositions the overlay after its size changes.
+
+        Keeps the HUD centered at the top of the primary display whenever
+        Qt resizes the widget.
+        """
         super().resizeEvent(event)
 
         self.position_top_center()
 
     def refresh_system_data(self):
+        """
+        Reloads the current system record and refreshes the HUD display.
+
+        Updates system-summary metrics and planetary-body data from Caspian's
+        current runtime record. Resets the selected body index when the system
+        changes.
+
+        This method is unaware of polling or underlying data changes. It is
+        currently called every five seconds by the update timer started in
+        _start_background_services().
+
+        TODO:
+            Consider replacing timer-based polling with event-driven updates.
+        """    
         ui_data = cs_data_structures.load_current_system_record()
 
         if ui_data is None:
@@ -132,7 +221,7 @@ class SystemInfoOverlay(QWidget):
 
         if self.planetary_bodies:
             self.current_body_index %= len(self.planetary_bodies)
-            self.update_body_display()
+            self.update_body_display_metrics()
 
         self.metric_system.set_value(ui_data.system.name.upper())
         self.metric_planets.set_value(ui_data.summary.planets)
@@ -145,6 +234,13 @@ class SystemInfoOverlay(QWidget):
 
         
     def _load_initial_data(self):
+        """
+        Loads the initial survey data used to populate the overlay.
+
+        Called once during SystemInfoOverlay initialization. Loads the current
+        system record, initializes the planetary-body collection, and resets
+        the current body index to 0.
+        """  
         self.ui_data = cs_data_structures.load_current_system_record()
 
         if self.ui_data is not None:
@@ -155,6 +251,14 @@ class SystemInfoOverlay(QWidget):
         self.current_body_index = 0
 
     def _configure_window(self):
+        """
+        Configures the overlay window flags and widget attributes.
+
+        Sets the overlay to remain on top, frameless, transparent to input,
+        and visually translucent.
+
+        Called once during SystemInfoOverlay initialization.
+        """    
         self.setWindowFlags(
             Qt.WindowType.WindowStaysOnTopHint
             | Qt.WindowType.FramelessWindowHint
@@ -168,6 +272,18 @@ class SystemInfoOverlay(QWidget):
         )
 
     def _build_ui(self):
+        """
+        Constructs the overlay's top-level UI layout and display pages.
+
+        Builds the system, body, and legend pages, configures the primary
+        QStackedWidget, and adds the completed display components to the
+        overlay layout.
+
+        Called once during SystemInfoOverlay initialization.
+
+        TODO: once necessary plumbing is completed, integrate _build_exobio_page()
+        into the UI construction flow and update this docstring to reflect the change.
+        """
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -189,18 +305,29 @@ class SystemInfoOverlay(QWidget):
 
 
     def _connect_signals(self):
-        self.toggle_requested.connect(self.toggle_widget)
+        """
+        Connects overlay control signals to their corresponding handler methods.
+
+        Called once during SystemInfoOverlay initialization.
+        """
+        self.toggle_requested.connect(self.toggle_overlay_visibility)
         self.exit_requested.connect(self.exit_overlay)
 
         self.cycle_next.connect(self.cycle_display_next)
         self.cycle_previous.connect(self.cycle_display_previous)
-        self.cycle_default.connect(self.cycle_display_default)
+        self.cycle_default.connect(self.display_system_summary)
         self.cycle_down.connect(self.cycle_display_down)
         self.cycle_up.connect(self.cycle_display_up)
-        self.toggle_legend.connect(self.display_orbital_legend)
+        self.toggle_legend.connect(self.toggle_physical_orbital_legend)
 
 
     def _register_hotkeys(self):
+        """
+        Registers global keyboard hotkeys and maps each hotkey to its
+        corresponding Qt signal emission.
+
+        Called once during SystemInfoOverlay initialization.
+        """   
         keyboard.add_hotkey(
             "ctrl+shift+m",
             self.toggle_requested.emit
@@ -242,7 +369,19 @@ class SystemInfoOverlay(QWidget):
         )
 
 
-    def _build_system_page(self):
+    def _build_system_page(self) -> QWidget | None:
+        """
+        Constructs the system-summary display page.
+
+        Creates the HUD panel and MetricWidget instances used to display
+        current-system information and derived survey-summary statistics.
+
+        Called once during SystemInfoOverlay initialization.
+
+        Returns:
+            The completed system-page QWidget, or None if no initial
+            system data is available.
+        """   
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
@@ -319,6 +458,17 @@ class SystemInfoOverlay(QWidget):
         return page
 
     def _build_body_summary_page(self):
+        """
+        Constructs the body-summary display page.
+
+        Creates the HUD panel and MetricWidget instances used to display
+        information for the currently selected planetary body.
+
+        Called once during SystemInfoOverlay initialization.
+
+        Returns:
+            The completed body-summary-page QWidget.
+        """
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
@@ -354,7 +504,18 @@ class SystemInfoOverlay(QWidget):
 
         return page
 
-    def _build_body_orbital_page(self):
+    def _build_body_physical_orbital_page(self):
+        """
+        Constructs the body orbital-data display page.
+
+        Creates the HUD panel and MetricWidget instances used to display
+        orbital and physical information for the currently selected planetary body.
+
+        Called once during SystemInfoOverlay initialization.
+
+        Returns:
+            The completed body-orbital-page QWidget.
+        """
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
@@ -396,7 +557,20 @@ class SystemInfoOverlay(QWidget):
         return page
 
     # LEGEND
+    # Me:       (⌐■_■)
+    # Also me:   ಥ_ಥ
     def _build_legend_page(self) -> QWidget:
+        """
+        Constructs the orbital and physical symbol legend page.
+
+        Creates the HUD panel and MetricWidget instances used to define the
+        symbols displayed on the body physical-orbital page.
+
+        Called once during SystemInfoOverlay initialization.
+
+        Returns:
+            The completed body-legend QWidget.
+        """
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
@@ -434,6 +608,17 @@ class SystemInfoOverlay(QWidget):
         return page
 
     def _build_body_page(self):
+        """
+        Constructs the body display page.
+
+        Creates a QStackedWidget containing the body-summary and
+        body-physical-orbital pages and adds it to the body-page layout.
+
+        Called once during SystemInfoOverlay initialization.
+
+        Returns:
+            The completed body-page QWidget.
+        """
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
@@ -442,7 +627,7 @@ class SystemInfoOverlay(QWidget):
         self.display_body_stack = QStackedWidget()
 
         self.body_summary_page = self._build_body_summary_page()
-        self.body_orbital_page = self._build_body_orbital_page()
+        self.body_orbital_page = self._build_body_physical_orbital_page()
 
         self.display_body_stack.addWidget(self.body_summary_page)
         self.display_body_stack.addWidget(self.body_orbital_page)
@@ -453,6 +638,16 @@ class SystemInfoOverlay(QWidget):
         return page
 
     def _build_exobio_page(self):
+        """
+        Builds the exobiology display page.
+
+        TODO:
+            Integrate this page into the overlay display stack and navigation
+            once exobiology display functionality is implemented.
+
+        Returns:
+            The completed exobiology-page QWidget.
+        """
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
@@ -484,13 +679,38 @@ class SystemInfoOverlay(QWidget):
         return page
 
     def _create_hud_panel(self):
+        """
+        Creates and styles a reusable HUD panel QFrame.
+
+        Assigns the "HUDPanel" object name and applies PANEL_STYLE so the
+        resulting frame can be used consistently across overlay display pages.
+
+        Returns:
+            The configured HUD-panel QFrame.
+        """
         panel = QFrame()
         panel.setObjectName("HUDPanel")
         panel.setStyleSheet(self.PANEL_STYLE)
         return panel
 
 
-    def _add_metrics(self, layout, metrics):
+    def _add_metrics(self, layout, metrics) -> dict[MetricWidget, QFrame]:
+        """
+        Adds MetricWidget instances to a HUD layout with separators between them.
+
+        Inserts each metric into the supplied layout and creates a vertical
+        separator between adjacent metrics. Returns a mapping of each metric
+        to the separator immediately following it, allowing the separator to
+        be referenced when the associated metric is shown or hidden.
+
+        Args:
+            layout: HUD layout receiving the metrics and separators.
+            metrics: MetricWidget instances to add to the layout.
+
+        Returns:
+            A dictionary mapping each applicable MetricWidget to the QFrame
+            separator immediately following it.
+        """    
         separators = {}
 
         for index, metric in enumerate(metrics):
@@ -504,7 +724,16 @@ class SystemInfoOverlay(QWidget):
 
         return separators
 
-    def _create_title_widget(self):
+    def _create_title_widget(self) -> QWidget:
+        """
+        Constructs and styles the Caspian Surveyor title widget.
+
+        Creates a vertically stacked title containing the "CASPIAN" and
+        "SURVEYOR" labels with their respective stylesheet properties.
+
+        Returns:
+            The completed title QWidget.
+        """    
         title_widget = QWidget()
 
         title_widget.setSizePolicy(
@@ -539,7 +768,21 @@ class SystemInfoOverlay(QWidget):
 
         return title_widget
 
-    def _start_background_services(self):
+    def _start_background_services(self) -> None:
+        """
+        Starts the overlay's background services.
+
+        Creates the JournalWorker QThread and starts the update timer, which
+        currently calls refresh_system_data() every five seconds.
+
+        TODO:
+            JournalWorker currently performs no meaningful work beyond logging
+            that it has started. Remove JournalWorker and its associated QThread
+            during the pre-alpha cleanup pass, then test the overlay for regressions.
+
+            If removed successfully, rename this method to reflect that its sole
+            responsibility is starting the UI update timer.
+        """
         self.journal_thread = QtCore.QThread()
         self.journal_worker = JournalWorker()
 
@@ -556,13 +799,24 @@ class SystemInfoOverlay(QWidget):
         )
         self.update_timer.start(5000)
 
-    def toggle_widget(self):
+    def toggle_overlay_visibility(self) -> None:
+        """
+        Toggles the visibility of the Caspian Surveyor overlay.
+
+        Hides the overlay if it is currently visible; otherwise shows it.
+        """   
         if self.isVisible():
             self.hide()
         else:
             self.show()
 
-    def display_orbital_legend(self):
+    def toggle_physical_orbital_legend(self) -> None:
+        """
+        Toggles the physical and orbital symbol legend.
+
+        Shows the legend page while hiding the primary display stack,
+        or restores the primary display stack if the legend is already visible.
+        """
         if self.legend_page.isVisible():
             self.legend_page.hide()
             self.display_stack.show()
@@ -572,15 +826,38 @@ class SystemInfoOverlay(QWidget):
             self.legend_page.show()
 
 
-    def exit_overlay(self):
+    def exit_overlay(self) -> None:
+        """
+        Exits the Caspian Surveyor overlay application.
+
+        Requests the active QApplication instance to quit, terminating the
+        Qt event loop. Logs an error if no QApplication instance is available.
+        """
+        # TODO:
+        # Gracefully shut down journal_thread before quitting QApplication.
+        # Use this as the baseline shutdown pattern for future worker threads
+        # and queues.
         app_instance = QApplication.instance()
+
+        if self.journal_thread.isRunning():
+            self.journal_thread.requestInterruption()
+            self.journal_thread.quit()
+            self.journal_thread.wait()
 
         if app_instance is not None:
             app_instance.quit()
         else:
             print("Error: QApplication has not been initialized yet.")
 
-    def cycle_display_next(self):
+    def cycle_display_next(self) -> None:
+        """
+        Advances to the next planetary body and displays the body page.
+
+        Increments the current body index with wraparound, switches the primary
+        display stack to the body page, and refreshes the displayed body data.
+
+        Does nothing if no planetary bodies are available.
+        """ 
         if not self.planetary_bodies:
             return
 
@@ -589,9 +866,17 @@ class SystemInfoOverlay(QWidget):
         ) % len(self.planetary_bodies)
 
         self.display_stack.setCurrentIndex(1)
-        self.update_body_display()
+        self.update_body_display_metrics()
 
-    def cycle_display_previous(self):
+    def cycle_display_previous(self) -> None:
+        """
+        Cycles to the previous planetary body and displays the body page.
+
+        Decrements the current body index with wraparound, switches the primary
+        display stack to the body page, and refreshes the displayed body data.
+
+        Does nothing if no planetary bodies are available.
+        """ 
         if not self.planetary_bodies:
             return
 
@@ -600,10 +885,18 @@ class SystemInfoOverlay(QWidget):
         ) % len(self.planetary_bodies)
 
         self.display_stack.setCurrentIndex(1)
-        self.update_body_display()
+        self.update_body_display_metrics()
 
 
-    def cycle_display_down(self):
+    def cycle_display_down(self) -> None:
+        """
+        Cycles to the next page in the body display stack.
+
+        Increments the current body-page index with wraparound and displays
+        the resulting page.
+
+        Does nothing if no planetary bodies are available.
+        """      
         if not self.planetary_bodies:
             return
 
@@ -613,7 +906,15 @@ class SystemInfoOverlay(QWidget):
 
         self.display_body_stack.setCurrentIndex(next_page)
 
-    def cycle_display_up(self):
+    def cycle_display_up(self) -> None:
+        """
+        Cycles to the previous page in the body display stack.
+
+        Decrements the current body-page index with wraparound and displays
+        the resulting page.
+
+        Does nothing if no planetary bodies are available.
+        """   
         if not self.planetary_bodies:
             return
 
@@ -624,10 +925,22 @@ class SystemInfoOverlay(QWidget):
         self.display_body_stack.setCurrentIndex(previous_page)
 
 
-    def cycle_display_default(self):
+    def display_system_summary(self) -> None:
+        """
+        Changes the primary display to the system-summary page.
+        """ 
         self.display_stack.setCurrentIndex(0)
 
-    def update_body_display(self):
+    def update_body_display_metrics(self) -> None:
+        """
+        Updates the HUD metrics for the currently selected planetary body.
+
+        Populates the body-summary and physical-orbital displays, including
+        signal information, terraformability, temperature, and DSS status.
+
+        Converts stored body data into user-friendly display units using
+        EARTH_RADIUS_M, AU_M, and SECONDS_PER_DAY where applicable.
+        """   
 
         # used for orbital body calculations
         EARTH_RADIUS_M = 6_371_000
@@ -737,14 +1050,25 @@ class SystemInfoOverlay(QWidget):
 
 
     def _create_separator(self) -> QFrame:
-        """Creates a subtle vertical divider line between metrics."""
+        """
+        Creates a subtle vertical divider line between metrics.
+
+        Returns:
+            The configured separator QFrame.
+        """
         line = QFrame()
         line.setFrameShape(QFrame.Shape.VLine)
         line.setFrameShadow(QFrame.Shadow.Plain)
         line.setStyleSheet("color: rgba(0, 122, 124, 25);")
         return line
 
-    def position_top_center(self):
+    def position_top_center(self) -> None:
+        """
+        Positions the HUD at the top center of the primary display.
+
+        Calculates the horizontal position using the screen and HUD widths,
+        then places the overlay 15 pixels from the top of the screen.
+        """
         screen_geometry = QApplication.primaryScreen().geometry()
 
         x = (screen_geometry.width() - self.width()) // 2
