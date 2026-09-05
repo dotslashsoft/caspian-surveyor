@@ -36,7 +36,7 @@ class JournalReader:
         self.new_journal_queue = queue.Queue()
         self.consecutive_monitor_failures = 0
 
-    def heal_monitor_journal_directory(self, directory_path, fatal_error_event):
+    def heal_monitor_journal_directory(self, directory_path, fatal_error_event, shutdown_event):
         """
         Supervises the Elite Dangerous journal-directory monitor.
 
@@ -48,13 +48,16 @@ class JournalReader:
             directory_path: Path to the Elite Dangerous journal directory.
             fatal_error_event: Shared event set when journal monitoring can no
                 longer be reliably restored.
+            shutdown_event: Shared event used to request cooperative monitor shutdown
 
         Returns:
             False if journal monitoring fails three consecutive times.
         """  
         logger.debug("heal_monitor_journal_directory called")
-        while True:
-            monitor_active = self.monitor_journal_directory(directory_path)
+        while not shutdown_event.is_set():
+            monitor_active = self.monitor_journal_directory(directory_path, shutdown_event)
+            if shutdown_event.is_set():
+                return
 
             if not monitor_active:
                 self.consecutive_monitor_failures += 1
@@ -88,9 +91,10 @@ class JournalReader:
                     "journal directory monitor."
                 )
 
-                time.sleep(self.poll_interval)
+                if shutdown_event.wait(self.poll_interval):
+                    return
 
-    def monitor_journal_directory(self, directory_path):
+    def monitor_journal_directory(self, directory_path, shutdown_event):
         """
         Monitors the Elite Dangerous journal directory for newly created journal files.
 
@@ -119,11 +123,12 @@ class JournalReader:
                 self.consecutive_monitor_failures = 0
 
             while True:
-                time.sleep(self.poll_interval)
+                if shutdown_event.wait(self.poll_interval):
+                    return
 
                 if not target_dir.is_dir():
                     raise FileNotFoundError(f"Journal directory unavailable: {target_dir}")
-
+                
                 current_files = set(target_dir.glob("Journal.*.log"))
                 new_files = current_files - existing_files
                 
@@ -142,7 +147,7 @@ class JournalReader:
             logger.error("\nError: Lost read permissions for '%s'.", target_dir)
             return False
 
-    def follow(self, fatal_error_event):
+    def follow(self, fatal_error_event, shutdown_event):
         """
         Follows the active Elite Dangerous journal and yields parsed journal events.
 
@@ -161,6 +166,7 @@ class JournalReader:
         Args:
             fatal_error_event: Shared event used to signal that journal monitoring
                 can no longer continue reliably.
+            shutdown_event: Shared event used to request cooperative monitor shutdown
 
         Yields:
             Parsed Elite Dangerous journal events as dictionaries.
@@ -174,7 +180,7 @@ class JournalReader:
         new_journal_file = None
 
         # Outer loop: handles opening and swapping files.
-        while not fatal_error_event.is_set():
+        while not (fatal_error_event.is_set() or shutdown_event.is_set()):
 
             try:
                 logger.info("Opening journal file: %s",current_path)
@@ -191,7 +197,7 @@ class JournalReader:
                         logger.debug("Journal reader positioned at end of file.")
 
                     # Inner loop: reads the current journal.
-                    while not fatal_error_event.is_set():
+                    while not (fatal_error_event.is_set() or shutdown_event.is_set()):
 
                         try:
                             new_journal_file = (self.new_journal_queue.get_nowait())
@@ -214,14 +220,18 @@ class JournalReader:
                         line = journal_file.readline()
 
                         if not line:
-                            fatal_error_event.wait(self.poll_interval)
+                            if shutdown_event.wait(self.poll_interval):
+                                return
                             continue
 
                         if not line.endswith("\n"):
                             logger.debug("Incomplete journal line encountered; waiting for remaining data.")
 
                             journal_file.seek(current_position)
-                            fatal_error_event.wait(self.poll_interval)
+
+                            if shutdown_event.wait(self.poll_interval):
+                                return
+
                             continue
 
                         try:

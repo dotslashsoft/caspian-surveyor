@@ -908,7 +908,10 @@ class SystemInfoOverlay(QWidget):
             self.metric_tf_state.setVisible(False)
             self.body_metric_separators[self.metric_tf_state].setVisible(False)
 
-        self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+        if body.surface_temperature is not None:
+            self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+        else:
+            self.metric_body_temp.set_value("--")
         self.metric_body_dss.set_value(body.dss_scan_complete)
 
 

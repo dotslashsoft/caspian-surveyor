@@ -7,6 +7,7 @@ import bootstrap.cs_baseline_config as cs_baseline_config
 import threading
 import logging
 import sys
+import keyboard
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 #################################
@@ -43,6 +44,13 @@ def main() -> None:
     system reconstruction fails, runtime persistence fails, or journal
     monitoring reaches a fatal failure.
     """
+    shutdown_event = threading.Event()
+
+    def request_shutdown() -> None:
+        logger.info("Global shutdown hotkey received.")
+        shutdown_event.set()
+
+    exit_hotkey = keyboard.add_hotkey("ctrl+shift+e", request_shutdown)
 
     log_manager = cs_log_factory.LogManager()
     log_manager.set_log_config()
@@ -52,7 +60,7 @@ def main() -> None:
     if latest_journal is None:
         logger.critical("No Elite Dangerous journal file was found. Caspian Surveyor is exiting.")
         sys.exit(2)
-    logger.info("Latest journal has been found: %s", latest_journal)    
+    logger.info("Latest journal has been found: %s", latest_journal)   
 
     latest_journal_events = Journal.get_reconstruction_start_events(latest_journal)
     state_recovery = Survey.StateRecovery()
@@ -80,17 +88,15 @@ def main() -> None:
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
     fatal_error_event = threading.Event()
+    shutdown_event = threading.Event()
+    journal_monitor_thread = threading.Thread(
+        target=journal_reader.heal_monitor_journal_directory,
+        args=(cs_baseline_config.journal_directory, fatal_error_event, shutdown_event)
+    )
     try:
-        journal_monitor_thread = threading.Thread(
-            target=journal_reader.heal_monitor_journal_directory,
-            args=(cs_baseline_config.journal_directory, fatal_error_event)
-        )
-        
         journal_monitor_thread.start()
 
-        
-
-        for event in journal_reader.follow(fatal_error_event):
+        for event in journal_reader.follow(fatal_error_event, shutdown_event):
             if fatal_error_event.is_set():
                 break
 
@@ -141,6 +147,20 @@ def main() -> None:
 
     except KeyboardInterrupt:
         print("\nJournal monitoring stopped.")
+
+    finally:
+        logger.info("Shutdown event requested")
+        shutdown_event.set()
+        logger.info("shutdown_event.set() executed.")
+
+        keyboard.remove_hotkey(exit_hotkey)
+        logger.info("ctrl+shift+e exit hotkey removed...")
+
+        if journal_monitor_thread.is_alive():
+            logger.info("Journal is alive. Joining the threads...")
+            journal_monitor_thread.join()
+
+        logger.info("Journal monitor thread joined successfully. Thread alive: %s", journal_monitor_thread.is_alive())
 
 if __name__ == "__main__":
     main()
