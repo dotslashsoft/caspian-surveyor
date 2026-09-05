@@ -15,7 +15,32 @@ logger = logging.getLogger(__name__)
 #                               #
 #################################
 
-def main():
+def main() -> None:
+    """
+    The final boss.
+
+    Runs the primary Caspian Surveyor application workflow from startup
+    through live journal monitoring:
+
+        - establishes logging configuration
+        - locates the latest Elite Dangerous journal
+            - returns if no journal is available
+        - retrieves the starting events required for state reconstruction
+        - creates StateRecovery and reconstructs the current survey state
+        - initializes survey-data and history-management components
+        - writes the reconstructed current-system record when available
+        - creates the fatal-error signaling event
+        - starts the journal-directory monitoring thread
+        - follows and processes live journal events
+
+    During live processing, FSDJump events finalize the system being left
+    and initialize the newly entered system. Other supported journal events
+    are delegated to SurveyState and cause the runtime system record to be
+    rebuilt when survey state changes.
+
+    Exits with status code 2 if journal monitoring reaches a fatal failure.
+    """
+
     log_manager = cs_log_factory.LogManager()
     log_manager.set_log_config()
 
