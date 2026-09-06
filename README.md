@@ -12,6 +12,28 @@ Development of Caspian Surveyor is active and ongoing.
 
 **Current Version:** 0.9.0.0
 
+## Screenshots
+
+### Default HUD Panel
+
+![Caspian Surveyor default HUD panel](docs/images/default-panel.png)
+
+### Planetary Body Information
+
+![Caspian Surveyor planetary body information panel](docs/images/planet-body-info.png)
+
+### Orbital and Physical Information
+
+![Caspian Surveyor planetary orbital and physical information panel](docs/images/planet-orbital-physical-info.png)
+
+### Orbital / Physical Data Legend
+
+![Caspian Surveyor orbital and physical data legend](docs/images/orbital-physical-legend.png)
+
+### In-Cockpit View
+
+![Caspian Surveyor HUD overlay shown in the Elite Dangerous cockpit](docs/images/cockpit-view.png)
+
 ## Installation
 
 1. Download `CaspianSurveyor-0.9.0.0-Setup.exe`.

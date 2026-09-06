@@ -9,7 +9,6 @@ __pycache__/
 installer/
 caspian_surveyor.code-workspace
 build/
-docs/
 dist/
 exploration_history*
 unittest_suite/
