@@ -12,4 +12,4 @@ docs/
 dist/
 installer/
 exploration_history*
-unittest_suite\
+unittest_suite/
