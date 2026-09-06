@@ -1,5 +1,7 @@
 # Caspian Surveyor
 
+**An exploration companion for Elite Dangerous.**
+
 ## What is Caspian Surveyor?
 
 Caspian Surveyor is an exploration companion for Elite Dangerous built to turn raw journal data into a persistent, readable record of your journey. It monitors the Elite Dangerous journal in real time, maintains exploration history across sessions, and presents current system data through an in-game HUD-style overlay.
