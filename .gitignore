@@ -11,3 +11,4 @@ build/
 docs/
 dist/
 installer/
+exploration_history.jsonl
