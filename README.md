@@ -46,9 +46,7 @@ Development of Caspian Surveyor is active and ongoing.
    - Open the download menu and choose **Keep**.
    - When prompted to confirm, choose **Keep anyway**.
 
-![Choose Keep from the Microsoft Edge download menu.](docs/images/download-keep.png)
-
-![Choose Keep anyway when prompted to confirm the download.](docs/images/download-dropdown-keep.png)
+<img src="docs/images/download-keep.png" alt="Choose Keep from the Microsoft Edge download menu." width="475"> <img src="docs/images/download-dropdown-keep.png" alt="Choose Keep anyway when prompted to confirm the download." width="300">
 
 3. Run the installer. Administrator privileges are not required.
 
