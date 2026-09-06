@@ -38,10 +38,23 @@ Development of Caspian Surveyor is active and ongoing.
 
 ## Installation
 
-1. Download `CaspianSurveyor-0.9.0.0-Setup.exe`.
-2. Run the installer. Administrator privileges are not required.
-3. When installation is complete, uncheck **Run Caspian Surveyor**.
-4. Windows may display an unsigned or **Unknown Publisher** warning.
+1. Download `CaspianSurveyor-0.9.0.0-Setup.exe` from the GitHub Releases page.
+
+2. Because the installer is currently unsigned, Microsoft Edge or another browser may warn that the file is not commonly downloaded. Keep the file **only if you downloaded it from the official Caspian Surveyor GitHub release page**.
+
+   In Microsoft Edge:
+   - Open the download menu and choose **Keep**.
+   - When prompted to confirm, choose **Keep anyway**.
+
+![Choose Keep from the Microsoft Edge download menu.](docs/images/download-keep.png)
+
+![Choose Keep anyway when prompted to confirm the download.](docs/images/download-dropdown-keep.png)
+
+3. Run the installer. Administrator privileges are not required.
+
+4. Windows may display an **Unknown Publisher** or **Microsoft Defender SmartScreen** warning when the installer is launched.
+
+   If Windows displays **Windows protected your PC**, select **More info** → **Run anyway** if you trust the file source.
 
 ## How to Use Caspian Surveyor
 
@@ -73,19 +86,22 @@ Development of Caspian Surveyor is active and ongoing.
 
 Caspian Surveyor stores its application data under:
 
-```text
+Caspian Surveyor stores its application data under:
+
+Caspian Surveyor stores its application data under:
+
+```
 %LOCALAPPDATA%\CaspianSurveyor\
 ├── data\
 ├── logs\
 └── runtime\
-
 ```
 
 **Note:** Uninstalling Caspian Surveyor does **not** delete exploration data.
 
 ## Known Alpha Limitations
 
-- The installer is currently unsigned. Windows may display an **Unknown Publisher** or SmartScreen warning.
+- The installer is currently unsigned and may trigger an Unknown Publisher or Windows SmartScreen warning.
 - Starting Caspian Surveyor after Elite Dangerous is already running is not currently supported. Launch Caspian Surveyor before launching Elite Dangerous.
 - Caspian Surveyor currently supports Windows only.
 
