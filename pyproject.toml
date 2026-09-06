@@ -1,0 +1,26 @@
+[project]
+name = "caspian-surveyor"
+version = "0.9.0.0"
+description = "An exploration companion for Elite Dangerous."
+requires-python = ">=3.10"
+
+dependencies = [
+    "keyboard",
+    "PySide6",
+]
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "bootstrap*",
+    "runtime*",
+]
+exclude = [
+    "logs*",
+    "cache*",
+    "unittest_suite*",
+]

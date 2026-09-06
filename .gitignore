@@ -1,0 +1,13 @@
+.archive
+.vscode/
+.runtime/
+cache/
+logs/
+__pycache__/
+*.pyc
+*.egg-info/
+caspian_surveyor.code-workspace
+build/
+docs/
+dist/
+installer/
