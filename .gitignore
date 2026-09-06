@@ -12,3 +12,4 @@ build/
 dist/
 exploration_history*
 unittest_suite/
+runtime/current_system.json
