@@ -10,6 +10,5 @@ caspian_surveyor.code-workspace
 build/
 docs/
 dist/
-installer/
 exploration_history*
 unittest_suite/
