@@ -84,10 +84,6 @@ Development of Caspian Surveyor is active and ongoing.
 
 Caspian Surveyor stores its application data under:
 
-Caspian Surveyor stores its application data under:
-
-Caspian Surveyor stores its application data under:
-
 ```
 %LOCALAPPDATA%\CaspianSurveyor\
 ├── data\
