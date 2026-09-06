@@ -6,6 +6,7 @@ logs/
 __pycache__/
 *.pyc
 *.egg-info/
+installer/
 caspian_surveyor.code-workspace
 build/
 docs/
