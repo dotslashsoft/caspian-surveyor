@@ -1,8 +1,0 @@
-{"event":"Fileheader"}
-{"event":"Location","StarSystem":"SYSTEM A","SystemAddress":111}
-{"event":"Scan","BodyID":1}
-{"event":"Scan","BodyID":2}
-{"event":"FSDJump","StarSystem":"SYSTEM B","SystemAddress":222}
-{"event":"Scan","BodyID":3}
-{"event":"FSSBodySignals","BodyID":3}
-{"event":"SAAScanComplete","BodyID":3}
