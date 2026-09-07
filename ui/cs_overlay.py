@@ -6,9 +6,9 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QHBoxLayout, 
     QVBoxLayout, QFrame, QStackedWidget, QSizePolicy
 )
-import cs_data_structures
 import keyboard
 import logging
+import cs_data_structures
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,9 @@ class MetricWidget(QWidget):
         self,
         key: str,
         default_value: str | int | float = "--",
-        key_font_size: int = 9
+        key_font_size: int = 9,
+        key_label_font_color: str = "#7d8b99",
+        val_label_font_color: str = "#56cffc"
     ):
         """
         Initializes the MetricWidget's labels and styles.
@@ -48,7 +50,7 @@ class MetricWidget(QWidget):
 
         self.key_label = QLabel(key)
         self.key_label.setStyleSheet(f"""
-            color: #7d8b99;
+            color: {key_label_font_color};
             font-family: Eurostile;
             font-size: {key_font_size}px;
             font-weight: bold;
@@ -56,8 +58,8 @@ class MetricWidget(QWidget):
         """)
 
         self.val_label = QLabel(str(default_value))
-        self.val_label.setStyleSheet("""
-            color: #56cffc;
+        self.val_label.setStyleSheet(f"""
+            color: {val_label_font_color};
             font-family: Eurostile;
             font-size: 13px;
             font-weight: bold;
