@@ -16,7 +16,7 @@ core_analysis = Analysis(
 )
 
 overlay_analysis = Analysis(
-    ['cs_overlay.py'],
+    ['ui/cs_overlay.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -49,6 +49,7 @@ core_exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='CaspianSurveyor.ico',
+    version='version_info.txt',
 )
 
 overlay_exe = EXE(
@@ -68,6 +69,7 @@ overlay_exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='CaspianSurveyor.ico',
+    version='version_info.txt',
 )
 
 coll = COLLECT(

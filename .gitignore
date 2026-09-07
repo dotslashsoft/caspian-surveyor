@@ -13,4 +13,4 @@ dist/
 exploration_history*
 unittest_suite/
 runtime/current_system.json
-_cs_color_picker.py
+cs_overlay_config.py

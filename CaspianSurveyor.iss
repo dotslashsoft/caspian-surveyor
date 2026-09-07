@@ -1,5 +1,5 @@
 #define MyAppName "Caspian Surveyor"
-#define MyAppVersion "0.9.0.0"
+#define MyAppVersion "0.9.0.2"
 #define MyAppExeName "CaspianSurveyor.exe"
 
 [Setup]
