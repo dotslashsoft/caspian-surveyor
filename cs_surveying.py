@@ -482,6 +482,34 @@ class StateRecovery:
     def __init__(self):
         self.survey_state = SurveyState()
 
+    def find_oldest_matching_journal_index(self, latest_journal_events: list[dict]) -> int:
+        current_system_address = latest_journal_events[0].get("SystemAddress")
+
+        oldest_matching_index = 0
+        journal_index = 1
+
+        while True:
+            journal_file = Journal.get_journal_file_by_index(journal_index)
+
+            if journal_file is None:
+                break
+
+            journal_events = Journal.get_reconstruction_start_events(journal_file)
+
+            if not journal_events:
+                journal_index += 1
+                continue
+
+            journal_system_address = journal_events[0].get("SystemAddress")
+
+            if journal_system_address != current_system_address:
+                break
+
+            oldest_matching_index = journal_index
+            journal_index += 1
+
+        return oldest_matching_index
+
     def reconstruct_system_data(self, latest_journal_events)-> dict[str, Any] | None:
         """
         Loops from the returned value of find_oldest_matching_journal_index(), 
@@ -509,6 +537,8 @@ class StateRecovery:
             if journal_file is None:
                 return None
             journal_events = Journal.get_reconstruction_start_events(journal_file)
+            if not journal_events:
+                continue
 
             if journal_index == oldest_matching_index:
                 self.survey_state.begin_system(journal_events[0])
@@ -536,47 +566,3 @@ class StateRecovery:
         for event in events:
             survey_state.process_journal_event(event)
 
-    def find_oldest_matching_journal_index(self, latest_journal_events) -> int | None:
-        """
-        Finds the oldest contiguous journal containing events for the current system.
-
-        Walks backward through Elite Dangerous journals from newest to oldest,
-        comparing their SystemAddress against the SystemAddress from the latest
-        journal events. Stops when a journal belonging to a different system is
-        encountered.
-
-        Called by reconstruct_system_data() to determine where journal replay
-        should begin.
-
-        Args:
-            latest_journal_events: Parsed journal events for the current system,
-                returned by get_latest_system_events().
-
-        Returns:
-            The index of the oldest journal containing the matching SystemAddress,
-            or None if a matching journal index cannot be determined.
-        """
-
-        if not latest_journal_events:
-            return None
-
-        current_system_address = (latest_journal_events[0].get("SystemAddress"))
-
-        journal_index = 1
-
-        while True:
-            journal_file = Journal.get_journal_file_by_index(journal_index)
-
-            if journal_file is None:
-                return journal_index - 1
-
-            journal_events = Journal.get_reconstruction_start_events(journal_file)
-
-            previous_system_address = (journal_events[0].get("SystemAddress")
-                if journal_events
-                else None)
-
-            if previous_system_address != current_system_address:
-                return journal_index - 1
-
-            journal_index += 1

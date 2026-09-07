@@ -288,30 +288,32 @@ def get_latest_journal_file() -> Path | None:
 def get_reconstruction_start_events(journal_file: Path) -> list[dict]:
     """
     Retrieves journal events associated with the most recent system context.
-
-    Reads the supplied Elite Dangerous journal from beginning to end and
-    retains events beginning with the latest FSDJump or Location event.
-
-    Used by StateRecovery to begin reconstruction of the current system
-    survey state.
-
-    Args:
-        journal_file: Elite Dangerous journal file to inspect.
-
-    Returns:
-        Parsed journal events belonging to the most recent system context
-        found in the journal.
-    """ 
+    """
     latest_system_events = []
+    current_system_address = None
 
     with journal_file.open("r", encoding="utf-8") as file:
         for line in file:
             event = json.loads(line)
-
             event_type = event.get("event")
 
-            if event_type in {"FSDJump", "Location"}:
+            if event_type == "FSDJump":
+                current_system_address = event.get("SystemAddress")
                 latest_system_events = [event]
+
+            elif event_type == "Location":
+                location_system_address = event.get("SystemAddress")
+
+                if not latest_system_events:
+                    current_system_address = location_system_address
+                    latest_system_events = [event]
+
+                elif location_system_address != current_system_address:
+                    current_system_address = location_system_address
+                    latest_system_events = [event]
+
+                else:
+                    latest_system_events.append(event)
 
             elif latest_system_events:
                 latest_system_events.append(event)
@@ -358,6 +360,7 @@ DEBUG_LOG_PAYLOAD_EVENTS = {
     "FSSAllBodiesFound",
     "SAAScanComplete",
     "Shutdown",
+    "Fileheader",
     "FSSBodySignals"
 }
 """

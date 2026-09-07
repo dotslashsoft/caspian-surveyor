@@ -64,7 +64,17 @@ def main() -> None:
         sys.exit(2)
     logger.info("Latest journal has been found: %s", latest_journal)   
 
-    latest_journal_events = Journal.get_reconstruction_start_events(latest_journal)
+    latest_journal_events = []
+    journal_index = 0
+
+    while not latest_journal_events:
+        reconstruction_journal = Journal.get_journal_file_by_index(journal_index)
+
+        if reconstruction_journal is None:
+            break
+
+        latest_journal_events = Journal.get_reconstruction_start_events(reconstruction_journal)
+        journal_index += 1
     state_recovery = Survey.StateRecovery()
     reconstructed_system = state_recovery.reconstruct_system_data(latest_journal_events)
 
