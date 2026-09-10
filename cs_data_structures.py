@@ -65,7 +65,7 @@ class OrganicScanInfo:
     species_localised: str
     variant: str
     variant_localised: str
-    was_logged: bool
+    was_scanned_and_submitted: bool
 
 @dataclass
 class GenusInfo:
@@ -114,7 +114,7 @@ class CelestialBody:
     signals: list[SignalInfo] | None = None
     dss_scan_complete: bool = False
     genuses: list[GenusInfo] | None = None
-    organic_scans: list[OrganicScanInfo] = field(default_factory=list)
+    organic_scans: list[OrganicScanInfo] | None = None
     
 
 
@@ -144,6 +144,34 @@ class CelestialBody:
                 if isinstance(signal, dict)
                 else signal
                 for signal in self.signals
+            ]
+
+        if isinstance(self.genuses, list):
+            self.genuses = [
+                GenusInfo(
+                    genus=genus.get("Genus", "--"),
+                    genus_localised=genus.get("Genus_Localised", "--")
+                )
+                if isinstance(genus, dict)
+                else genus
+                for genus in self.genuses
+            ]
+
+        if isinstance(self.organic_scans, list):
+            self.organic_scans = [
+                OrganicScanInfo(
+                    scan_type=scan.get("ScanType", "--"),
+                    genus=scan.get("Genus", "--"),
+                    genus_localised=scan.get("Genus_Localised", "--"),
+                    species=scan.get("Species", "--"),
+                    species_localised=scan.get("Species_Localised", "--"),
+                    variant=scan.get("Variant", "--"),
+                    variant_localised=scan.get("Variant_Localised", "--"),
+                    was_scanned_and_submitted=scan.get("WasLogged", False)
+                )
+                if isinstance(scan, dict)
+                else scan
+                for scan in self.organic_scans
             ]
 
 

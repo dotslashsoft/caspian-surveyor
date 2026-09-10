@@ -247,6 +247,65 @@ class SurveyState:
 
         return True
 
+    def record_saa_signals(self, event) -> bool:
+        """
+        Processes an "SAASignalsFound" journal event for the specified body
+        within the current system.
+
+        Args:
+            event: Parsed Elite Dangerous journal event containing exobio
+                data.
+
+        Returns:
+            True if the SAASignalsFound was applied to the current survey state;
+            otherwise False.
+        """
+        current_system = self._get_current_system(event)
+        if current_system is None:
+            return False
+
+        body_id = event.get("BodyID")
+        if body_id is None:
+            logger.warning("SAASignalsFound event received without BodyID.")
+            return False
+
+        body = current_system["bodies"].setdefault(body_id, {})
+        body["BodyID"] = body_id
+        body["BodyName"] = event.get("BodyName")
+        body["Signals"] = event.get("Signals", [])
+        body["Genuses"] = event.get("Genuses", [])
+
+        return True
+    
+    def record_organic_scans(self, event) -> bool:
+        current_system = self._get_current_system(event)
+
+        if current_system is None:
+            return False
+
+        body_id = event.get("Body")
+
+        if body_id is None:
+            logger.warning("ScanOrganic event received without Body.")
+            return False
+
+        body = current_system["bodies"].setdefault(body_id, {})
+        body["BodyID"] = body_id
+        
+        organic_scans = body.setdefault("OrganicScans", [])
+
+        organic_scans.append({
+            "ScanType": event.get("ScanType", "--"),
+            "Genus": event.get("Genus", "--"),
+            "Genus_Localised": event.get("Genus_Localised", "--"),
+            "Species": event.get("Species", "--"),
+            "Species_Localised": event.get("Species_Localised", "--"),
+            "Variant": event.get("Variant", "--"),
+            "Variant_Localised": event.get("Variant_Localised", "--"),
+            "WasLogged": event.get("WasLogged", False),
+        })
+
+        return True
 
     def process_journal_event(self, event) -> bool:
         """
@@ -275,6 +334,12 @@ class SurveyState:
 
         elif event_type == "SAAScanComplete":
             return self.record_dss_complete(event)
+
+        elif event_type == "SAASignalsFound":
+            return self.record_saa_signals(event)
+
+        elif event_type == "ScanOrganic":
+            return self.record_organic_scans(event)
 
         elif event_type == "FSSAllBodiesFound":
             return self.mark_all_bodies_found(event)
@@ -466,7 +531,9 @@ class SurveyDataBuilder:
             "distance_from_arrival": body.get("DistanceFromArrivalLS"),
             "signals": body.get("Signals"),
             "dss_scan_complete": body.get("DSSScanComplete", False),
-            "landable": body.get("Landable", False)
+            "landable": body.get("Landable", False),
+            "genuses": body.get("Genuses", []),
+            "organic_scans": body.get("OrganicScans", [])
         }
 
 class StateRecovery:

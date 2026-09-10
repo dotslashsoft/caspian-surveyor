@@ -4,13 +4,30 @@ from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel, QHBoxLayout, 
-    QVBoxLayout, QFrame, QStackedWidget, QSizePolicy
+    QVBoxLayout, QFrame, QStackedWidget, QSizePolicy, QGraphicsDropShadowEffect, 
 )
+from PySide6.QtGui import QColor
 import keyboard
 import logging
 import cs_data_structures
 
 logger = logging.getLogger(__name__)
+
+class CurrentPageStackedWidget(QStackedWidget):
+    def sizeHint(self):
+        current_widget = self.currentWidget()
+        if current_widget is not None:
+            return current_widget.sizeHint()
+
+        return super().sizeHint()
+
+    def minimumSizeHint(self):
+        current_widget = self.currentWidget()
+        if current_widget is not None:
+            return current_widget.minimumSizeHint()
+
+        return super().minimumSizeHint()
+
 
 class MetricWidget(QWidget):
     """
@@ -24,8 +41,8 @@ class MetricWidget(QWidget):
         self,
         key: str,
         default_value: str | int | float = "--",
-        key_font_size: int = 9,
-        key_label_font_color: str = "#7d8b99",
+        key_font_size: int = 10,
+        key_label_font_color: str = "#a2a5a7",
         val_label_font_color: str = "#56cffc"
     ):
         """
@@ -53,20 +70,32 @@ class MetricWidget(QWidget):
             color: {key_label_font_color};
             font-family: Eurostile;
             font-size: {key_font_size}px;
-            font-weight: bold;
+            font-weight: 1000;
             letter-spacing: 1px;
         """)
+        self.set_label_shadow(self.key_label)
 
         self.val_label = QLabel(str(default_value))
         self.val_label.setStyleSheet(f"""
             color: {val_label_font_color};
             font-family: Eurostile;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
         """)
+        self.set_label_shadow(self.val_label)
 
         layout.addWidget(self.key_label)
         layout.addWidget(self.val_label)
+
+    def set_label_shadow(self, label: QLabel) -> None:
+        shadow = QGraphicsDropShadowEffect(label)
+
+        shadow.setBlurRadius(2)
+        shadow.setColor(QColor(0, 0, 0, 255))
+        shadow.setXOffset(1)
+        shadow.setYOffset(1)
+
+        label.setGraphicsEffect(shadow)
 
 
     def set_value(self, value: str | int | float | None):
@@ -77,11 +106,24 @@ class MetricWidget(QWidget):
             value: The data to display. If None, displays default "--".
         """
         self.val_label.setText(str(value))
-
         if value is None:
             self.val_label.setText("--")
         else:
             self.val_label.setText(str(value))
+
+    def set_label(self, value: str | int | float | None):
+        """
+        Updates the value label text.
+
+        Args:
+            value: The data to display. If None, displays default "--".
+        """
+        self.key_label.setText(str(value))
+
+        if value is None:
+            self.key_label.setText("--")
+        else:
+            self.key_label.setText(str(value))
 
 
 class SystemInfoOverlay(QWidget):
@@ -101,9 +143,10 @@ class SystemInfoOverlay(QWidget):
     cycle_down = QtCore.Signal()
     toggle_legend = QtCore.Signal()
 
+    # primary styling
     PANEL_STYLE = """
         QFrame#HUDPanel {
-            background-color: rgba(0, 0, 0, 100);
+            background-color: rgba(0, 0, 0, 220);
             border-top: 1px solid #002e4d;
             border-bottom: 1px solid #004d80;
             border-radius: 8px;
@@ -128,6 +171,13 @@ class SystemInfoOverlay(QWidget):
         self._configure_window()
         self._build_ui()
         self._start_update_timer()
+
+        self.border_glow_effect = QGraphicsDropShadowEffect(self)
+        self.border_glow_effect.setColor(QColor(39, 190, 245, 40))
+        self.border_glow_effect.setOffset(0, 0)
+        self.border_glow_effect.setBlurRadius(15)
+        self.setGraphicsEffect(self.border_glow_effect)
+
 
     def event(self, event):
         """
@@ -255,7 +305,7 @@ class SystemInfoOverlay(QWidget):
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(10, 10, 10, 10)
 
-        self.display_stack = QStackedWidget()
+        self.display_stack = CurrentPageStackedWidget()
 
         self.system_page = self._build_system_page()
         self.body_page = self._build_body_page()
@@ -335,7 +385,6 @@ class SystemInfoOverlay(QWidget):
             "ctrl+alt+]",
             self.toggle_legend.emit
         )
-
 
     def _build_system_page(self) -> QWidget | None:
         """
@@ -453,6 +502,7 @@ class SystemInfoOverlay(QWidget):
         self.metric_tf_state = MetricWidget("TF", "--")
         self.metric_body_landable = MetricWidget("LANDABLE", False)
         self.metric_body_signals = MetricWidget("SIGNALS", "--")
+        self.metric_body_biosig_genus = MetricWidget("BIOSIGS", "--")
         self.metric_body_temp = MetricWidget("TEMP K", "--")
         self.metric_body_dss = MetricWidget("DSS SCAN", False)
 
@@ -462,12 +512,13 @@ class SystemInfoOverlay(QWidget):
             self.metric_tf_state,
             self.metric_body_landable,
             self.metric_body_signals,
+            self.metric_body_biosig_genus,
             self.metric_body_temp,
             self.metric_body_dss
         ]
 
         self.body_metric_separators = self._add_metrics(hud_layout, metrics)
-
+        
         page_layout.addWidget(panel)
 
         return page
@@ -592,12 +643,15 @@ class SystemInfoOverlay(QWidget):
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.display_body_stack = QStackedWidget()
+        self.display_body_stack = CurrentPageStackedWidget()
 
         self.body_summary_page = self._build_body_summary_page()
+        self.body_summary_page.updateGeometry()
+        self.body_exobio_page = self._build_exobio_page()
         self.body_orbital_page = self._build_body_physical_orbital_page()
 
         self.display_body_stack.addWidget(self.body_summary_page)
+        self.display_body_stack.addWidget(self.body_exobio_page)
         self.display_body_stack.addWidget(self.body_orbital_page)
         self.display_body_stack.setCurrentIndex(0)
 
@@ -606,45 +660,43 @@ class SystemInfoOverlay(QWidget):
         return page
 
     def _build_exobio_page(self):
-        """
-        Builds the exobiology display page.
-
-        TODO:
-            Integrate this page into the overlay display stack and navigation
-            once exobiology display functionality is implemented.
-
-        Returns:
-            The completed exobiology-page QWidget.
-        """
         page = QWidget()
 
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(0, 0, 0, 0)
 
         panel = self._create_hud_panel()
-
-        hud_layout = QHBoxLayout(panel)
-        hud_layout.setContentsMargins(12, 6, 12, 6)
-        hud_layout.setSpacing(6)
+        self.exobio_hud_layout = QHBoxLayout(panel)
+        self.exobio_hud_layout.setContentsMargins(12, 6, 12, 6)
+        self.exobio_hud_layout.setSpacing(6)
 
         self.metric_exobio_body_name = MetricWidget("PLANET", "--")
-        self.metric_exobio_signals = MetricWidget("EXOSIGNALS", "--")
-        self.metric_exobio_genus = MetricWidget("GENUS", "--")
-        self.metric_exobio_species = MetricWidget("SPECIES", "--")
-        self.metric_exibio_variant = MetricWidget("VARIANT", "--")
 
-        metrics = [
-            self.metric_exobio_body_name,
-            self.metric_exobio_signals,
-            self.metric_exobio_genus,
-            self.metric_exobio_species,
-            self.metric_exibio_variant,
-        ]
+        self.exobio_hud_layout.addWidget(self.metric_exobio_body_name)
+        self.exobio_dynamic_widgets = []
 
-        self._add_metrics(hud_layout, metrics)
         page_layout.addWidget(panel)
 
         return page
+
+    def _update_exobio_metrics(self, variant_statuses):
+        for widget in self.exobio_dynamic_widgets:
+            self.exobio_hud_layout.removeWidget(widget)
+            widget.deleteLater()
+
+        self.exobio_dynamic_widgets.clear()
+
+        for variant_name, scan_status in variant_statuses.items():
+            separator = self._create_separator()
+
+            metric = MetricWidget(variant_name,"--", key_font_size=12)
+
+            metric.set_value(scan_status)
+
+            self.exobio_hud_layout.addWidget(separator)
+            self.exobio_hud_layout.addWidget(metric)
+
+            self.exobio_dynamic_widgets.extend([separator, metric])
 
     def _create_hud_panel(self):
         """
@@ -710,7 +762,7 @@ class SystemInfoOverlay(QWidget):
         )
 
         layout = QVBoxLayout(title_widget)
-        layout.setContentsMargins(5, 10, 5, 10)
+        layout.setContentsMargins(5, 0, 5, 0)
         layout.setSpacing(6)
 
         app_title = QLabel("CASPIAN")
@@ -842,6 +894,7 @@ class SystemInfoOverlay(QWidget):
         ) % self.display_body_stack.count()
 
         self.display_body_stack.setCurrentIndex(next_page)
+        self.display_body_stack.updateGeometry()
 
     def cycle_display_up(self) -> None:
         """
@@ -860,6 +913,7 @@ class SystemInfoOverlay(QWidget):
         ) % self.display_body_stack.count()
 
         self.display_body_stack.setCurrentIndex(previous_page)
+        self.display_body_stack.updateGeometry()
 
 
     def display_system_summary(self) -> None:
@@ -892,13 +946,19 @@ class SystemInfoOverlay(QWidget):
 
         self.metric_body_class.set_value(body.planet_class)
         self.metric_body_landable.set_value(body.landable)
-
+        
         if body.signals:
             signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
-
             self.metric_body_signals.set_value(signal_text)
         else:
             self.metric_body_signals.set_value("--")
+
+        if body.genuses:
+            genus_names = "\n".join(genus.genus_localised 
+                                    for genus in body.genuses)
+            self.metric_body_biosig_genus.set_value(genus_names)
+        else:
+            self.metric_body_biosig_genus.set_value("--")
 
         if body.terraform_state == "Terraformable":
             self.metric_tf_state.setVisible(True)
@@ -988,6 +1048,24 @@ class SystemInfoOverlay(QWidget):
         else:
             self.metric_body_semi_major_axis.set_value("--")
 
+        # logic to get exobio data in panel
+        variant_statuses = {}
+        self.metric_exobio_body_name.set_value(body.body_name)
+        if body.organic_scans:
+            for organic_scan in body.organic_scans:
+                variant_name = organic_scan.variant_localised
+                if organic_scan.scan_type == "Log":
+                    scan_status = "1 Sample"
+                elif organic_scan.scan_type == "Sample":
+                    scan_status = "2 Samples"
+                elif organic_scan.scan_type == "Analyse":
+                    scan_status = "Analysed"
+                else:
+                    scan_status = "--"
+                variant_statuses[variant_name] = scan_status
+
+        self._update_exobio_metrics(variant_statuses)
+
 
     def _create_separator(self) -> QFrame:
         """
@@ -1012,7 +1090,7 @@ class SystemInfoOverlay(QWidget):
         screen_geometry = QApplication.primaryScreen().geometry()
 
         x = (screen_geometry.width() - self.width()) // 2
-        y = 15
+        y = -5
         self.move(x, y)
 
 if __name__ == "__main__":
