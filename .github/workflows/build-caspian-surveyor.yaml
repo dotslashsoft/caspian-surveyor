@@ -2,9 +2,14 @@ name: Build Caspian Surveyor
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "GitHub Release tag to upload installer to"
+        required: true
+        type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -13,6 +18,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v7
@@ -47,3 +54,20 @@ jobs:
           name: CaspianSurveyor-Installer
           path: installer/CaspianSurveyor-*-Setup.exe
           if-no-files-found: error
+
+      - name: Verify GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release view "$env:RELEASE_TAG"
+
+      - name: Attach installer to GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $installer = Get-ChildItem "installer\CaspianSurveyor-*-Setup.exe" | Select-Object -First 1
+          gh release upload "$env:RELEASE_TAG" "$($installer.FullName)"
