@@ -1,5 +1,5 @@
 import logging
-import cs_journal_toolbox as Journal
+import caspian_surveyor.cs_journal_toolbox as Journal
 from typing import Any
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)

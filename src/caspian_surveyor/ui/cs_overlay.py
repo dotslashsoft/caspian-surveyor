@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor
 import keyboard
 import logging
-import cs_data_structures
+import caspian_surveyor.cs_data_structures as cs_data_structures
 
 logger = logging.getLogger(__name__)
 

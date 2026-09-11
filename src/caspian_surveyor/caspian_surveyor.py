@@ -1,9 +1,9 @@
-import bootstrap.cs_log_factory as cs_log_factory
-import cs_history
-import cs_surveying as Survey
-import cs_journal_toolbox as Journal
-import runtime.cs_runtime as cs_runtime
-import bootstrap.cs_baseline_config as cs_baseline_config
+import caspian_surveyor.bootstrap.cs_log_factory as cs_log_factory
+import caspian_surveyor.cs_history as cs_history
+import caspian_surveyor.cs_surveying as Survey
+import caspian_surveyor.cs_journal_toolbox as Journal
+import caspian_surveyor.runtime.cs_runtime as cs_runtime
+import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
 import threading
 import logging
 import sys
@@ -104,7 +104,7 @@ def main() -> None:
             return subprocess.Popen([str(overlay_path)])
 
         overlay_path = Path(__file__).parent / "ui" / "cs_overlay.py"
-        return subprocess.Popen([sys.executable, "-m", "ui.cs_overlay"], cwd=Path(__file__).parent)
+        return subprocess.Popen([sys.executable, "-m", "caspian_surveyor.ui.cs_overlay"])
     overlay_process = launch_overlay()
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)

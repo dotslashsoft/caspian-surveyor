@@ -14,14 +14,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = [
-    "bootstrap*",
-    "runtime*",
-    "ui*",
-]
-exclude = [
-    "logs*",
-    "cache*",
-    "unittest_suite*",
+    "caspian_surveyor*"
 ]

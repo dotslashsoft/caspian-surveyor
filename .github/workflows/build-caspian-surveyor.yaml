@@ -33,13 +33,13 @@ jobs:
           python -m pip install pyinstaller
 
       - name: Build Caspian Surveyor
-        run: python -m PyInstaller --noconfirm --clean CaspianSurveyor.spec
+        run: python -m PyInstaller --noconfirm --clean packaging/windows/CaspianSurveyor.spec
 
       - name: Build installer
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          & $iscc "CaspianSurveyor.iss"
+          & $iscc "packaging\windows\CaspianSurveyor.iss"
 
       - name: Upload build
         uses: actions/upload-artifact@v6

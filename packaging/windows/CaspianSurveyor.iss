@@ -6,6 +6,9 @@
 AppId={{5B42D98A-4C6A-4C6F-A8E8-2CC2BBF32B79}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+
+SourceDir=..\..
+
 DefaultDirName={localappdata}\Programs\CaspianSurveyor
 DefaultGroupName={#MyAppName}
 PrivilegesRequired=lowest
@@ -13,16 +16,19 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 Compression=lzma2
 SolidCompression=yes
+
 OutputDir=installer
 OutputBaseFilename=CaspianSurveyor-{#MyAppVersion}-Setup
+
 UninstallDisplayName={#MyAppName}
 UninstallDisplayIcon={app}\CaspianSurveyor.ico
-SetupIconFile=CaspianSurveyor.ico
+
+SetupIconFile=packaging\windows\CaspianSurveyor.ico
 LicenseFile=LICENSE
 
 [Files]
 Source: "dist\CaspianSurveyor\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "CaspianSurveyor.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "packaging\windows\CaspianSurveyor.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion

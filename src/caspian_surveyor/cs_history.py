@@ -1,5 +1,5 @@
 import json
-import bootstrap.cs_baseline_config as cs_baseline_config
+import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
 import logging
 
 logger = logging.getLogger(__name__)

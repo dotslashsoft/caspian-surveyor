@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import json
 import logging
-import runtime.cs_runtime as cs_runtime
+import caspian_surveyor.runtime.cs_runtime as cs_runtime
 
 
 logger = logging.getLogger(__name__)

@@ -1,9 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+
+SPEC_DIRECTORY = Path(SPECPATH).resolve()
+REPOSITORY_ROOT = SPEC_DIRECTORY.parent.parent
+SOURCE_DIRECTORY = REPOSITORY_ROOT / "src"
 
 core_analysis = Analysis(
-    ['caspian_surveyor.py'],
-    pathex=[],
+    [str(SOURCE_DIRECTORY / "caspian_surveyor" / "caspian_surveyor.py")],
+    pathex=[str(SOURCE_DIRECTORY)],
     binaries=[],
     datas=[],
     hiddenimports=[],
@@ -16,8 +22,8 @@ core_analysis = Analysis(
 )
 
 overlay_analysis = Analysis(
-    ['ui/cs_overlay.py'],
-    pathex=[],
+    [str(SOURCE_DIRECTORY / "caspian_surveyor" / "ui" / "cs_overlay.py")],
+    pathex=[str(SOURCE_DIRECTORY)],
     binaries=[],
     datas=[],
     hiddenimports=[],
@@ -48,8 +54,8 @@ core_exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='CaspianSurveyor.ico',
-    version='version_info.txt',
+    icon=str(SPEC_DIRECTORY / "CaspianSurveyor.ico"),
+    version=str(SPEC_DIRECTORY / "version_info.txt"),
 )
 
 overlay_exe = EXE(
@@ -68,8 +74,8 @@ overlay_exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='CaspianSurveyor.ico',
-    version='version_info.txt',
+    icon=str(SPEC_DIRECTORY / "CaspianSurveyor.ico"),
+    version=str(SPEC_DIRECTORY / "version_info.txt"),
 )
 
 coll = COLLECT(
