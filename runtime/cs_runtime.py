@@ -2,36 +2,23 @@ import json
 import bootstrap.cs_baseline_config as cs_baseline_config
 import logging
 from typing import Any
-import os
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-### Runtime directory ###
-APPLICATION_DATA_DIRECTORY = Path(os.environ["LOCALAPPDATA"]) / "CaspianSurveyor"
-RUNTIME_DIRECTORY = APPLICATION_DATA_DIRECTORY / "runtime"
+APPLICATION_DATA_DIRECTORY = cs_baseline_config.APPLICATION_DATA_DIRECTORY
+RUNTIME_DIRECTORY = cs_baseline_config.RUNTIME_DIRECTORY
 """
 Path: runtime directory where current_system.json lives.
 """
 
-### Current system file ###
-
-CURRENT_SYSTEM_FILE = (
-    RUNTIME_DIRECTORY
-    / "current_system.json"
-)
+CURRENT_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.json"
 """
 JSON formatted file that holds current system data.
 
 Path: current_system.json file
 """
 
-### Temporary system file ###
-
-TEMP_SYSTEM_FILE = (
-    RUNTIME_DIRECTORY
-    / "current_system.tmp"
-)
+TEMP_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.tmp"
 """
 JSON formatted temporary file that holds current system data.
 Used temporarily to so the current system JSON file can be
@@ -40,7 +27,6 @@ atomically overwritten.
 Path: current_system.tmp file
 """
 ##############################
-
 def write_current_system_record(system_record: dict[str, Any] | None) -> bool:
     """
     Writes the current system record to the runtime directory.

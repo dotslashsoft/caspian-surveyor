@@ -112,7 +112,7 @@ def main() -> None:
     shutdown_event = threading.Event()
     journal_monitor_thread = threading.Thread(
         target=journal_reader.heal_monitor_journal_directory,
-        args=(cs_baseline_config.journal_directory, fatal_error_event, shutdown_event)
+        args=(cs_baseline_config.JOURNAL_DIRECTORY, fatal_error_event, shutdown_event)
     )
     try:
         journal_monitor_thread.start()

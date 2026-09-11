@@ -4,8 +4,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-EXPLORATION_HISTORY_FILE = cs_baseline_config.WORKING_DIRECTORY / "data" / "exploration_history.jsonl"
-CURRENT_SYSTEM_FILE = cs_baseline_config.WORKING_DIRECTORY / "runtime" / "current_system.json"
+EXPLORATION_HISTORY_FILE = cs_baseline_config.APPLICATION_DATA_DIRECTORY / "data" / "exploration_history.jsonl"
+CURRENT_SYSTEM_FILE = cs_baseline_config.APPLICATION_DATA_DIRECTORY / "runtime" / "current_system.json"
 
 
 class DataOrchestrator:

@@ -7,7 +7,7 @@ import queue
 
 ### ### ### ### ### ### ### ### ### ### ### ###
 logger = logging.getLogger(__name__)
-journal_directory = cs_baseline_config.journal_directory
+JOURNAL_DIRECTORY = cs_baseline_config.JOURNAL_DIRECTORY
 
 class JournalReader:
     """
@@ -268,13 +268,13 @@ def get_latest_journal_file() -> Path | None:
         Path to the latest Elite Dangerous journal file, or None if the
         journal directory is unavailable or contains no matching files.
     """
-    logger.debug("Searching journal directory: %s", journal_directory)
+    logger.debug("Searching journal directory: %s", JOURNAL_DIRECTORY)
 
-    if not journal_directory.is_dir():
-        logger.critical("Elite Dangerous journal directory was not found: %s", journal_directory)
+    if not JOURNAL_DIRECTORY.is_dir():
+        logger.critical("Elite Dangerous journal directory was not found: %s", JOURNAL_DIRECTORY)
         return None
 
-    journal_files = list(journal_directory.glob("Journal.*.log"))
+    journal_files = list(JOURNAL_DIRECTORY.glob("Journal.*.log"))
     logger.debug("Found %d journal files.", len(journal_files))
 
     if not journal_files:
@@ -334,9 +334,9 @@ def get_journal_file_by_index(index) -> Path | None:
         Path to the journal file at the requested index, or None if the
         index exceeds the number of available journal files.
     """
-    logger.debug("Searching journal directory for file index %d: %s", index, journal_directory)
+    logger.debug("Searching journal directory for file index %d: %s", index, JOURNAL_DIRECTORY)
 
-    journal_files = list(journal_directory.glob("Journal.*.log"))
+    journal_files = list(JOURNAL_DIRECTORY.glob("Journal.*.log"))
     logger.debug("Found %d journal files.", len(journal_files))
 
     if index >= len(journal_files):

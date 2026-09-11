@@ -178,6 +178,8 @@ class SystemInfoOverlay(QWidget):
         self.border_glow_effect.setBlurRadius(15)
         self.setGraphicsEffect(self.border_glow_effect)
 
+        self.genus_dict = {}
+        self.current_index = 0
 
     def event(self, event):
         """
@@ -922,6 +924,21 @@ class SystemInfoOverlay(QWidget):
         """ 
         self.display_stack.setCurrentIndex(0)
 
+    def cycle_genus_display(self, data, step=2):
+        items = list(data.keys())
+        num_items = len(items)
+
+        if self.current_index >= num_items:
+            self.current_index = 0
+
+        genus_pair_list = items[self.current_index:self.current_index + step]
+
+        self.current_index += step
+
+        if self.current_index >= num_items:
+            self.current_index = 0
+
+        return "\n".join(genus_pair_list)
     def update_body_display_metrics(self) -> None:
         """
         Updates the HUD metrics for the currently selected planetary body.
@@ -954,9 +971,11 @@ class SystemInfoOverlay(QWidget):
             self.metric_body_signals.set_value("--")
 
         if body.genuses:
-            genus_names = "\n".join(genus.genus_localised 
-                                    for genus in body.genuses)
-            self.metric_body_biosig_genus.set_value(genus_names)
+            for genus in body.genuses:
+                self.genus_dict[genus.genus_localised] = genus
+
+            genus_pair = self.cycle_genus_display(self.genus_dict)
+            self.metric_body_biosig_genus.set_value(genus_pair)
         else:
             self.metric_body_biosig_genus.set_value("--")
 
@@ -1065,6 +1084,7 @@ class SystemInfoOverlay(QWidget):
                 variant_statuses[variant_name] = scan_status
 
         self._update_exobio_metrics(variant_statuses)
+        print("END OF UPDATE_BODY_METICS!")
 
 
     def _create_separator(self) -> QFrame:

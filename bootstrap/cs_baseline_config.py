@@ -1,18 +1,18 @@
 from pathlib import Path
 import os
 
-WORKING_DIRECTORY =  Path(os.environ["LOCALAPPDATA"]) / "CaspianSurveyor"
+APPLICATION_DATA_DIRECTORY =  Path(os.environ["LOCALAPPDATA"]) / "CaspianSurveyor"
 """
-Working directory from which Caspian Surveyor was launched.
+Root application-data directory for Caspian Surveyor.
 
 __type__: Path
 """
 
-journal_directory = (Path.home() / "Saved Games" / "Frontier Developments" / "Elite Dangerous")
+RUNTIME_DIRECTORY = APPLICATION_DATA_DIRECTORY / "runtime"
+
+JOURNAL_DIRECTORY = (Path.home() / "Saved Games" / "Frontier Developments" / "Elite Dangerous")
 """
 Path to the Elite Dangerous journal directory.
 
 __type__: Path
 """
-
-RUNTIME_DIRECTORY = Path(WORKING_DIRECTORY / "runtime")
