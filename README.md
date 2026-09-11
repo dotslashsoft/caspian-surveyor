@@ -1,4 +1,4 @@
-## New Alpha Release Available: [Version 0.9.1.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.1.0)
+## New Alpha Release Available: [Version 0.9.2.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.2.0)
 
 # Caspian Surveyor
 
@@ -14,33 +14,57 @@ The project aims to improve the exploration experience for the Elite Dangerous c
 
 Development of Caspian Surveyor is active and ongoing.
 
-**Current Version:** 0.9.0.0
+**Current Version:** 0.9.2.0
 
 ## Screenshots
 
 ### Default HUD Panel
 
-![Caspian Surveyor default HUD panel](docs/images/default-panel.png)
+![Caspian Surveyor default HUD panel](docs/images/default_panel_0920.png)
 
 ### Planetary Body Information
 
-![Caspian Surveyor planetary body information panel](docs/images/planet-body-info.png)
+![Caspian Surveyor planetary body information panel](docs/images/planet-body-info_0920.png)
+
+![Caspian Surveyor exobiology information panel](docs/images/planet-body-info_after_dss_0920.png)
+
+### Exobiology Information
+
+
+
+***Exobiology Panel - pre-exobio scan***
+![Caspian Surveyor exobiology information panel](docs/images/exobio_001_0920.png)
+
+***Exobiology Panel - post-exobio scan #1***
+![Caspian Surveyor exobiology information panel](docs/images/exobio_002_0920.png)
+
+***Exobiology Panel - post-exobio scan #2***
+![Caspian Surveyor exobiology information panel](docs/images/exobio_003_0920.png)
+
+***Exobiology Panel - post-exobio scan #3 - Analysed and Logged***
+![Caspian Surveyor exobiology information panel](docs/images/exobio_004_0920.png)
+
+***Exobiology Panel - post-exobio scan - two genus species variants***
+![Caspian Surveyor exobiology information panel](docs/images/exobio_005_0920.png)
+
+***Exobiology Panel - post-exobio scan - four genus species variants***
+![Caspian Surveyor exobiology information panel](docs/images/exobio_006_0920.png)
 
 ### Orbital and Physical Information
 
-![Caspian Surveyor planetary orbital and physical information panel](docs/images/planet-orbital-physical-info.png)
+![Caspian Surveyor planetary orbital and physical information panel](docs/images/planet-orbital-physical-info_0920.png)
 
 ### Orbital / Physical Data Legend
 
-![Caspian Surveyor orbital and physical data legend](docs/images/orbital-physical-legend.png)
+![Caspian Surveyor orbital and physical data legend](docs/images/orbital-physical-legend_0920.png)
 
 ### In-Cockpit View
 
-![Caspian Surveyor HUD overlay shown in the Elite Dangerous cockpit](docs/images/cockpit-view.png)
+![Caspian Surveyor HUD overlay shown in the Elite Dangerous cockpit](docs/images/cockpit-view_0920.png)
 
 ## Installation
 
-1. Download `CaspianSurveyor-0.9.0.0-Setup.exe` from the GitHub Releases page.
+1. Download `CaspianSurveyor-0.9.2.0-Setup.exe` from the GitHub Releases page.
 
 2. Because the installer is currently unsigned, Microsoft Edge or another browser may warn that the file is not commonly downloaded. Keep the file **only if you downloaded it from the official Caspian Surveyor GitHub release page**.
 
