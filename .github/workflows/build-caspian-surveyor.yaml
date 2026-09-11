@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "GitHub Release tag to upload installer to"
+        description: "GitHub Release tag to upload release assets to"
         required: true
         type: string
 
@@ -41,6 +41,52 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           & $iscc "packaging\windows\CaspianSurveyor.iss"
 
+      - name: Build Windows ZIP
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $version = $env:RELEASE_TAG -replace '^v', ''
+          $portableRoot = "portable\CaspianSurveyor"
+          $zipPath = "installer\CaspianSurveyor-$version-Windows.zip"
+
+          New-Item -ItemType Directory -Force -Path "$portableRoot" | Out-Null
+          New-Item -ItemType Directory -Force -Path "installer" | Out-Null
+
+          Copy-Item "dist\CaspianSurveyor\*" "$portableRoot" -Recurse
+          Copy-Item "LICENSE" "$portableRoot"
+          Copy-Item "README.md" "$portableRoot"
+          Copy-Item "THIRD_PARTY_NOTICES.md" "$portableRoot"
+          Copy-Item "licenses" "$portableRoot\licenses" -Recurse
+
+          Compress-Archive `
+            -Path "$portableRoot" `
+            -DestinationPath "$zipPath" `
+            -Force
+
+      - name: Generate SHA256 checksums
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          $version = $env:RELEASE_TAG -replace '^v', ''
+
+          $releaseAssets = @(
+            "installer\CaspianSurveyor-$version-Setup.exe",
+            "installer\CaspianSurveyor-$version-Windows.zip"
+          )
+
+          $checksumLines = foreach ($asset in $releaseAssets) {
+            $hash = (Get-FileHash -Algorithm SHA256 $asset).Hash.ToLowerInvariant()
+            $fileName = Split-Path $asset -Leaf
+
+            "$hash  $fileName"
+          }
+
+          $checksumLines | Set-Content `
+            -Path "installer\SHA256SUMS.txt" `
+            -Encoding ascii
+
       - name: Upload build
         uses: actions/upload-artifact@v6
         with:
@@ -55,6 +101,20 @@ jobs:
           path: installer/CaspianSurveyor-*-Setup.exe
           if-no-files-found: error
 
+      - name: Upload Windows ZIP
+        uses: actions/upload-artifact@v6
+        with:
+          name: CaspianSurveyor-Windows-ZIP
+          path: installer/CaspianSurveyor-*-Windows.zip
+          if-no-files-found: error
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v6
+        with:
+          name: CaspianSurveyor-SHA256SUMS
+          path: installer/SHA256SUMS.txt
+          if-no-files-found: error
+
       - name: Verify GitHub Release
         shell: pwsh
         env:
@@ -63,11 +123,16 @@ jobs:
         run: |
           gh release view "$env:RELEASE_TAG"
 
-      - name: Attach installer to GitHub Release
+      - name: Attach release assets to GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           $installer = Get-ChildItem "installer\CaspianSurveyor-*-Setup.exe" | Select-Object -First 1
+          $windowsZip = Get-ChildItem "installer\CaspianSurveyor-*-Windows.zip" | Select-Object -First 1
+          $checksums = Get-Item "installer\SHA256SUMS.txt"
+
           gh release upload "$env:RELEASE_TAG" "$($installer.FullName)"
+          gh release upload "$env:RELEASE_TAG" "$($windowsZip.FullName)"
+          gh release upload "$env:RELEASE_TAG" "$($checksums.FullName)"
