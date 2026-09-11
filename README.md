@@ -150,35 +150,60 @@ Logs are stored under:
 
 ### Run From Source
 
-1. Open a terminal.
-2. Navigate to the Caspian Surveyor source directory.
+1. Open a terminal and navigate to the Caspian Surveyor repository.
 
 ```powershell
-cd C:\path\to\caspian_surveyor
+cd C:\path\to\caspian-surveyor
 ```
 
-3. Install Caspian Surveyor and its dependencies.
+2. Create a virtual environment.
+
+```powershell
+python -m venv .venv
+```
+
+3. Activate the virtual environment.
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+4. Install Caspian Surveyor and its dependencies.
 
 ```powershell
 python -m pip install -e .
 ```
 
-4. Launch Caspian Surveyor.
+5. Launch Caspian Surveyor.
 
 ```powershell
-python caspian_surveyor.py
+python -m caspian_surveyor.caspian_surveyor
 ```
 
 ### Build the Windows Application Bundle
 
+1. With the virtual environment activated, install PyInstaller.
+
 ```powershell
-python -m PyInstaller --noconfirm --clean CaspianSurveyor.spec
+python -m pip install pyinstaller
+```
+
+2. Build Caspian Surveyor using the included PyInstaller specification.
+
+```powershell
+python -m PyInstaller --noconfirm --clean packaging/windows/CaspianSurveyor.spec
 ```
 
 The generated application bundle will be located under:
 
 ```text
 dist\CaspianSurveyor\
+```
+
+3. Launch the built application.
+
+```powershell
+.\dist\CaspianSurveyor\CaspianSurveyor.exe
 ```
 
 ## License
