@@ -1,13 +1,8 @@
-import sys
 import math
-from PySide6 import QtCore
-from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QLabel,
-    QVBoxLayout, QFrame, QSizePolicy,
+    QWidget, QVBoxLayout, QFrame,
 )
 import logging
-import caspian_surveyor.cs_data_structures as cs_data_structures
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget
 
 logger = logging.getLogger(__name__)
