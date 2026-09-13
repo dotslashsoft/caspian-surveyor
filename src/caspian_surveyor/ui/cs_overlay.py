@@ -855,62 +855,18 @@ class SystemInfoOverlay(QWidget):
             self.current_index = 0
 
         return "\n".join(genus_pair_list)
-    def update_body_display_metrics(self) -> None:
+
+    def _update_body_physical_orbital_metrics(self, body):
         """
-        Updates the HUD metrics for the currently selected planetary body.
+        Updates physical and orbital metrics for the selected planetary body.
 
-        Populates the body-summary and physical-orbital displays, including
-        signal information, terraformability, temperature, and DSS status.
-
-        Converts stored body data into user-friendly display units using
-        EARTH_RADIUS_M, AU_M, and SECONDS_PER_DAY where applicable.
-        """   
-
+        Converts stored body values into user-friendly display units and updates
+        the corresponding HUD metrics.
+        """
         # used for orbital body calculations
         EARTH_RADIUS_M = 6_371_000
         AU_M = 149_597_870_700
         SECONDS_PER_DAY = 86_400
-
-        body = self.planetary_bodies[self.current_body_index]
-        self.metric_body_name.set_value(body.body_name)
-
-        # detail page
-        self.metric_orbital_body_name.set_value(body.body_name)
-
-        self.metric_body_class.set_value(body.planet_class)
-        self.metric_body_landable.set_value(body.landable)
-        
-        if body.signals:
-            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
-            self.metric_body_signals.set_value(signal_text)
-        else:
-            self.metric_body_signals.set_value("--")
-
-        if body.genuses:
-            for genus in body.genuses:
-                self.genus_dict[genus.genus_localised] = genus
-
-            genus_pair = self.cycle_genus_display(self.genus_dict)
-            self.metric_body_biosig_genus.set_value(genus_pair)
-        else:
-            self.metric_body_biosig_genus.set_value("--")
-
-        if body.terraform_state == "Terraformable":
-            self.metric_tf_state.setVisible(True)
-            self.body_metric_separators[self.metric_tf_state].setVisible(True)
-
-            self.metric_tf_state.set_value(body.terraform_state)
-
-        else:
-            self.metric_tf_state.setVisible(False)
-            self.body_metric_separators[self.metric_tf_state].setVisible(False)
-
-        if body.surface_temperature is not None:
-            self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
-        else:
-            self.metric_body_temp.set_value("--")
-        self.metric_body_dss.set_value(body.dss_scan_complete)
-
 
         # body orbital calculations for friendly display
         if body.radius is not None:
@@ -982,6 +938,62 @@ class SystemInfoOverlay(QWidget):
             )
         else:
             self.metric_body_semi_major_axis.set_value("--")
+
+    
+    def update_body_display_metrics(self) -> None:
+        """
+        Updates the HUD metrics for the currently selected planetary body.
+
+        Populates the body-summary and physical-orbital displays, including
+        signal information, terraformability, temperature, and DSS status.
+
+        Converts stored body data into user-friendly display units using
+        EARTH_RADIUS_M, AU_M, and SECONDS_PER_DAY where applicable.
+        """   
+
+
+
+        body = self.planetary_bodies[self.current_body_index]
+        self.metric_body_name.set_value(body.body_name)
+
+        # detail page
+        self.metric_orbital_body_name.set_value(body.body_name)
+
+        self.metric_body_class.set_value(body.planet_class)
+        self.metric_body_landable.set_value(body.landable)
+        
+        if body.signals:
+            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
+            self.metric_body_signals.set_value(signal_text)
+        else:
+            self.metric_body_signals.set_value("--")
+
+        if body.genuses:
+            for genus in body.genuses:
+                self.genus_dict[genus.genus_localised] = genus
+
+            genus_pair = self.cycle_genus_display(self.genus_dict)
+            self.metric_body_biosig_genus.set_value(genus_pair)
+        else:
+            self.metric_body_biosig_genus.set_value("--")
+
+        if body.terraform_state == "Terraformable":
+            self.metric_tf_state.setVisible(True)
+            self.body_metric_separators[self.metric_tf_state].setVisible(True)
+
+            self.metric_tf_state.set_value(body.terraform_state)
+
+        else:
+            self.metric_tf_state.setVisible(False)
+            self.body_metric_separators[self.metric_tf_state].setVisible(False)
+
+        if body.surface_temperature is not None:
+            self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+        else:
+            self.metric_body_temp.set_value("--")
+        self.metric_body_dss.set_value(body.dss_scan_complete)
+
+        self._update_body_physical_orbital_metrics(body)
 
         # logic to get exobio data in panel
         variant_statuses = {}
