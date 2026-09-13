@@ -30,7 +30,7 @@ class DualColorDialog(QDialog):
         right_container.addWidget(self.secondary_picker)
         pickers_layout.addLayout(right_container)
         
-        # the irony if telling the aforemention QDialog not to use buttons
+        # the irony of telling the aforementioned QDialog not to use buttons
         buttons_layout = QHBoxLayout()
         self.btn_ok = QPushButton("OK")
         self.btn_cancel = QPushButton("Cancel")
