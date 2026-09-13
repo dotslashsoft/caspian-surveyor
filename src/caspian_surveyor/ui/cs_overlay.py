@@ -140,14 +140,14 @@ class SystemInfoOverlay(QWidget):
             self.current_body_index %= len(self.planetary_bodies)
             self.update_body_display_metrics()
 
-        self.metric_system.set_value(ui_data.system.name.upper())
-        self.metric_planets.set_value(ui_data.summary.planets)
-        self.metric_elw.set_value(ui_data.summary.earthlike_worlds)
-        self.metric_tfww.set_value(ui_data.summary.tf_water_worlds)
-        self.metric_tfhmc.set_value(ui_data.summary.tf_hmc)
-        self.metric_water_world.set_value(ui_data.summary.water_worlds)
-        self.metric_hmc.set_value(ui_data.summary.hmc)
-        self.metric_landable.set_value(ui_data.summary.landable)
+        self.metric_system_name.set_value(ui_data.system.name.upper())
+        self.metric_system_planet_count.set_value(ui_data.summary.planets)
+        self.metric_system_elw_count.set_value(ui_data.summary.earthlike_worlds)
+        self.metric_system_tfww_count.set_value(ui_data.summary.tf_water_worlds)
+        self.metric_system_tfhmc_count.set_value(ui_data.summary.tf_hmc)
+        self.metric_system_ww_count.set_value(ui_data.summary.water_worlds)
+        self.metric_system_hmc_count.set_value(ui_data.summary.hmc)
+        self.metric_system_landable_count.set_value(ui_data.summary.landable)
 
         
     def _load_initial_data(self):
@@ -340,58 +340,31 @@ class SystemInfoOverlay(QWidget):
 
         if self.ui_data is None:
             return
-        
-        self.metric_system = MetricWidget(
+
+        self.metric_system_name = MetricWidget(
             "SYSTEM",
             self.ui_data.system.name.upper(),
             key_label_font_color=self.key_label_color,
             val_label_font_color=self.value_label_color
         )
 
-        self.metric_planets = MetricWidget(
-            "PLANETS",
-            self.ui_data.summary.planets
-        )
-
-        self.metric_elw = MetricWidget(
-            "ELW",
-            self.ui_data.summary.earthlike_worlds
-        )
-
-        self.metric_tfww = MetricWidget(
-            "TFWW",
-            self.ui_data.summary.tf_water_worlds
-        )
-
-        self.metric_tfhmc = MetricWidget(
-            "TFHMC",
-            self.ui_data.summary.tf_hmc
-        )
-
-        self.metric_water_world = MetricWidget(
-            "WW",
-            self.ui_data.summary.water_worlds
-        )
-
-        self.metric_hmc = MetricWidget(
-            "HMC",
-            self.ui_data.summary.hmc
-        )
-
-        self.metric_landable = MetricWidget(
-            "LANDABLE",
-            self.ui_data.summary.landable
-        )
+        self.metric_system_planet_count = MetricWidget("PLANETS", self.ui_data.summary.planets)
+        self.metric_system_elw_count = MetricWidget("ELW", self.ui_data.summary.earthlike_worlds)
+        self.metric_system_tfww_count = MetricWidget("TFWW", self.ui_data.summary.tf_water_worlds)
+        self.metric_system_tfhmc_count = MetricWidget("TFHMC", self.ui_data.summary.tf_hmc)
+        self.metric_system_ww_count = MetricWidget("WW", self.ui_data.summary.water_worlds)
+        self.metric_system_hmc_count = MetricWidget("HMC", self.ui_data.summary.hmc)
+        self.metric_system_landable_count = MetricWidget("LANDABLE", self.ui_data.summary.landable)
 
         metrics = [
-            self.metric_system,
-            self.metric_planets,
-            self.metric_elw,
-            self.metric_tfww,
-            self.metric_tfhmc,
-            self.metric_water_world,
-            self.metric_hmc,
-            self.metric_landable,
+            self.metric_system_name,
+            self.metric_system_planet_count,
+            self.metric_system_elw_count,
+            self.metric_system_tfww_count,
+            self.metric_system_tfhmc_count,
+            self.metric_system_ww_count,
+            self.metric_system_hmc_count,
+            self.metric_system_landable_count,
         ]
 
         self._add_metrics(hud_layout, metrics)
@@ -411,22 +384,22 @@ class SystemInfoOverlay(QWidget):
 
         self.metric_body_name = MetricWidget("PLANET", "--")
         self.metric_body_class = MetricWidget("CLASS", "--")
-        self.metric_tf_state = MetricWidget("TF", "--")
+        self.metric_body_tf_state = MetricWidget("TF", "--")
         self.metric_body_landable = MetricWidget("LANDABLE", False)
         self.metric_body_signals = MetricWidget("SIGNALS", "--")
         self.metric_body_biosig_genus = MetricWidget("BIOSIGS", "--")
-        self.metric_body_temp = MetricWidget("TEMP K", "--")
-        self.metric_body_dss = MetricWidget("DSS SCAN", False)
+        self.metric_body_temperature = MetricWidget("TEMP K", "--")
+        self.metric_body_dss_scan = MetricWidget("DSS SCAN", False)
 
         metrics = [
             self.metric_body_name,
             self.metric_body_class,
-            self.metric_tf_state,
+            self.metric_body_tf_state,
             self.metric_body_landable,
             self.metric_body_signals,
             self.metric_body_biosig_genus,
-            self.metric_body_temp,
-            self.metric_body_dss,
+            self.metric_body_temperature,
+            self.metric_body_dss_scan,
         ]
 
         self.body_metric_separators = self._add_metrics(hud_layout, metrics)
@@ -447,27 +420,26 @@ class SystemInfoOverlay(QWidget):
         """
         page, hud_layout = self._create_hud_page()
 
-        self.metric_orbital_body_name = MetricWidget("PLANET", "--")
-        self.metric_body_radius = MetricWidget("R⊕", "--", 12)
-        self.metric_body_axial_tilt = MetricWidget("ε", "--", 12)
-        self.metric_body_eccentricity = MetricWidget("e", "--", 12)
-        self.metric_body_orbital_inclination = MetricWidget("i", "--", 12)
-        self.metric_body_orbital_period = MetricWidget("P", "--", 12)
-        self.metric_body_rotational_period = MetricWidget("T", "--", 12)
-        self.metric_body_periapsis = MetricWidget("ω", "--", 12)
-        self.metric_body_semi_major_axis = MetricWidget("a", "--", 12)
-
+        self.metric_physorb_body_name = MetricWidget("PLANET", "--")
+        self.metric_physorb_radius = MetricWidget("R⊕", "--", 12)
+        self.metric_physorb_axial_tilt = MetricWidget("ε", "--", 12)
+        self.metric_physorb_eccentricity = MetricWidget("e", "--", 12)
+        self.metric_physorb_inclination = MetricWidget("i", "--", 12)
+        self.metric_physorb_orbital_period = MetricWidget("P", "--", 12)
+        self.metric_physorb_rotational_period = MetricWidget("T", "--", 12)
+        self.metric_physorb_periapsis = MetricWidget("ω", "--", 12)
+        self.metric_physorb_semi_major_axis = MetricWidget("a", "--", 12)
 
         metrics = [
-            self.metric_orbital_body_name,
-            self.metric_body_radius,
-            self.metric_body_axial_tilt,
-            self.metric_body_eccentricity,
-            self.metric_body_orbital_inclination,
-            self.metric_body_orbital_period,
-            self.metric_body_rotational_period,
-            self.metric_body_periapsis,
-            self.metric_body_semi_major_axis,
+            self.metric_physorb_body_name,
+            self.metric_physorb_radius,
+            self.metric_physorb_axial_tilt,
+            self.metric_physorb_eccentricity,
+            self.metric_physorb_inclination,
+            self.metric_physorb_orbital_period,
+            self.metric_physorb_rotational_period,
+            self.metric_physorb_periapsis,
+            self.metric_physorb_semi_major_axis,
         ]
 
         self._add_metrics(hud_layout, metrics)
@@ -885,20 +857,20 @@ class SystemInfoOverlay(QWidget):
             self.metric_body_biosig_genus.set_value("--")
 
         if body.terraform_state == "Terraformable":
-            self.metric_tf_state.setVisible(True)
-            self.body_metric_separators[self.metric_tf_state].setVisible(True)
+            self.metric_body_tf_state.setVisible(True)
+            self.body_metric_separators[self.metric_body_tf_state].setVisible(True)
 
-            self.metric_tf_state.set_value(body.terraform_state)
+            self.metric_body_tf_state.set_value(body.terraform_state)
 
         else:
-            self.metric_tf_state.setVisible(False)
-            self.body_metric_separators[self.metric_tf_state].setVisible(False)
+            self.metric_body_tf_state.setVisible(False)
+            self.body_metric_separators[self.metric_body_tf_state].setVisible(False)
 
         if body.surface_temperature is not None:
-            self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+            self.metric_body_temperature.set_value(f"{body.surface_temperature:.2f}")
         else:
-            self.metric_body_temp.set_value("--")
-        self.metric_body_dss.set_value(body.dss_scan_complete)
+            self.metric_body_temperature.set_value("--")
+        self.metric_body_dss_scan.set_value(body.dss_scan_complete)
 
 
     def _update_body_physical_orbital_metrics(self, body):
@@ -913,51 +885,51 @@ class SystemInfoOverlay(QWidget):
         AU_M = 149_597_870_700
         SECONDS_PER_DAY = 86_400
 
-        self.metric_orbital_body_name.set_value(body.body_name)
+        self.metric_physorb_body_name.set_value(body.body_name)
         if body.radius is not None:
             radius_earth = body.radius / EARTH_RADIUS_M
-            self.metric_body_radius.set_value(f"{radius_earth:.3f}")
+            self.metric_physorb_radius.set_value(f"{radius_earth:.3f}")
         else:
-            self.metric_body_radius.set_value("--")
+            self.metric_physorb_radius.set_value("--")
 
         if body.axial_tilt is not None:
             axial_tilt_degrees = math.degrees(body.axial_tilt)
-            self.metric_body_axial_tilt.set_value(f"{axial_tilt_degrees:.2f}°")
+            self.metric_physorb_axial_tilt.set_value(f"{axial_tilt_degrees:.2f}°")
         else:
-            self.metric_body_axial_tilt.set_value("--")
+            self.metric_physorb_axial_tilt.set_value("--")
 
         if body.eccentricity is not None:
-            self.metric_body_eccentricity.set_value(f"{body.eccentricity:.6f}")
+            self.metric_physorb_eccentricity.set_value(f"{body.eccentricity:.6f}")
         else:
-            self.metric_body_eccentricity.set_value("--")
+            self.metric_physorb_eccentricity.set_value("--")
 
         if body.orbital_inclination is not None:
-            self.metric_body_orbital_inclination.set_value(f"{body.orbital_inclination:.2f}°")
+            self.metric_physorb_inclination.set_value(f"{body.orbital_inclination:.2f}°")
         else:
-            self.metric_body_orbital_inclination.set_value("--")
+            self.metric_physorb_inclination.set_value("--")
 
         if body.orbital_period is not None:
             orbital_days = body.orbital_period / SECONDS_PER_DAY
-            self.metric_body_orbital_period.set_value(f"{orbital_days:.2f} d")
+            self.metric_physorb_orbital_period.set_value(f"{orbital_days:.2f} d")
         else:
-            self.metric_body_orbital_period.set_value("--")
+            self.metric_physorb_orbital_period.set_value("--")
 
         if body.rotational_period is not None:
             rotational_days = body.rotational_period / SECONDS_PER_DAY
-            self.metric_body_rotational_period.set_value(f"{rotational_days:.2f} d")
+            self.metric_physorb_rotational_period.set_value(f"{rotational_days:.2f} d")
         else:
-            self.metric_body_rotational_period.set_value("--")
+            self.metric_physorb_rotational_period.set_value("--")
 
         if body.periapsis is not None:
-            self.metric_body_periapsis.set_value(f"{body.periapsis:.2f}°")
+            self.metric_physorb_periapsis.set_value(f"{body.periapsis:.2f}°")
         else:
-            self.metric_body_periapsis.set_value("--")
+            self.metric_physorb_periapsis.set_value("--")
 
         if body.semi_major_axis is not None:
             semi_major_axis_au = body.semi_major_axis / AU_M
-            self.metric_body_semi_major_axis.set_value(f"{semi_major_axis_au:.3f} AU")
+            self.metric_physorb_semi_major_axis.set_value(f"{semi_major_axis_au:.3f} AU")
         else:
-            self.metric_body_semi_major_axis.set_value("--")
+            self.metric_physorb_semi_major_axis.set_value("--")
 
 
     def _update_body_exobio_metrics(self, body):
