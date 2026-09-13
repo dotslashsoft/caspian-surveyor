@@ -868,74 +868,49 @@ class SystemInfoOverlay(QWidget):
         AU_M = 149_597_870_700
         SECONDS_PER_DAY = 86_400
 
-        # body orbital calculations for friendly display
+        self.metric_orbital_body_name.set_value(body.body_name)
         if body.radius is not None:
             radius_earth = body.radius / EARTH_RADIUS_M
             self.metric_body_radius.set_value(f"{radius_earth:.3f}")
         else:
             self.metric_body_radius.set_value("--")
 
-
         if body.axial_tilt is not None:
             axial_tilt_degrees = math.degrees(body.axial_tilt)
-            self.metric_body_axial_tilt.set_value(
-                f"{axial_tilt_degrees:.2f}°"
-            )
+            self.metric_body_axial_tilt.set_value(f"{axial_tilt_degrees:.2f}°")
         else:
             self.metric_body_axial_tilt.set_value("--")
 
-
         if body.eccentricity is not None:
-            self.metric_body_eccentricity.set_value(
-                f"{body.eccentricity:.6f}"
-            )
+            self.metric_body_eccentricity.set_value(f"{body.eccentricity:.6f}")
         else:
             self.metric_body_eccentricity.set_value("--")
 
-
         if body.orbital_inclination is not None:
-            self.metric_body_orbital_inclination.set_value(
-                f"{body.orbital_inclination:.2f}°"
-            )
+            self.metric_body_orbital_inclination.set_value(f"{body.orbital_inclination:.2f}°")
         else:
             self.metric_body_orbital_inclination.set_value("--")
 
-
         if body.orbital_period is not None:
             orbital_days = body.orbital_period / SECONDS_PER_DAY
-            self.metric_body_orbital_period.set_value(
-                f"{orbital_days:.2f} d"
-            )
+            self.metric_body_orbital_period.set_value(f"{orbital_days:.2f} d")
         else:
             self.metric_body_orbital_period.set_value("--")
 
-
         if body.rotational_period is not None:
-            rotational_days = (
-                body.rotational_period / SECONDS_PER_DAY
-            )
-
-            self.metric_body_rotational_period.set_value(
-                f"{rotational_days:.2f} d"
-            )
+            rotational_days = body.rotational_period / SECONDS_PER_DAY
+            self.metric_body_rotational_period.set_value(f"{rotational_days:.2f} d")
         else:
             self.metric_body_rotational_period.set_value("--")
 
-
         if body.periapsis is not None:
-            self.metric_body_periapsis.set_value(
-                f"{body.periapsis:.2f}°"
-            )
+            self.metric_body_periapsis.set_value(f"{body.periapsis:.2f}°")
         else:
             self.metric_body_periapsis.set_value("--")
 
-
         if body.semi_major_axis is not None:
             semi_major_axis_au = body.semi_major_axis / AU_M
-
-            self.metric_body_semi_major_axis.set_value(
-                f"{semi_major_axis_au:.3f} AU"
-            )
+            self.metric_body_semi_major_axis.set_value(f"{semi_major_axis_au:.3f} AU")
         else:
             self.metric_body_semi_major_axis.set_value("--")
 
@@ -951,14 +926,10 @@ class SystemInfoOverlay(QWidget):
         EARTH_RADIUS_M, AU_M, and SECONDS_PER_DAY where applicable.
         """   
 
-
-
         body = self.planetary_bodies[self.current_body_index]
         self.metric_body_name.set_value(body.body_name)
 
         # detail page
-        self.metric_orbital_body_name.set_value(body.body_name)
-
         self.metric_body_class.set_value(body.planet_class)
         self.metric_body_landable.set_value(body.landable)
         
