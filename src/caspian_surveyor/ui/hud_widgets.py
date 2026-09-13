@@ -1,9 +1,11 @@
 from PySide6.QtWidgets import (
-    QWidget, QLabel, QVBoxLayout, 
+    QFrame, QHBoxLayout, QWidget, QLabel, QVBoxLayout, 
     QStackedWidget, QSizePolicy, 
     QGraphicsDropShadowEffect, 
 )
 from PySide6.QtGui import QColor
+from caspian_surveyor.ui.custom_color_picker import ConfigFileHandler
+import json
 
 
 class CurrentPageStackedWidget(QStackedWidget):
@@ -130,3 +132,98 @@ class MetricWidget(QWidget):
             self.key_label.setText("--")
         else:
             self.key_label.setText(str(value))
+
+
+class HudFactory:
+
+    def __init__(self) -> None:
+        self.hud_panels = []
+        self.panel_glow_effects = []
+
+        self.overlay_config_path = ConfigFileHandler().OVERLAY_CONFIG
+        self.load_overlay_config()
+
+    def load_overlay_config(self) -> None:
+        with self.overlay_config_path.open("r", encoding="utf-8") as file:
+            overlay_config = json.load(file)
+
+        self.key_label_color = overlay_config["key_label_color"]
+        self.value_label_color = overlay_config["value_label_color"]
+
+    def create_hud_page(self) -> tuple[QWidget, QHBoxLayout]:
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(12, 6, 12, 6)
+
+        panel = self._create_hud_panel()
+
+        hud_layout = QHBoxLayout(panel)
+        hud_layout.setContentsMargins(12, 6, 12, 6)
+        hud_layout.setSpacing(6)
+
+        page_layout.addWidget(panel)
+
+        return page, hud_layout
+
+    def get_panel_style(self) -> str:
+        return f"""
+            QFrame#HUDPanel {{
+                background-color: rgba(0, 0, 0, 220);
+                border-top: 1px solid {self.value_label_color};
+                border-bottom: 1px solid {self.value_label_color};
+                border-radius: 8px;
+                border-left: none;
+                border-right: none;
+                font-family: Eurostile;
+            }}
+        """
+    
+    def _create_hud_panel(self) -> QFrame:
+        """
+        Creates and styles a reusable HUD panel QFrame.
+
+        Assigns the "HUDPanel" object name and applies PANEL_STYLE so the
+        resulting frame can be used consistently across overlay display pages.
+
+        Returns:
+            The configured HUD-panel QFrame.
+        """
+        panel = QFrame()
+        panel.setObjectName("HUDPanel")
+        panel.setStyleSheet(self.get_panel_style())
+
+        glow_color = QColor(self.value_label_color)
+        glow_color.setAlpha(40)
+
+        border_glow_effect = QGraphicsDropShadowEffect(panel)
+        border_glow_effect.setColor(glow_color)
+        border_glow_effect.setOffset(0, 0)
+        border_glow_effect.setBlurRadius(15)
+
+        panel.setGraphicsEffect(border_glow_effect)
+
+        self.hud_panels.append(panel)
+
+        self.panel_glow_effects.append(border_glow_effect)
+
+        return panel
+
+    def refresh_panel_colors(self) -> None:
+        for panel in self.hud_panels:
+            panel.setStyleSheet(self.get_panel_style())
+            panel.style().unpolish(panel)
+            panel.style().polish(panel)
+            panel.update()
+
+    def refresh_panel_glow_colors(self) -> None:
+        glow_color = QColor(self.value_label_color)
+        print(f"\n\nPanel color: {self.value_label_color}")
+        print(f"Tracked panels: {len(self.hud_panels)}")
+        glow_color.setAlpha(40)
+
+        for border_glow_effect in self.panel_glow_effects:
+            border_glow_effect.setColor(glow_color)
+
+        print(f"\n\nPanel color: {self.value_label_color}")
+        print(f"Tracked panels: {len(self.hud_panels)}\n\n")

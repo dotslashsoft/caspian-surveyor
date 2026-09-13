@@ -1,19 +1,16 @@
-import json
 import sys
 import math
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
-    QApplication, QWidget, QLabel, QHBoxLayout, 
-    QVBoxLayout, QFrame, QSizePolicy, QGraphicsDropShadowEffect, 
+    QApplication, QWidget, QLabel,
+    QVBoxLayout, QFrame, QSizePolicy,
 )
-from PySide6.QtGui import QColor
 import logging
 import caspian_surveyor.cs_data_structures as cs_data_structures
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
-import keyboard
 from caspian_surveyor.ui.hotkey_manager import HotkeyManager
-from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget
+from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
 
 logger = logging.getLogger(__name__)
 
@@ -44,13 +41,13 @@ class SystemInfoOverlay(QWidget):
         """
         self.custom_color_picker = custom_color_picker.Workflow()
         self.overlay_config_path = custom_color_picker.ConfigFileHandler().OVERLAY_CONFIG
+        self.hud_factory = HudFactory()
         super().__init__()
 
         self._connect_signals()
         self._register_hotkeys()
         self._load_initial_data()
         self._configure_window()
-        self._load_overlay_config()
         self._build_ui()
         self.refresh_overlay_colors()
         self._start_update_timer()
@@ -88,19 +85,6 @@ class SystemInfoOverlay(QWidget):
         self.display_stack.updateGeometry()
         self.resize(self.sizeHint())
         self.position_top_center()
-
-    def get_panel_style(self) -> str:
-        return f"""
-            QFrame#HUDPanel {{
-                background-color: rgba(0, 0, 0, 220);
-                border-top: 1px solid #002e4d;
-                border-bottom: 1px solid #004d80;
-                border-radius: 8px;
-                border-left: none;
-                border-right: none;
-                font-family: Eurostile;
-            }}
-        """
 
     def refresh_system_data(self):
         """
@@ -223,23 +207,6 @@ class SystemInfoOverlay(QWidget):
         self.legend_page.hide()
 
 
-    def _create_hud_page(self) -> tuple[QWidget, QHBoxLayout]:
-        page = QWidget()
-
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(12, 6, 12, 6)
-
-        panel = self._create_hud_panel()
-
-        hud_layout = QHBoxLayout(panel)
-        hud_layout.setContentsMargins(12, 6, 12, 6)
-        hud_layout.setSpacing(6)
-
-        page_layout.addWidget(panel)
-
-        return page, hud_layout
-
-
     def _connect_signals(self):
         """
         Connects overlay control signals to their corresponding handler methods.
@@ -279,13 +246,6 @@ class SystemInfoOverlay(QWidget):
 
         self.hotkey_manager.register_hotkeys()
 
-    def _load_overlay_config(self) -> None:
-        with self.overlay_config_path.open("r", encoding="utf-8") as file:
-            overlay_config = json.load(file)
-
-        self.key_label_color = overlay_config["key_label_color"]
-        self.value_label_color = overlay_config["value_label_color"]
-
     def _build_system_page(self) -> QWidget | None:
         """
         Constructs the system-summary display page.
@@ -299,7 +259,7 @@ class SystemInfoOverlay(QWidget):
             The completed system-page QWidget, or None if no initial
             system data is available.
         """   
-        page, hud_layout = self._create_hud_page()
+        page, hud_layout = self.hud_factory.create_hud_page()
 
         title_widget = self._create_title_widget()
 
@@ -312,8 +272,8 @@ class SystemInfoOverlay(QWidget):
         self.metric_system_name = MetricWidget(
             "SYSTEM",
             self.ui_data.system.name.upper(),
-            key_label_font_color=self.key_label_color,
-            val_label_font_color=self.value_label_color
+            key_label_font_color=self.hud_factory.key_label_color,
+            val_label_font_color=self.hud_factory.value_label_color
         )
 
         self.metric_system_planet_count = MetricWidget("PLANETS", self.ui_data.summary.planets)
@@ -348,7 +308,7 @@ class SystemInfoOverlay(QWidget):
         Returns:
             The completed body-summary-page QWidget.
         """
-        page, hud_layout = self._create_hud_page()
+        page, hud_layout = self.hud_factory.create_hud_page()
 
         self.metric_body_name = MetricWidget("PLANET", "--")
         self.metric_body_class = MetricWidget("CLASS", "--")
@@ -386,7 +346,7 @@ class SystemInfoOverlay(QWidget):
         Returns:
             The completed body-physical-orbital-page QWidget.
         """
-        page, hud_layout = self._create_hud_page()
+        page, hud_layout = self.hud_factory.create_hud_page()
 
         self.metric_physorb_body_name = MetricWidget("PLANET", "--")
         self.metric_physorb_radius = MetricWidget("R⊕", "--", 12)
@@ -429,7 +389,7 @@ class SystemInfoOverlay(QWidget):
         Returns:
             The completed body-legend QWidget.
         """
-        page, hud_layout = self._create_hud_page()
+        page, hud_layout = self.hud_factory.create_hud_page()
 
         self.legend_body_radius = MetricWidget("R⊕", "Radius in Earth radii", 12)
         self.legend_body_axial_tilt = MetricWidget("ε", "Axial tilt / obliquity", 12)
@@ -498,7 +458,7 @@ class SystemInfoOverlay(QWidget):
         Returns:
             The completed exobiology-page QWidget.
         """
-        page, self.exobio_hud_layout = self._create_hud_page()
+        page, self.exobio_hud_layout = self.hud_factory.create_hud_page()
 
         self.metric_exobio_body_name = MetricWidget("PLANET", "--")
         self.exobio_hud_layout.addWidget(self.metric_exobio_body_name)
@@ -520,8 +480,8 @@ class SystemInfoOverlay(QWidget):
                 variant_name,
                 "--", 
                 key_font_size=12,
-                key_label_font_color=self.key_label_color,
-                val_label_font_color=self.value_label_color)
+                key_label_font_color=self.hud_factory.key_label_color,
+                val_label_font_color=self.hud_factory.value_label_color)
 
             metric.set_value(scan_status)
 
@@ -530,31 +490,6 @@ class SystemInfoOverlay(QWidget):
 
             self.exobio_dynamic_widgets.extend([separator, metric])
 
-    def _create_hud_panel(self):
-        """
-        Creates and styles a reusable HUD panel QFrame.
-
-        Assigns the "HUDPanel" object name and applies PANEL_STYLE so the
-        resulting frame can be used consistently across overlay display pages.
-
-        Returns:
-            The configured HUD-panel QFrame.
-        """
-        panel = QFrame()
-        panel.setObjectName("HUDPanel")
-        panel.setStyleSheet(self.get_panel_style())
-
-        glow_color = QColor(self.value_label_color)
-        glow_color.setAlpha(40)
-
-        border_glow_effect = QGraphicsDropShadowEffect(panel)
-        border_glow_effect.setColor(glow_color)
-        border_glow_effect.setOffset(0, 0)
-        border_glow_effect.setBlurRadius(15)
-
-        panel.setGraphicsEffect(border_glow_effect)
-
-        return panel
 
 
     def _add_metrics(self, layout, metrics) -> dict[MetricWidget, QFrame]:
@@ -610,7 +545,7 @@ class SystemInfoOverlay(QWidget):
 
         app_title = QLabel("CASPIAN")
         app_title.setStyleSheet(
-            f"color: {self.value_label_color};"
+            f"color: {self.hud_factory.value_label_color};"
             "font-size: 12px;"
             "font-weight: 800;"
             "letter-spacing: 2px;"
@@ -619,7 +554,7 @@ class SystemInfoOverlay(QWidget):
 
         app_sub = QLabel("SURVEYOR")
         app_sub.setStyleSheet(
-            f"color: {self.key_label_color};"
+            f"color: {self.hud_factory.key_label_color};"
             "font-size: 9px;"
             "font-weight: bold;"
             "letter-spacing: 1px;"
@@ -673,14 +608,16 @@ class SystemInfoOverlay(QWidget):
             self.refresh_overlay_colors()
 
     def refresh_overlay_colors(self) -> None:
-        self._load_overlay_config()
+        self.hud_factory.load_overlay_config()
 
         for metric in self.findChildren(MetricWidget):
             metric.set_colors(
-                self.key_label_color,
-                self.value_label_color
+                self.hud_factory.key_label_color,
+                self.hud_factory.value_label_color
             )
 
+        self.hud_factory.refresh_panel_colors()
+        self.hud_factory.refresh_panel_glow_colors()
 
     def exit_overlay(self) -> None:
         """
