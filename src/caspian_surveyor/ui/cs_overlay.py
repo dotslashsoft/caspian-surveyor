@@ -121,7 +121,7 @@ class SystemInfoOverlay(QWidget):
         ui_data = cs_data_structures.load_current_system_record()
 
         if ui_data is None:
-            logger.debug("refresh_sysstem_data() -> ui_data is None.")
+            logger.debug("refresh_system_data() -> ui_data is None.")
             return
 
         system_changed = (
@@ -134,6 +134,7 @@ class SystemInfoOverlay(QWidget):
 
         if system_changed:
             self.current_body_index = 0
+            self.current_index = 0
 
         if self.planetary_bodies:
             self.current_body_index %= len(self.planetary_bodies)
@@ -769,6 +770,8 @@ class SystemInfoOverlay(QWidget):
             self.current_body_index + 1
         ) % len(self.planetary_bodies)
 
+        self.current_index = 0
+
         self.display_stack.setCurrentIndex(1)
         self.resize_overlay_to_current_page()
         self.update_body_display_metrics()
@@ -788,6 +791,8 @@ class SystemInfoOverlay(QWidget):
         self.current_body_index = (
             self.current_body_index - 1
         ) % len(self.planetary_bodies)
+
+        self.current_index = 0
 
         self.display_stack.setCurrentIndex(1)
         self.resize_overlay_to_current_page()
@@ -856,6 +861,46 @@ class SystemInfoOverlay(QWidget):
 
         return "\n".join(genus_pair_list)
 
+    def _update_body_summary_metrics(self, body):
+        self.metric_body_name.set_value(body.body_name)
+
+        self.metric_body_class.set_value(body.planet_class)
+        self.metric_body_landable.set_value(body.landable)
+        
+        if body.signals:
+            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
+            self.metric_body_signals.set_value(signal_text)
+        else:
+            self.metric_body_signals.set_value("--")
+
+        self.genus_dict = {}
+
+        if body.genuses:
+            for genus in body.genuses:
+                self.genus_dict[genus.genus_localised] = genus
+
+            genus_pair = self.cycle_genus_display(self.genus_dict)
+            self.metric_body_biosig_genus.set_value(genus_pair)
+        else:
+            self.metric_body_biosig_genus.set_value("--")
+
+        if body.terraform_state == "Terraformable":
+            self.metric_tf_state.setVisible(True)
+            self.body_metric_separators[self.metric_tf_state].setVisible(True)
+
+            self.metric_tf_state.set_value(body.terraform_state)
+
+        else:
+            self.metric_tf_state.setVisible(False)
+            self.body_metric_separators[self.metric_tf_state].setVisible(False)
+
+        if body.surface_temperature is not None:
+            self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
+        else:
+            self.metric_body_temp.set_value("--")
+        self.metric_body_dss.set_value(body.dss_scan_complete)
+
+
     def _update_body_physical_orbital_metrics(self, body):
         """
         Updates physical and orbital metrics for the selected planetary body.
@@ -914,59 +959,8 @@ class SystemInfoOverlay(QWidget):
         else:
             self.metric_body_semi_major_axis.set_value("--")
 
-    
-    def update_body_display_metrics(self) -> None:
-        """
-        Updates the HUD metrics for the currently selected planetary body.
 
-        Populates the body-summary and physical-orbital displays, including
-        signal information, terraformability, temperature, and DSS status.
-
-        Converts stored body data into user-friendly display units using
-        EARTH_RADIUS_M, AU_M, and SECONDS_PER_DAY where applicable.
-        """   
-
-        body = self.planetary_bodies[self.current_body_index]
-        self.metric_body_name.set_value(body.body_name)
-
-        # detail page
-        self.metric_body_class.set_value(body.planet_class)
-        self.metric_body_landable.set_value(body.landable)
-        
-        if body.signals:
-            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
-            self.metric_body_signals.set_value(signal_text)
-        else:
-            self.metric_body_signals.set_value("--")
-
-        if body.genuses:
-            for genus in body.genuses:
-                self.genus_dict[genus.genus_localised] = genus
-
-            genus_pair = self.cycle_genus_display(self.genus_dict)
-            self.metric_body_biosig_genus.set_value(genus_pair)
-        else:
-            self.metric_body_biosig_genus.set_value("--")
-
-        if body.terraform_state == "Terraformable":
-            self.metric_tf_state.setVisible(True)
-            self.body_metric_separators[self.metric_tf_state].setVisible(True)
-
-            self.metric_tf_state.set_value(body.terraform_state)
-
-        else:
-            self.metric_tf_state.setVisible(False)
-            self.body_metric_separators[self.metric_tf_state].setVisible(False)
-
-        if body.surface_temperature is not None:
-            self.metric_body_temp.set_value(f"{body.surface_temperature:.2f}")
-        else:
-            self.metric_body_temp.set_value("--")
-        self.metric_body_dss.set_value(body.dss_scan_complete)
-
-        self._update_body_physical_orbital_metrics(body)
-
-        # logic to get exobio data in panel
+    def _update_body_exobio_metrics(self, body):
         variant_statuses = {}
         self.metric_exobio_body_name.set_value(body.body_name)
         if body.organic_scans:
@@ -983,6 +977,20 @@ class SystemInfoOverlay(QWidget):
                 variant_statuses[variant_name] = scan_status
 
         self._update_exobio_metrics(variant_statuses)
+
+
+    def update_body_display_metrics(self) -> None:
+        """
+        Updates all HUD displays for the currently selected planetary body.
+
+        Coordinates updates for the body-summary, physical/orbital,
+        and exobiology display pages.
+        """
+        body = self.planetary_bodies[self.current_body_index]
+
+        self._update_body_summary_metrics(body)
+        self._update_body_physical_orbital_metrics(body)
+        self._update_body_exobio_metrics(body)
 
     def _create_separator(self) -> QFrame:
         """
