@@ -8,11 +8,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFrame, QSizePolicy, QGraphicsDropShadowEffect, 
 )
 from PySide6.QtGui import QColor
-import keyboard
 import logging
 import caspian_surveyor.cs_data_structures as cs_data_structures
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
-
+import keyboard
+from caspian_surveyor.ui.hotkey_manager import HotkeyManager
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget
 
 logger = logging.getLogger(__name__)
@@ -264,16 +264,20 @@ class SystemInfoOverlay(QWidget):
         corresponding Qt signal emission.
 
         Called once during SystemInfoOverlay initialization.
-        """   
-        keyboard.add_hotkey("ctrl+shift+m", self.toggle_requested.emit)
-        keyboard.add_hotkey("ctrl+shift+e", self.exit_requested.emit)
-        keyboard.add_hotkey("ctrl+alt+right", self.cycle_next.emit)
-        keyboard.add_hotkey("ctrl+alt+left", self.cycle_previous.emit)
-        keyboard.add_hotkey("ctrl+alt+home", self.cycle_default.emit)
-        keyboard.add_hotkey("ctrl+alt+down", self.cycle_down.emit)
-        keyboard.add_hotkey("ctrl+alt+up", self.cycle_up.emit)
-        keyboard.add_hotkey("ctrl+alt+]", self.toggle_legend.emit)
-        keyboard.add_hotkey("ctrl+shift+*", self.color_picker.emit)
+        """
+        self.hotkey_manager = HotkeyManager({
+            "ctrl+shift+m": self.toggle_requested.emit,
+            "ctrl+shift+e": self.exit_requested.emit,
+            "ctrl+alt+right": self.cycle_next.emit,
+            "ctrl+alt+left": self.cycle_previous.emit,
+            "ctrl+alt+home": self.cycle_default.emit,
+            "ctrl+alt+down": self.cycle_down.emit,
+            "ctrl+alt+up": self.cycle_up.emit,
+            "ctrl+alt+]": self.toggle_legend.emit,
+            "ctrl+shift+*": self.color_picker.emit,
+        })
+
+        self.hotkey_manager.register_hotkeys()
 
     def _load_overlay_config(self) -> None:
         with self.overlay_config_path.open("r", encoding="utf-8") as file:
