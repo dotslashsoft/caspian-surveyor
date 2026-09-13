@@ -81,7 +81,6 @@ class SystemInfoOverlay(QWidget):
         Qt resizes the widget.
         """
         super().resizeEvent(event)
-
         self.position_top_center()
 
     def resize_overlay_to_current_page(self):
@@ -266,50 +265,15 @@ class SystemInfoOverlay(QWidget):
 
         Called once during SystemInfoOverlay initialization.
         """   
-        keyboard.add_hotkey(
-            "ctrl+shift+m",
-            self.toggle_requested.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+shift+e",
-            self.exit_requested.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+alt+right",
-            self.cycle_next.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+alt+left",
-            self.cycle_previous.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+alt+home",
-            self.cycle_default.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+alt+down",
-            self.cycle_down.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+alt+up",
-            self.cycle_up.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+alt+]",
-            self.toggle_legend.emit
-        )
-
-        keyboard.add_hotkey(
-            "ctrl+shift+*",
-            self.color_picker.emit
-        )
+        keyboard.add_hotkey("ctrl+shift+m", self.toggle_requested.emit)
+        keyboard.add_hotkey("ctrl+shift+e", self.exit_requested.emit)
+        keyboard.add_hotkey("ctrl+alt+right", self.cycle_next.emit)
+        keyboard.add_hotkey("ctrl+alt+left", self.cycle_previous.emit)
+        keyboard.add_hotkey("ctrl+alt+home", self.cycle_default.emit)
+        keyboard.add_hotkey("ctrl+alt+down", self.cycle_down.emit)
+        keyboard.add_hotkey("ctrl+alt+up", self.cycle_up.emit)
+        keyboard.add_hotkey("ctrl+alt+]", self.toggle_legend.emit)
+        keyboard.add_hotkey("ctrl+shift+*", self.color_picker.emit)
 
     def _load_overlay_config(self) -> None:
         with self.overlay_config_path.open("r", encoding="utf-8") as file:
