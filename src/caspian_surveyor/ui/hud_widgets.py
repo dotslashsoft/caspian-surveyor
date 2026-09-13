@@ -150,6 +150,13 @@ class HudFactory:
         self.key_label_color = overlay_config["key_label_color"]
         self.value_label_color = overlay_config["value_label_color"]
 
+    def create_separator(self) -> QFrame:
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.VLine)
+        line.setFrameShadow(QFrame.Shadow.Plain)
+        line.setStyleSheet("color: rgba(0, 122, 124, 25);")
+        return line
+
     def create_hud_page(self) -> tuple[QWidget, QHBoxLayout]:
         page = QWidget()
 
