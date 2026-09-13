@@ -121,7 +121,7 @@ class MetricWidget(QWidget):
         Args:
             value: The data to display. If None, displays default "--".
         """
-        self.val_label.setText(str(value))
+
         if value is None:
             self.val_label.setText("--")
         else:
@@ -129,12 +129,11 @@ class MetricWidget(QWidget):
 
     def set_label(self, value: str | int | float | None):
         """
-        Updates the value label text.
+        Updates the key label text.
 
         Args:
             value: The data to display. If None, displays default "--".
         """
-        self.key_label.setText(str(value))
 
         if value is None:
             self.key_label.setText("--")
@@ -361,6 +360,23 @@ class SystemInfoOverlay(QWidget):
         self.legend_page.hide()
 
 
+    def _create_hud_page(self) -> tuple[QWidget, QHBoxLayout]:
+        page = QWidget()
+
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(12, 6, 12, 6)
+
+        panel = self._create_hud_panel()
+
+        hud_layout = QHBoxLayout(panel)
+        hud_layout.setContentsMargins(12, 6, 12, 6)
+        hud_layout.setSpacing(6)
+
+        page_layout.addWidget(panel)
+
+        return page, hud_layout
+
+
     def _connect_signals(self):
         """
         Connects overlay control signals to their corresponding handler methods.
@@ -451,16 +467,7 @@ class SystemInfoOverlay(QWidget):
             The completed system-page QWidget, or None if no initial
             system data is available.
         """   
-        page = QWidget()
-
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(12, 6, 12, 6)
-
-        panel = self._create_hud_panel()
-
-        hud_layout = QHBoxLayout(panel)
-        hud_layout.setContentsMargins(12, 6, 12, 6)
-        hud_layout.setSpacing(6)
+        page, hud_layout = self._create_hud_page()
 
         title_widget = self._create_title_widget()
 
@@ -524,32 +531,19 @@ class SystemInfoOverlay(QWidget):
         ]
 
         self._add_metrics(hud_layout, metrics)
-        page_layout.addWidget(panel)
 
         return page
 
     def _build_body_summary_page(self):
         """
-        Constructs the body-summary display page.
-
-        Creates the HUD panel and MetricWidget instances used to display
-        information for the currently selected planetary body.
-
-        Called once during SystemInfoOverlay initialization.
+        Creates the MetricWidget instances used to display
+        information for the currently selected planetary body
+        within a standard HUD page.
 
         Returns:
             The completed body-summary-page QWidget.
         """
-        page = QWidget()
-
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(12, 6, 12, 6)
-
-        panel = self._create_hud_panel()
-
-        hud_layout = QHBoxLayout(panel)
-        hud_layout.setContentsMargins(12, 6, 12, 6)
-        hud_layout.setSpacing(6)
+        page, hud_layout = self._create_hud_page()
 
         self.metric_body_name = MetricWidget("PLANET", "--")
         self.metric_body_class = MetricWidget("CLASS", "--")
@@ -568,37 +562,26 @@ class SystemInfoOverlay(QWidget):
             self.metric_body_signals,
             self.metric_body_biosig_genus,
             self.metric_body_temp,
-            self.metric_body_dss
+            self.metric_body_dss,
         ]
 
         self.body_metric_separators = self._add_metrics(hud_layout, metrics)
-        
-        page_layout.addWidget(panel)
 
         return page
 
     def _build_body_physical_orbital_page(self):
         """
-        Constructs the body orbital-data display page.
+        Constructs the orbital and physical page.
 
-        Creates the HUD panel and MetricWidget instances used to display
-        orbital and physical information for the currently selected planetary body.
+        Creates MetricWidget instances within a standard HUD page to display
+        a planetary body's orbital and physical properties.
 
         Called once during SystemInfoOverlay initialization.
 
         Returns:
-            The completed body-orbital-page QWidget.
+            The completed body-physical-orbital-page QWidget.
         """
-        page = QWidget()
-
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(12, 6, 12, 6)
-
-        panel = self._create_hud_panel()
-
-        hud_layout = QHBoxLayout(panel)
-        hud_layout.setContentsMargins(12, 6, 12, 6)
-        hud_layout.setSpacing(6)
+        page, hud_layout = self._create_hud_page()
 
         self.metric_orbital_body_name = MetricWidget("PLANET", "--")
         self.metric_body_radius = MetricWidget("R⊕", "--", 12)
@@ -625,8 +608,6 @@ class SystemInfoOverlay(QWidget):
 
         self._add_metrics(hud_layout, metrics)
 
-        page_layout.addWidget(panel)
-
         return page
 
     # LEGEND
@@ -636,7 +617,7 @@ class SystemInfoOverlay(QWidget):
         """
         Constructs the orbital and physical symbol legend page.
 
-        Creates the HUD panel and MetricWidget instances used to define the
+        Creates MetricWidget instances within a standard HUD page to define the
         symbols displayed on the body physical-orbital page.
 
         Called once during SystemInfoOverlay initialization.
@@ -644,16 +625,7 @@ class SystemInfoOverlay(QWidget):
         Returns:
             The completed body-legend QWidget.
         """
-        page = QWidget()
-
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(12, 6, 12, 6)
-
-        panel = self._create_hud_panel()
-
-        hud_layout = QHBoxLayout(panel)
-        hud_layout.setContentsMargins(12, 6, 12, 6)
-        hud_layout.setSpacing(6)
+        page, hud_layout = self._create_hud_page()
 
         self.legend_body_radius = MetricWidget("R⊕", "Radius in Earth radii", 12)
         self.legend_body_axial_tilt = MetricWidget("ε", "Axial tilt / obliquity", 12)
@@ -676,7 +648,6 @@ class SystemInfoOverlay(QWidget):
         ]
 
         self._add_metrics(hud_layout, metrics)
-        page_layout.addWidget(panel)
 
         return page
 
@@ -714,22 +685,20 @@ class SystemInfoOverlay(QWidget):
         return page
 
     def _build_exobio_page(self):
-        page = QWidget()
+        """
+        Constructs the exobiology display page.
 
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(12, 6, 12, 6)
+        Creates the static body-name metric and retains the HUD layout so
+        dynamic exobiology metrics can be added and removed at runtime.
 
-        panel = self._create_hud_panel()
-        self.exobio_hud_layout = QHBoxLayout(panel)
-        self.exobio_hud_layout.setContentsMargins(12, 6, 12, 6)
-        self.exobio_hud_layout.setSpacing(6)
+        Returns:
+            The completed exobiology-page QWidget.
+        """
+        page, self.exobio_hud_layout = self._create_hud_page()
 
         self.metric_exobio_body_name = MetricWidget("PLANET", "--")
-
         self.exobio_hud_layout.addWidget(self.metric_exobio_body_name)
         self.exobio_dynamic_widgets = []
-
-        page_layout.addWidget(panel)
 
         return page
 
