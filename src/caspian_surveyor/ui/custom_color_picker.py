@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout, QHBoxLayout, QColorDialog, QPushButton, QLabel
+from PySide6.QtCore import Qt
 import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
 import json
 import shutil
@@ -9,6 +10,66 @@ class DualColorDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Caspian Surveyor: select primary & secondary colors")
+        self.setWindowFlags(
+            Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.FramelessWindowHint
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setStyleSheet("""
+            QColorDialog {
+                background-color: rgba(0, 0, 0, 220);
+                border-top: 1px solid #002e4d;
+                border-bottom: 1px solid #004d80;
+                border-radius: 8px;
+                border-left: 1px solid #004d80;
+                border-right: 1px solid #004d80;
+                font-family: Eurostile;
+                font-size: 12px;
+                color: #56cffc;
+            }
+            QLabel {
+                color: #e0f2fe;
+                font-family: Eurostile;
+                background-color: rgba(0, 0, 0, 220);
+                border-radius: 4px;
+                padding: 1px 2px;
+            }
+
+            QPushButton {
+                background-color: #002e4d;
+                color: #ffffff;
+                border: 1px solid #004d80;
+                border-radius: 4px;
+                padding: 1px 2px;
+                font-family: Eurostile;
+            }
+            QPushButton:hover {
+                background-color: #004d80;
+                border: 1px solid #0073b3;
+                font-family: Eurostile;
+            }
+            QPushButton:pressed {
+                background-color: #001f33;
+                font-family: Eurostile;
+            }
+
+            QLineEdit, QSpinBox {
+                background-color: #111111;
+                color: #ffffff;
+                border: 1px solid #002e4d;
+                border-radius: 4px;
+                padding: 2px;
+                font-family: Eurostile;
+            }
+            QLineEdit:focus, QSpinBox:focus {
+                border: 1px solid #004d80;
+                border-radius: 4px;
+                padding: 2px;
+                font-family: Eurostile;
+            }
+        """)
+
+        QColorDialog(self).setOption(QColorDialog.ColorDialogOption.DontUseNativeDialog, True)
         
         # see, I thought I needed a stacked widget, but I realized
         # I didn't need layers, just side-by-side

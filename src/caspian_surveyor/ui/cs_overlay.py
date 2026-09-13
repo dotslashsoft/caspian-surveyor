@@ -1192,7 +1192,7 @@ class SystemInfoOverlay(QWidget):
         screen_geometry = QApplication.primaryScreen().geometry()
 
         x = (screen_geometry.width() - self.width()) // 2
-        y = -5
+        y = -8
         self.move(x, y)
 
 if __name__ == "__main__":
