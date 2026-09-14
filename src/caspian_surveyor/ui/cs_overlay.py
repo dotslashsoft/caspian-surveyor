@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel,
     QVBoxLayout, QFrame, QSizePolicy,
 )
+from PySide6.QtGui import QColor
 import logging
 import caspian_surveyor.cs_data_structures as cs_data_structures
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
@@ -39,6 +40,9 @@ class SystemInfoOverlay(QWidget):
         Connects signals, registers hotkeys, loads initial survey data,
         configures and builds the HUD, and starts the HUD update timer.
         """
+        self.caspian_panel = []
+        self.surveyor_panel = []
+        
         self.custom_color_picker = custom_color_picker.Workflow()
         self.overlay_config_path = custom_color_picker.ConfigFileHandler().OVERLAY_CONFIG
         self.hud_factory = HudFactory()
@@ -263,6 +267,43 @@ class SystemInfoOverlay(QWidget):
 
         return page
 
+    def get_caspian_title_style(self) -> str:
+        caspian_color = self.hud_factory.value_label_color
+        return f"""
+            QLabel#CaspianPanel {{
+                color: {caspian_color};
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 2px;
+                font-family: Eurostile;
+            }}
+        """
+    
+    def get_surveyor_title_style(self) -> str:
+        surveyor_color = self.hud_factory.key_label_color
+        return f"""
+            QLabel#SurveyorPanel {{
+                color: {surveyor_color};
+                font-size: 9px;
+                font-weight: bold;
+                letter-spacing: 1px;
+                font-family: Eurostile;
+            }}
+        """
+
+    def refresh_title_label_style(self):
+        print("Caspian Panels: ", self.caspian_panel)
+        print("Panel Color: ", self.hud_factory.value_label_color)
+        for panel in self.caspian_panel:
+            panel.setStyleSheet(self.get_caspian_title_style())
+
+
+        print("Surveyor Panels: ", self.surveyor_panel)
+        print("Panel Color: ", self.hud_factory.key_label_color)
+        for panel in self.surveyor_panel:
+            panel.setStyleSheet(self.get_surveyor_title_style())
+
+
     def _create_title_widget(self) -> QWidget:
         """
         Constructs and styles the Caspian Surveyor title widget.
@@ -285,25 +326,22 @@ class SystemInfoOverlay(QWidget):
         layout.setSpacing(6)
 
         app_title = QLabel("CASPIAN")
-        app_title.setStyleSheet(
-            f"color: {self.hud_factory.value_label_color};"
-            "font-size: 12px;"
-            "font-weight: 800;"
-            "letter-spacing: 2px;"
-            "font-family: Eurostile;"
-        )
+        app_title.setObjectName("CaspianPanel")
+        app_title.setStyleSheet(self.get_caspian_title_style())
+        self.caspian_panel.append(app_title)
 
         app_sub = QLabel("SURVEYOR")
-        app_sub.setStyleSheet(
-            f"color: {self.hud_factory.key_label_color};"
-            "font-size: 9px;"
-            "font-weight: bold;"
-            "letter-spacing: 1px;"
-            "font-family: Eurostile;"
-        )
-
+        app_sub.setObjectName("SurveyorPanel")
+        app_sub.setStyleSheet(self.get_surveyor_title_style())
+        self.surveyor_panel.append(app_sub)
+        
         layout.addWidget(app_title)
         layout.addWidget(app_sub)
+
+
+        print(self.caspian_panel)
+        print(self.surveyor_panel)
+
 
         return title_widget
 
@@ -399,6 +437,8 @@ class SystemInfoOverlay(QWidget):
 
         self.hud_factory.refresh_panel_colors()
         self.hud_factory.refresh_panel_glow_colors()
+        self.refresh_title_label_style()
+        
 
     def exit_overlay(self) -> None:
         """

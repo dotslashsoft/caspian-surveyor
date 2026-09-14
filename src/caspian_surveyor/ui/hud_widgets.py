@@ -174,14 +174,30 @@ class HudFactory:
         return page, hud_layout
 
     def get_panel_style(self) -> str:
+        value_color = QColor(self.value_label_color)
+        border_color = value_color.darker(220)
+
         return f"""
             QFrame#HUDPanel {{
                 background-color: rgba(0, 0, 0, 220);
-                border-top: 1px solid {self.value_label_color};
-                border-bottom: 1px solid {self.value_label_color};
-                border-radius: 8px;
+
+                border-top: 1px solid rgba(
+                    {border_color.red()},
+                    {border_color.green()},
+                    {border_color.blue()},
+                    220
+                );
+
+                border-bottom: 1px solid rgba(
+                    {border_color.red()},
+                    {border_color.green()},
+                    {border_color.blue()},
+                    220
+                );
+
                 border-left: none;
                 border-right: none;
+                border-radius: 8px;
                 font-family: Eurostile;
             }}
         """
