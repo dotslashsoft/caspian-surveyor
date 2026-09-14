@@ -5,7 +5,6 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel,
     QVBoxLayout, QFrame, QSizePolicy,
 )
-from PySide6.QtGui import QColor
 import logging
 import caspian_surveyor.cs_data_structures as cs_data_structures
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
