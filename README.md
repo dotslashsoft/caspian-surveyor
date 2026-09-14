@@ -1,4 +1,4 @@
-## New Alpha Release Available: [Version 0.9.4.1](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.4.1)
+## New Alpha Release Available: [Version 0.9.5.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.5.0)
 
 # Caspian Surveyor
 
@@ -14,7 +14,7 @@ The project aims to improve the exploration experience for the Elite Dangerous c
 
 Development of Caspian Surveyor is active and ongoing.
 
-**Current Version:** 0.9.4.1
+**Current Version:** 0.9.5.0
 
 ## Screenshots
 
@@ -50,6 +50,13 @@ Development of Caspian Surveyor is active and ongoing.
 ***Exobiology Panel - post-exobio scan - four genus species variants***
 ![Caspian Surveyor exobiology information panel](docs/images/exobio_006_0920.png)
 
+### Color Picker Dialog
+***Dialog pop up*** 
+![Color picker dialog](docs/images/color_picker_dialog_001_v0950.png)
+
+***After selecting new colors and clicking OK***
+![After selecting new colors](docs/images/color_picker_result_001_v0950.png)
+
 ### Orbital and Physical Information
 
 ![Caspian Surveyor planetary orbital and physical information panel](docs/images/planet-orbital-physical-info_0920.png)
@@ -64,7 +71,7 @@ Development of Caspian Surveyor is active and ongoing.
 
 ## Installation
 
-1. Download `CaspianSurveyor-0.9.4.1-Setup.exe` from the GitHub Releases page.
+1. Download `CaspianSurveyor-0.9.5.0-Setup.exe` from the GitHub Releases page.
 
 2. Because the installer is currently unsigned, Microsoft Edge or another browser may warn that the file is not commonly downloaded. Keep the file **only if you downloaded it from the official Caspian Surveyor GitHub release page**.
 
