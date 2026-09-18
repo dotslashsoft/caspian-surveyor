@@ -241,12 +241,7 @@ class HudFactory:
 
     def refresh_panel_glow_colors(self) -> None:
         glow_color = QColor(self.value_label_color)
-        print(f"\n\nPanel color: {self.value_label_color}")
-        print(f"Tracked panels: {len(self.hud_panels)}")
         glow_color.setAlpha(40)
 
         for border_glow_effect in self.panel_glow_effects:
             border_glow_effect.setColor(glow_color)
-
-        print(f"\n\nPanel color: {self.value_label_color}")
-        print(f"Tracked panels: {len(self.hud_panels)}\n\n")

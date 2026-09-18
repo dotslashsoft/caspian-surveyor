@@ -1,11 +1,7 @@
 from dataclasses import dataclass, field
-import json
 import logging
-import caspian_surveyor.runtime.cs_runtime as cs_runtime
-
 
 logger = logging.getLogger(__name__)
-CURRENT_SYSTEM_FILE = cs_runtime.CURRENT_SYSTEM_FILE
 
 
 @dataclass
@@ -137,9 +133,9 @@ class CelestialBody:
         if isinstance(self.signals, list):
             self.signals = [
                 SignalInfo(
-                    type=signal.get("Type", "--"),
-                    type_localised=signal.get("Type_Localised", "--"),
-                    count=signal.get("Count", 0)
+                    type=signal.get("type", "--"),
+                    type_localised=signal.get("type_localised", "--"),
+                    count=signal.get("count", 0)
                 )
                 if isinstance(signal, dict)
                 else signal
@@ -149,8 +145,8 @@ class CelestialBody:
         if isinstance(self.genuses, list):
             self.genuses = [
                 GenusInfo(
-                    genus=genus.get("Genus", "--"),
-                    genus_localised=genus.get("Genus_Localised", "--")
+                    genus=genus.get("genus", "--"),
+                    genus_localised=genus.get("genus_localised", "--")
                 )
                 if isinstance(genus, dict)
                 else genus
@@ -160,14 +156,14 @@ class CelestialBody:
         if isinstance(self.organic_scans, list):
             self.organic_scans = [
                 OrganicScanInfo(
-                    scan_type=scan.get("ScanType", "--"),
-                    genus=scan.get("Genus", "--"),
-                    genus_localised=scan.get("Genus_Localised", "--"),
-                    species=scan.get("Species", "--"),
-                    species_localised=scan.get("Species_Localised", "--"),
-                    variant=scan.get("Variant", "--"),
-                    variant_localised=scan.get("Variant_Localised", "--"),
-                    was_scanned_and_submitted=scan.get("WasLogged", False)
+                    scan_type=scan.get("scan_type", "--"),
+                    genus=scan.get("genus", "--"),
+                    genus_localised=scan.get("genus_localised", "--"),
+                    species=scan.get("species", "--"),
+                    species_localised=scan.get("species_localised", "--"),
+                    variant=scan.get("variant", "--"),
+                    variant_localised=scan.get("variant_localised", "--"),
+                    was_scanned_and_submitted=scan.get("was_scanned_and_submitted", False)
                 )
                 if isinstance(scan, dict)
                 else scan
@@ -224,31 +220,3 @@ class FullStarSystemPayload:
             ),
             key=lambda body: body.body_id
         )
-
-
-def load_current_system_record() -> FullStarSystemPayload | None:
-    """
-    Loads and structures the current runtime system record.
-
-    Reads CURRENT_SYSTEM_FILE and converts the decoded JSON data into a
-    FullStarSystemPayload.
-
-    Returns:
-        The structured current-system payload, or None if the runtime file
-        does not exist or contains invalid JSON.
-    """
-    try:
-        with open(CURRENT_SYSTEM_FILE, "r", encoding="utf-8") as file:
-            raw_data = json.load(file)
-
-        system_record = FullStarSystemPayload(**raw_data)
-
-        return system_record
-
-    except FileNotFoundError:
-        logger.error("The file '%s' was not found.", CURRENT_SYSTEM_FILE)
-        return None
-
-    except json.JSONDecodeError:
-        logger.error("The current system file contains broken or incomplete JSON.")
-        return None

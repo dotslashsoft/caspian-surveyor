@@ -219,7 +219,7 @@ class BodyDisplayController:
 
         self.metric_body_class.set_value(body.planet_class)
         self.metric_body_landable.set_value(body.landable)
-        
+        #  body = self.planetary_bodies[self.current_body_index]
         if body.signals:
             signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
             self.metric_body_signals.set_value(signal_text)
@@ -339,7 +339,7 @@ class BodyDisplayController:
         Coordinates updates for the body-summary, physical/orbital,
         and exobiology display pages.
         """
-
+        #  body = self.planetary_bodies[self.current_body_index]
         self._update_body_summary_metrics(body)
         self._update_body_physical_orbital_metrics(body)
         self._update_body_exobio_metrics(body)

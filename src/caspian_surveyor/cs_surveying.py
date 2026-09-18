@@ -1,5 +1,6 @@
 import logging
 import caspian_surveyor.cs_journal_toolbox as Journal
+import caspian_surveyor.cs_data_structures as cs_data_structures
 from typing import Any
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
@@ -366,7 +367,7 @@ class SurveyDataBuilder:
         self.survey_state = survey_state
 
 
-    def build_system_record(self) -> dict[str, Any] | None:
+    def build_system_record(self) -> cs_data_structures.FullStarSystemPayload | None:
         """
         Builds the output record for the current system survey state.
 
@@ -383,37 +384,32 @@ class SurveyDataBuilder:
 
         if current_system is None:
             return None
-
+        
+        system_info = self.build_system_info(current_system)
+        system_summary = self.build_system_summary(current_system)
         bodies = {}
 
         for body_id, body in current_system["bodies"].items():
             bodies[body_id] = self.build_body_record(body)
 
-        return {
-            "schema_version": 1,
+        return cs_data_structures.FullStarSystemPayload(
+            schema_version=1,
+            system=system_info,
+            summary=system_summary,
+            bodies=bodies,
+        )
 
-            # dict[str, Any] means the outer dictionary uses string keys,
-            # while each value may be any Python type: str, int, float,
-            # bool, None, list, dict, etc.
-            #
-            # Any is used because the system record contains heterogeneous
-            # nested data. Effectively, I'm telling the Python type checker
-            # to stop being such a whiny bitch.
-            #
-            # ผ(•̀_•́ผ)
-            "system": {
-                "name": current_system["name"],
-                "address": current_system["address"],
-                "position": current_system["position"],
-                "body_count": current_system["body_count"],
-            },
+    def build_system_info(self, current_system: dict[str, Any]) -> cs_data_structures.SystemInfo:
+        
+        return cs_data_structures.SystemInfo(
+            name=current_system["name"],
+            address=current_system["address"],
+            position=current_system["position"],
+            body_count=current_system["body_count"],
+        )
 
-            "summary": self.build_system_summary(),
 
-            "bodies": bodies,
-        }
-
-    def build_system_summary(self) -> dict[str, int] | None:
+    def build_system_summary(self, current_system: dict[str, Any]) -> cs_data_structures.SummaryInfo:
         """
         Builds derived summary statistics for the current system survey state.
 
@@ -424,71 +420,66 @@ class SurveyDataBuilder:
         Returns:
             The completed system-summary dictionary, or None if no current
             system survey state exists.
-        """  
-        current_system = self.survey_state.current_system
-    
-        if current_system is None:
-            return None
-    
+        """    
         bodies = current_system["bodies"]
     
-        summary = {
-            "scan_records": len(bodies),
-            "stars": 0,
-            "planets": 0,
-            "belt_clusters": 0,
-            "unknown_scan_objects": 0,
-            "landable": 0,
-            "hmc": 0,
-            "tf_hmc": 0,
-            "water_worlds": 0,
-            "tf_water_worlds": 0,
-            "earthlike_worlds": 0,
-            "ammonia_worlds": 0,
-        }
+        summary = cs_data_structures.SummaryInfo(
+                scan_records=len(bodies),
+                stars=0,
+                planets=0,
+                belt_clusters=0,
+                unknown_scan_objects=0,
+                landable=0,
+                hmc=0,
+                tf_hmc=0,
+                water_worlds=0,
+                tf_water_worlds=0,
+                earthlike_worlds=0,
+                ammonia_worlds=0,
+            )
     
         for body in bodies.values():
             if body.get("StarType"):
-                summary["stars"] += 1
+                summary.stars += 1
                 continue
             
             planet_class = body.get("PlanetClass")
             if planet_class is None:
                 body_name = body.get("BodyName", "")
                 if "Belt Cluster" in body_name:
-                    summary["belt_clusters"] += 1
+                    summary.belt_clusters += 1
                 else:
-                    summary["unknown_scan_objects"] += 1
+                    summary.unknown_scan_objects += 1
                     print("UNCLASSIFIED SCAN:", body.get("BodyID"), body.get("BodyName"))
                 continue
             
-            summary["planets"] += 1
+            summary.planets += 1
             if body.get("Landable"):
-                summary["landable"] += 1
+                summary.landable += 1
         
             terraformable = (body.get("TerraformState") == "Terraformable")
             if planet_class == "High metal content body":
-                summary["hmc"] += 1
+                summary.hmc += 1
     
                 if terraformable:
-                    summary["tf_hmc"] += 1
+                    summary.tf_hmc += 1
         
             elif planet_class == "Water world":
-                summary["water_worlds"] += 1
+                summary.water_worlds += 1
     
                 if terraformable:
-                    summary["tf_water_worlds"] += 1
+                    summary.tf_water_worlds += 1
     
             elif planet_class == "Earthlike body":
-                summary["earthlike_worlds"] += 1
+                summary.earthlike_worlds += 1
     
             elif planet_class == "Ammonia world":
-                summary["ammonia_worlds"] += 1
+                summary.ammonia_worlds += 1
     
         return summary
 
 
-    def build_body_record(self, body: dict[str, Any]) -> dict[str, Any]:
+    def build_body_record(self, body: dict[str, Any]) -> cs_data_structures.CelestialBody:
         """
         Builds an output record for a single body in the current survey state.
 
@@ -502,39 +493,39 @@ class SurveyDataBuilder:
             The completed body-record dictionary.
         """
 
-        return {
-            "body_id": body.get("BodyID"),
-            "body_name": body.get("BodyName"),
-            "parents": body.get("Parents", []),
-            "planet_class": body.get("PlanetClass"),
-            "terraform_state": body.get("TerraformState"),
-            "materials": body.get("Materials"),
-            "periapsis": body.get("Periapsis"),
-            "surface_temperature": body.get("SurfaceTemperature"),
-            "was_discovered": body.get("WasDiscovered", False),
-            "was_mapped": body.get("WasMapped", False),
-            "was_footfalled": body.get("WasFootfalled", False),
-            "tidal_lock": body.get("TidalLock", False),
-            "atmosphere": body.get("Atmosphere"),
-            "atmosphere_type": body.get("AtmosphereType"),
-            "radius": body.get("Radius"),
-            "surface_gravity": body.get("SurfaceGravity"),
-            "surface_pressure": body.get("SurfacePressure"),
-            "semi_major_axis": body.get("SemiMajorAxis"),
-            "eccentricity": body.get("Eccentricity"),
-            "orbital_inclination": body.get("OrbitalInclination"),
-            "orbital_period": body.get("OrbitalPeriod"),
-            "ascending_node": body.get("AscendingNode"),
-            "mean_anomaly": body.get("MeanAnomaly"),
-            "rotational_period": body.get("RotationPeriod"),
-            "axial_tilt": body.get("AxialTilt"),
-            "distance_from_arrival": body.get("DistanceFromArrivalLS"),
-            "signals": body.get("Signals"),
-            "dss_scan_complete": body.get("DSSScanComplete", False),
-            "landable": body.get("Landable", False),
-            "genuses": body.get("Genuses", []),
-            "organic_scans": body.get("OrganicScans", [])
-        }
+        return cs_data_structures.CelestialBody(
+            body_id=body["BodyID"],
+            body_name=body["BodyName"],
+            parents=body.get("Parents", []),
+            planet_class=body.get("PlanetClass"),
+            terraform_state=body.get("TerraformState"),
+            materials=body.get("Materials"),
+            periapsis=body.get("Periapsis"),
+            surface_temperature=body.get("SurfaceTemperature"),
+            was_discovered=body.get("WasDiscovered", False),
+            was_mapped=body.get("WasMapped", False),
+            was_footfalled=body.get("WasFootfalled", False),
+            tidal_lock=body.get("TidalLock", False),
+            atmosphere=body.get("Atmosphere"),
+            atmosphere_type=body.get("AtmosphereType"),
+            radius=body.get("Radius"),
+            surface_gravity=body.get("SurfaceGravity"),
+            surface_pressure=body.get("SurfacePressure"),
+            semi_major_axis=body.get("SemiMajorAxis"),
+            eccentricity=body.get("Eccentricity"),
+            orbital_inclination=body.get("OrbitalInclination"),
+            orbital_period=body.get("OrbitalPeriod"),
+            ascending_node=body.get("AscendingNode"),
+            mean_anomaly=body.get("MeanAnomaly"),
+            rotational_period=body.get("RotationPeriod"),
+            axial_tilt=body.get("AxialTilt"),
+            distance_from_arrival=body.get("DistanceFromArrivalLS"),
+            signals=body.get("Signals"),
+            dss_scan_complete=body.get("DSSScanComplete", False),
+            landable=body.get("Landable", False),
+            genuses=body.get("Genuses", []),
+            organic_scans=body.get("OrganicScans", [])
+        )
 
 class StateRecovery:
     """

@@ -6,11 +6,11 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QFrame, QSizePolicy,
 )
 import logging
-import caspian_surveyor.cs_data_structures as cs_data_structures
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
 from caspian_surveyor.ui.hotkey_manager import HotkeyManager
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
 from caspian_surveyor.ui.body_builder import BodyDisplayController
+from caspian_surveyor.ui.data_adapter import OverlayAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,7 @@ class SystemInfoOverlay(QWidget):
         self.overlay_config_path = custom_color_picker.ConfigFileHandler().OVERLAY_CONFIG
         self.hud_factory = HudFactory()
         self.body_display = BodyDisplayController(self.hud_factory)
+        self.overlay_adapter = OverlayAdapter()
         super().__init__()
 
         self._connect_signals()
@@ -104,8 +105,9 @@ class SystemInfoOverlay(QWidget):
 
         TODO:
             Consider replacing timer-based polling with event-driven updates.
-        """    
-        ui_data = cs_data_structures.load_current_system_record()
+        """
+        self.overlay_adapter.call_load_new_system_record()
+        ui_data = self.overlay_adapter.full_system_data
 
         if ui_data is None:
             logger.debug("refresh_system_data() -> ui_data is None.")
@@ -117,7 +119,7 @@ class SystemInfoOverlay(QWidget):
         )
 
         self.ui_data = ui_data
-        self.planetary_bodies = ui_data.planetary_bodies
+        self.planetary_bodies = self.overlay_adapter.planetary_bodies
 
         if system_changed:
             self.current_body_index = 0
@@ -146,8 +148,9 @@ class SystemInfoOverlay(QWidget):
         Called once during SystemInfoOverlay initialization. Loads the current
         system record, initializes the planetary-body collection, and resets
         the current body index to 0.
-        """  
-        self.ui_data = cs_data_structures.load_current_system_record()
+        """
+        self.overlay_adapter.call_load_new_system_record()
+        self.ui_data = self.overlay_adapter.full_system_data
 
         if self.ui_data is not None:
             self.planetary_bodies = self.ui_data.planetary_bodies
@@ -291,14 +294,9 @@ class SystemInfoOverlay(QWidget):
         """
 
     def refresh_title_label_style(self):
-        print("Caspian Panels: ", self.caspian_panel)
-        print("Panel Color: ", self.hud_factory.value_label_color)
         for panel in self.caspian_panel:
             panel.setStyleSheet(self.get_caspian_title_style())
 
-
-        print("Surveyor Panels: ", self.surveyor_panel)
-        print("Panel Color: ", self.hud_factory.key_label_color)
         for panel in self.surveyor_panel:
             panel.setStyleSheet(self.get_surveyor_title_style())
 
@@ -336,12 +334,6 @@ class SystemInfoOverlay(QWidget):
         
         layout.addWidget(app_title)
         layout.addWidget(app_sub)
-
-
-        print(self.caspian_panel)
-        print(self.surveyor_panel)
-
-
         return title_widget
 
     def _connect_signals(self):
