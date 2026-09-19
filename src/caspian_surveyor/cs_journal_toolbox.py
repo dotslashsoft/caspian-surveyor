@@ -356,6 +356,7 @@ DEBUG_LOG_PAYLOAD_EVENTS = {
     "Location",
     "FSDJump",
     "FSSDiscoveryScan",
+    "FSSSignalDiscovered",
     "Scan",
     "FSSAllBodiesFound",
     "SAAScanComplete",

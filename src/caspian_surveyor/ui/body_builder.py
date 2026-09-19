@@ -217,19 +217,19 @@ class BodyDisplayController:
     def _update_body_summary_metrics(self, body):
         self.metric_body_name.set_value(body.body_name)
 
-        self.metric_body_class.set_value(body.planet_class)
-        self.metric_body_landable.set_value(body.landable)
+        self.metric_body_class.set_value(body.body_planet_class)
+        self.metric_body_landable.set_value(body.body_landable)
         #  body = self.planetary_bodies[self.current_body_index]
-        if body.signals:
-            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.signals)
+        if body.body_signals:
+            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.body_signals)
             self.metric_body_signals.set_value(signal_text)
         else:
             self.metric_body_signals.set_value("--")
 
         self.genus_dict = {}
 
-        if body.genuses:
-            for genus in body.genuses:
+        if body.body_genuses:
+            for genus in body.body_genuses:
                 self.genus_dict[genus.genus_localised] = genus
 
             genus_pair = self.cycle_genus_display(self.genus_dict)
@@ -237,21 +237,21 @@ class BodyDisplayController:
         else:
             self.metric_body_biosig_genus.set_value("--")
 
-        if body.terraform_state == "Terraformable":
+        if body.body_terraform_state == "Terraformable":
             self.metric_body_tf_state.setVisible(True)
             self.body_metric_separators[self.metric_body_tf_state].setVisible(True)
 
-            self.metric_body_tf_state.set_value(body.terraform_state)
+            self.metric_body_tf_state.set_value(body.body_terraform_state)
 
         else:
             self.metric_body_tf_state.setVisible(False)
             self.body_metric_separators[self.metric_body_tf_state].setVisible(False)
 
-        if body.surface_temperature is not None:
-            self.metric_body_temperature.set_value(f"{body.surface_temperature:.2f}")
+        if body.body_surface_temperature is not None:
+            self.metric_body_temperature.set_value(f"{body.body_surface_temperature:.2f}")
         else:
             self.metric_body_temperature.set_value("--")
-        self.metric_body_dss_scan.set_value(body.dss_scan_complete)
+        self.metric_body_dss_scan.set_value(body.body_dss_scan_complete)
 
 
     def _update_body_physical_orbital_metrics(self, body):
@@ -267,47 +267,47 @@ class BodyDisplayController:
         SECONDS_PER_DAY = 86_400
 
         self.metric_physorb_body_name.set_value(body.body_name)
-        if body.radius is not None:
-            radius_earth = body.radius / EARTH_RADIUS_M
+        if body.body_radius is not None:
+            radius_earth = body.body_radius / EARTH_RADIUS_M
             self.metric_physorb_radius.set_value(f"{radius_earth:.3f}")
         else:
             self.metric_physorb_radius.set_value("--")
 
-        if body.axial_tilt is not None:
-            axial_tilt_degrees = math.degrees(body.axial_tilt)
+        if body.body_axial_tilt is not None:
+            axial_tilt_degrees = math.degrees(body.body_axial_tilt)
             self.metric_physorb_axial_tilt.set_value(f"{axial_tilt_degrees:.2f}°")
         else:
             self.metric_physorb_axial_tilt.set_value("--")
 
-        if body.eccentricity is not None:
-            self.metric_physorb_eccentricity.set_value(f"{body.eccentricity:.6f}")
+        if body.body_eccentricity is not None:
+            self.metric_physorb_eccentricity.set_value(f"{body.body_eccentricity:.6f}")
         else:
             self.metric_physorb_eccentricity.set_value("--")
 
-        if body.orbital_inclination is not None:
-            self.metric_physorb_inclination.set_value(f"{body.orbital_inclination:.2f}°")
+        if body.body_orbital_inclination is not None:
+            self.metric_physorb_inclination.set_value(f"{body.body_orbital_inclination:.2f}°")
         else:
             self.metric_physorb_inclination.set_value("--")
 
-        if body.orbital_period is not None:
-            orbital_days = body.orbital_period / SECONDS_PER_DAY
+        if body.body_orbital_period is not None:
+            orbital_days = body.body_orbital_period / SECONDS_PER_DAY
             self.metric_physorb_orbital_period.set_value(f"{orbital_days:.2f} d")
         else:
             self.metric_physorb_orbital_period.set_value("--")
 
-        if body.rotational_period is not None:
-            rotational_days = body.rotational_period / SECONDS_PER_DAY
+        if body.body_rotational_period is not None:
+            rotational_days = body.body_rotational_period / SECONDS_PER_DAY
             self.metric_physorb_rotational_period.set_value(f"{rotational_days:.2f} d")
         else:
             self.metric_physorb_rotational_period.set_value("--")
 
-        if body.periapsis is not None:
-            self.metric_physorb_periapsis.set_value(f"{body.periapsis:.2f}°")
+        if body.body_periapsis is not None:
+            self.metric_physorb_periapsis.set_value(f"{body.body_periapsis:.2f}°")
         else:
             self.metric_physorb_periapsis.set_value("--")
 
-        if body.semi_major_axis is not None:
-            semi_major_axis_au = body.semi_major_axis / AU_M
+        if body.body_semi_major_axis is not None:
+            semi_major_axis_au = body.body_semi_major_axis / AU_M
             self.metric_physorb_semi_major_axis.set_value(f"{semi_major_axis_au:.3f} AU")
         else:
             self.metric_physorb_semi_major_axis.set_value("--")
@@ -316,14 +316,14 @@ class BodyDisplayController:
     def _update_body_exobio_metrics(self, body):
         variant_statuses = {}
         self.metric_exobio_body_name.set_value(body.body_name)
-        if body.organic_scans:
-            for organic_scan in body.organic_scans:
-                variant_name = organic_scan.variant_localised
-                if organic_scan.scan_type == "Log":
+        if body.exobio_scans:
+            for exobio_scan in body.exobio_scans:
+                variant_name = exobio_scan.exo_variant_localised
+                if exobio_scan.exo_scan_type == "Log":
                     scan_status = "1 Sample"
-                elif organic_scan.scan_type == "Sample":
+                elif exobio_scan.exo_scan_type == "Sample":
                     scan_status = "2 Samples"
-                elif organic_scan.scan_type == "Analyse":
+                elif exobio_scan.exo_scan_type == "Analyse":
                     scan_status = "Analysed"
                 else:
                     scan_status = "--"

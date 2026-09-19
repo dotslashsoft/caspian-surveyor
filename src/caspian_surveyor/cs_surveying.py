@@ -19,7 +19,7 @@ class SurveyState:
 
     def __init__(self):
         self.current_system = None
-
+        notable_stellar_phenomena = []
     
     def _get_current_system(self, event):
         """
@@ -50,7 +50,7 @@ class SurveyState:
         if event_address is None:
             return current_system
 
-        if event_address != current_system["address"]:
+        if event_address != current_system["system_address"]:
             return None
 
         return current_system
@@ -70,19 +70,15 @@ class SurveyState:
             None.
         """
         self.current_system = {
-            "name": event.get("StarSystem"),
-            "address": event.get("SystemAddress"),
-            "position": event.get("StarPos"),
-            "jump_distance": event.get("JumpDist"),
-            "fuel_used": event.get("FuelUsed"),
-            "fuel_level": event.get("FuelLevel"),
-            "body_count": None,
-            "discovery_progress": None,
+            "system_name": event.get("StarSystem"),
+            "system_address": event.get("SystemAddress"),
+            "system_position": event.get("StarPos"),
+            "system_body_count": None,
             "fss_complete": False,
             "bodies": {},
         }
 
-        logger.info("Survey state initialized for system: %s", self.current_system["name"])
+        logger.info("Survey state initialized for system: %s", self.current_system["system_name"])
 
     def record_discovery_scan(self, event) -> bool:
         """
@@ -98,14 +94,11 @@ class SurveyState:
         Returns:
             True if the current survey state was updated; otherwise False.
         """
-
         current_system = self._get_current_system(event)
-
         if current_system is None:
             return False
 
-        current_system["body_count"] = event.get("BodyCount")
-        current_system["discovery_progress"] = event.get("Progress")
+        current_system["system_body_count"] = event.get("BodyCount")
 
         return True
 
@@ -122,14 +115,11 @@ class SurveyState:
             True if the body signal data was applied to the current survey
             state; otherwise False.
         """
-
         current_system = self._get_current_system(event)
-
         if current_system is None:
             return False
 
         body_id = event.get("BodyID")
-
         if body_id is None:
             logger.warning("FSSBodySignals event received without BodyID.")
             return False
@@ -156,14 +146,11 @@ class SurveyState:
             True if the body scan was applied to the current survey state;
             otherwise False.
         """
-
         current_system = self._get_current_system(event)
-
         if current_system is None:
             return False
 
         body_id = event.get("BodyID")
-
         if body_id is None:
             logger.warning("Scan event received without BodyID.")
             return False
@@ -171,49 +158,21 @@ class SurveyState:
         body = current_system["bodies"].setdefault(body_id, {})
         scan_type = event.get("ScanType")
         scan_types = body.setdefault("_scan_types", [])
-
         if scan_type and scan_type not in scan_types:
             scan_types.append(scan_type)
 
         body.update(event)
-
         return True
 
     def mark_all_bodies_found(self, event) -> bool:
-        """
-        Processes an "FSSAllBodiesFound" journal event for the current system.
-
-        Sets discovery progress to 1.0 and marks the system's FSS survey as complete.
-        If body count has not already been recorded, it is populated from the event.
-
-        Args:
-            event: Parsed Elite Dangerous "FSSAllBodiesFound" journal event.
-
-        Returns:
-            True if the event newly marked the current system as FSS complete;
-            otherwise False.
-
-        For Brandon:
-        
-        Bridge Keeper: WHAT DOES TRUE MEAN?
-
-        mark_all_bodies_found(): THE SYSTEM WAS NOT COMPLETE BEFORE, BUT IT IS NOW.
-
-        Bridge Keeper: Right. Off you go.
-        """     
-
         current_system = self._get_current_system(event)
-
         if current_system is None:
             return False
 
         already_complete = current_system["fss_complete"]
-
         current_system["fss_complete"] = True
-        current_system["discovery_progress"] = 1.0
-
-        if current_system["body_count"] is None:
-            current_system["body_count"] = event.get("Count")
+        if current_system["system_body_count"] is None:
+            current_system["system_body_count"] = event.get("Count")
 
         return not already_complete
 
@@ -291,22 +250,44 @@ class SurveyState:
             return False
 
         body = current_system["bodies"].setdefault(body_id, {})
-        body["BodyID"] = body_id
-        
-        organic_scans = body.setdefault("OrganicScans", [])
+        body["body_id"] = body_id
 
-        organic_scans.append({
-            "ScanType": event.get("ScanType", "--"),
-            "Genus": event.get("Genus", "--"),
-            "Genus_Localised": event.get("Genus_Localised", "--"),
-            "Species": event.get("Species", "--"),
-            "Species_Localised": event.get("Species_Localised", "--"),
-            "Variant": event.get("Variant", "--"),
-            "Variant_Localised": event.get("Variant_Localised", "--"),
-            "WasLogged": event.get("WasLogged", False),
+        exobio_scans = body.setdefault("exobio_scans", [])
+
+        exobio_scans.append({
+            "exo_scan_type": event.get("ScanType", "--"),
+            "exo_genus": event.get("Genus", "--"),
+            "exo_genus_localised": event.get("Genus_Localised", "--"),
+            "exo_species": event.get("Species", "--"),
+            "exo_species_localised": event.get("Species_Localised", "--"),
+            "exo_variant": event.get("Variant", "--"),
+            "exo_variant_localised": event.get("Variant_Localised", "--"),
+            "exo_was_scanned_and_submitted": event.get("WasLogged", False),
         })
 
         return True
+
+#     def record_notable_stellar_phenomena(self, event) -> bool:
+# # {
+# #   "timestamp": "2021-11-23T06:00:08Z",
+# #   "event": "FSSSignalDiscovered",
+# #   "SystemAddress": 33787140411779,
+# #   "SignalName": "$Fixed_Event_Life_Ring;",
+# #   "SignalName_Localised": "Notable stellar phenomena"
+# # }
+#         organic_scans.append({
+#             "ScanType": event.get("ScanType", "--"),
+#             "Genus": event.get("Genus", "--"),
+#             "Genus_Localised": event.get("Genus_Localised", "--"),
+#             "Species": event.get("Species", "--"),
+#             "Species_Localised": event.get("Species_Localised", "--"),
+#             "Variant": event.get("Variant", "--"),
+#             "Variant_Localised": event.get("Variant_Localised", "--"),
+#             "WasLogged": event.get("WasLogged", False),
+#         })
+
+
+        return
 
     def process_journal_event(self, event) -> bool:
         """
@@ -344,6 +325,9 @@ class SurveyState:
 
         elif event_type == "FSSAllBodiesFound":
             return self.mark_all_bodies_found(event)
+
+        # elif event_type == "FSSSignalDiscovered" and signal_name == "$Fixed_Event_Life_Ring;":
+        #     return self.record_notable_stellar_phenomena(event)
 
         return False
 
@@ -402,14 +386,14 @@ class SurveyDataBuilder:
     def build_system_info(self, current_system: dict[str, Any]) -> cs_data_structures.SystemInfo:
         
         return cs_data_structures.SystemInfo(
-            name=current_system["name"],
-            address=current_system["address"],
-            position=current_system["position"],
-            body_count=current_system["body_count"],
+            system_name=current_system["system_name"],
+            system_address=current_system["system_address"],
+            system_position=current_system["system_position"],
+            system_body_count=current_system["system_body_count"],
         )
 
 
-    def build_system_summary(self, current_system: dict[str, Any]) -> cs_data_structures.SummaryInfo:
+    def build_system_summary(self, current_system: dict[str, Any]) -> cs_data_structures.SystemSummaryInfo:
         """
         Builds derived summary statistics for the current system survey state.
 
@@ -422,61 +406,61 @@ class SurveyDataBuilder:
             system survey state exists.
         """    
         bodies = current_system["bodies"]
-    
-        summary = cs_data_structures.SummaryInfo(
-                scan_records=len(bodies),
-                stars=0,
-                planets=0,
-                belt_clusters=0,
-                unknown_scan_objects=0,
-                landable=0,
-                hmc=0,
-                tf_hmc=0,
-                water_worlds=0,
-                tf_water_worlds=0,
-                earthlike_worlds=0,
-                ammonia_worlds=0,
-            )
-    
+
+        system_summary = cs_data_structures.SystemSummaryInfo(
+            system_scan_record_count=len(bodies),
+            system_star_count=0,
+            system_planet_count=0,
+            system_belt_cluster_count=0,
+            system_unknown_scan_object_count=0,
+            system_landable_body_count=0,
+            system_hmc_count=0,
+            system_tf_hmc_count=0,
+            system_water_world_count=0,
+            system_tf_water_world_count=0,
+            system_earthlike_world_count=0,
+            system_ammonia_world_count=0,
+        )
+
         for body in bodies.values():
             if body.get("StarType"):
-                summary.stars += 1
+                system_summary.system_star_count += 1
                 continue
-            
+
             planet_class = body.get("PlanetClass")
             if planet_class is None:
                 body_name = body.get("BodyName", "")
                 if "Belt Cluster" in body_name:
-                    summary.belt_clusters += 1
+                    system_summary.system_belt_cluster_count += 1
                 else:
-                    summary.unknown_scan_objects += 1
+                    system_summary.system_unknown_scan_object_count += 1
                     print("UNCLASSIFIED SCAN:", body.get("BodyID"), body.get("BodyName"))
                 continue
-            
-            summary.planets += 1
+
+            system_summary.system_planet_count += 1
             if body.get("Landable"):
-                summary.landable += 1
-        
+                system_summary.system_landable_body_count += 1
+
             terraformable = (body.get("TerraformState") == "Terraformable")
             if planet_class == "High metal content body":
-                summary.hmc += 1
-    
+                system_summary.system_hmc_count += 1
+
                 if terraformable:
-                    summary.tf_hmc += 1
-        
+                    system_summary.system_tf_hmc_count += 1
+
             elif planet_class == "Water world":
-                summary.water_worlds += 1
-    
+                system_summary.system_water_world_count += 1
+
                 if terraformable:
-                    summary.tf_water_worlds += 1
-    
+                    system_summary.system_tf_water_world_count += 1
+
             elif planet_class == "Earthlike body":
-                summary.earthlike_worlds += 1
-    
+                system_summary.system_earthlike_world_count += 1
+
             elif planet_class == "Ammonia world":
-                summary.ammonia_worlds += 1
-    
-        return summary
+                system_summary.system_ammonia_world_count += 1
+
+        return system_summary
 
 
     def build_body_record(self, body: dict[str, Any]) -> cs_data_structures.CelestialBody:
@@ -496,35 +480,35 @@ class SurveyDataBuilder:
         return cs_data_structures.CelestialBody(
             body_id=body["BodyID"],
             body_name=body["BodyName"],
-            parents=body.get("Parents", []),
-            planet_class=body.get("PlanetClass"),
-            terraform_state=body.get("TerraformState"),
-            materials=body.get("Materials"),
-            periapsis=body.get("Periapsis"),
-            surface_temperature=body.get("SurfaceTemperature"),
-            was_discovered=body.get("WasDiscovered", False),
-            was_mapped=body.get("WasMapped", False),
-            was_footfalled=body.get("WasFootfalled", False),
-            tidal_lock=body.get("TidalLock", False),
-            atmosphere=body.get("Atmosphere"),
-            atmosphere_type=body.get("AtmosphereType"),
-            radius=body.get("Radius"),
-            surface_gravity=body.get("SurfaceGravity"),
-            surface_pressure=body.get("SurfacePressure"),
-            semi_major_axis=body.get("SemiMajorAxis"),
-            eccentricity=body.get("Eccentricity"),
-            orbital_inclination=body.get("OrbitalInclination"),
-            orbital_period=body.get("OrbitalPeriod"),
-            ascending_node=body.get("AscendingNode"),
-            mean_anomaly=body.get("MeanAnomaly"),
-            rotational_period=body.get("RotationPeriod"),
-            axial_tilt=body.get("AxialTilt"),
-            distance_from_arrival=body.get("DistanceFromArrivalLS"),
-            signals=body.get("Signals"),
-            dss_scan_complete=body.get("DSSScanComplete", False),
-            landable=body.get("Landable", False),
-            genuses=body.get("Genuses", []),
-            organic_scans=body.get("OrganicScans", [])
+            body_parents=body.get("Parents", []),
+            body_planet_class=body.get("PlanetClass"),
+            body_terraform_state=body.get("TerraformState"),
+            body_materials=body.get("Materials"),
+            body_periapsis=body.get("Periapsis"),
+            body_surface_temperature=body.get("SurfaceTemperature"),
+            body_was_discovered=body.get("WasDiscovered", False),
+            body_was_mapped=body.get("WasMapped", False),
+            body_was_footfalled=body.get("WasFootfalled", False),
+            body_tidal_lock=body.get("TidalLock", False),
+            body_atmosphere=body.get("Atmosphere"),
+            body_atmosphere_type=body.get("AtmosphereType"),
+            body_radius=body.get("Radius"),
+            body_surface_gravity=body.get("SurfaceGravity"),
+            body_surface_pressure=body.get("SurfacePressure"),
+            body_semi_major_axis=body.get("SemiMajorAxis"),
+            body_eccentricity=body.get("Eccentricity"),
+            body_orbital_inclination=body.get("OrbitalInclination"),
+            body_orbital_period=body.get("OrbitalPeriod"),
+            body_ascending_node=body.get("AscendingNode"),
+            body_mean_anomaly=body.get("MeanAnomaly"),
+            body_rotational_period=body.get("RotationPeriod"),
+            body_axial_tilt=body.get("AxialTilt"),
+            body_distance_from_arrival=body.get("DistanceFromArrivalLS"),
+            body_signals=body.get("Signals"),
+            body_dss_scan_complete=body.get("DSSScanComplete", False),
+            body_landable=body.get("Landable", False),
+            body_genuses=body.get("Genuses", []),
+            exobio_scans=body.get("OrganicScans", [])
         )
 
 class StateRecovery:
@@ -548,18 +532,15 @@ class StateRecovery:
 
         while True:
             journal_file = Journal.get_journal_file_by_index(journal_index)
-
             if journal_file is None:
                 break
 
             journal_events = Journal.get_reconstruction_start_events(journal_file)
-
             if not journal_events:
                 journal_index += 1
                 continue
 
             journal_system_address = journal_events[0].get("SystemAddress")
-
             if journal_system_address != current_system_address:
                 break
 
@@ -585,15 +566,14 @@ class StateRecovery:
             return None
 
         oldest_matching_index = self.find_oldest_matching_journal_index(latest_journal_events)
-
         if oldest_matching_index is None:
             return None
         
         for journal_index in range(oldest_matching_index, -1, -1):
             journal_file = Journal.get_journal_file_by_index(journal_index)
-
             if journal_file is None:
                 return None
+            
             journal_events = Journal.get_reconstruction_start_events(journal_file)
             if not journal_events:
                 continue
@@ -602,7 +582,6 @@ class StateRecovery:
                 self.survey_state.begin_system(journal_events[0])
 
             self.replay_system_events(self.survey_state, journal_events[1:])
-
         return self.survey_state.current_system
 
 
@@ -623,4 +602,3 @@ class StateRecovery:
         """
         for event in events:
             survey_state.process_journal_event(event)
-

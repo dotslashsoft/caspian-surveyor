@@ -14,3 +14,6 @@ exploration_history*
 unittest_suite/
 runtime/current_system.json
 cs_overlay_config.py
+src/caspian_surveyor/ui/_adapter_playground.py
+TRACE_RESULTS.txt
+src/caspian_surveyor/pysight.py

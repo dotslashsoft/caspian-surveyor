@@ -9,67 +9,75 @@ class SystemInfo:
     """
     Stores system-level data from the current system record.
     """
-    name: str
-    address: int
-    position: list[float] = field(default_factory=list)
-    body_count: int = 0
+    system_name: str
+    system_address: int
+    system_position: list[float] = field(default_factory=list)
+    system_body_count: int = 0
 
 @dataclass
-class SummaryInfo:
+class SystemSummaryInfo:
     """
     Stores derived summary counts for the current system.
     """
-    scan_records: int
-    stars: int
-    planets: int
-    belt_clusters: int
-    unknown_scan_objects: int
-    landable: int
-    hmc: int
-    tf_hmc: int
-    water_worlds: int
-    tf_water_worlds: int
-    earthlike_worlds: int
-    ammonia_worlds: int
+    system_scan_record_count: int
+    system_star_count: int
+    system_planet_count: int
+    system_belt_cluster_count: int
+    system_unknown_scan_object_count: int
+    system_landable_body_count: int
+    system_hmc_count: int
+    system_tf_hmc_count: int
+    system_water_world_count: int
+    system_tf_water_world_count: int
+    system_earthlike_world_count: int
+    system_ammonia_world_count: int
 
 @dataclass
-class MaterialInfo:
+class SystemSignalInfo:
+    """
+    Represents an NSP.
+    """
+    system_signal_name: str
+    system_signal_name_localised: str
+
+@dataclass
+class BodyMaterialInfo:
     """
     Represents a material and its percentage on a planetary body.
     """
-    Name: str
-    Percent: float
+    material_name: str
+    material_percent: float
 
 @dataclass
-class SignalInfo:
+class BodySignalInfo:
     """
     Represents a detected planetary signal and its count.
     """
-    type: str
-    type_localised: str
-    count: int
+    body_signal_type: str
+    body_signal_type_localised: str
+    body_signal_count: int
 
 @dataclass
-class OrganicScanInfo:
+class ExoBioScanInfo:
     """
     Represents an exobiology scan record for a planetary body.
     """
-    scan_type: str
-    genus: str
-    genus_localised: str
-    species: str
-    species_localised: str
-    variant: str
-    variant_localised: str
-    was_scanned_and_submitted: bool
+    exo_scan_type: str
+    exo_genus: str
+    exo_genus_localised: str
+    exo_species: str
+    exo_species_localised: str
+    exo_variant: str
+    exo_variant_localised: str
+    exo_was_scanned_and_submitted: bool
 
 @dataclass
-class GenusInfo:
+class BodyGenusInfo:
     """
     Represents exobiology genus information for a planetary body.
     """
-    genus: str
-    genus_localised: str
+    body_genus: str
+    body_genus_localised: str
 
 
 @dataclass
@@ -82,36 +90,36 @@ class CelestialBody:
     """
     body_id: int
     body_name: str
-    parents: list[dict[str, int]] = field(default_factory=list)
-    periapsis: float | None = None
-    landable: bool = False
-    was_discovered: bool = False
-    was_mapped: bool = False
-    was_footfalled: bool = False
-    distance_from_arrival: float | None = None
-    planet_class: str | None = None
-    terraform_state: str | None = None
-    materials: list[MaterialInfo] | None = None
-    surface_temperature: float | None = None
-    atmosphere: str | None = None
-    atmosphere_type: str | None = None
-    radius: float | None = None
-    surface_gravity: float | None = None
-    surface_pressure: float | None = None
-    semi_major_axis: float | None = None
-    eccentricity: float | None = None
-    orbital_inclination: float | None = None
-    orbital_period: float | None = None
-    ascending_node: float | None = None
-    mean_anomaly: float | None = None
-    rotational_period: float | None = None
-    axial_tilt: float | None = None
-    tidal_lock: bool = False
-    signals: list[SignalInfo] | None = None
-    dss_scan_complete: bool = False
-    genuses: list[GenusInfo] | None = None
-    organic_scans: list[OrganicScanInfo] | None = None
-    
+    body_parents: list[dict[str, int]] = field(default_factory=list)
+    body_periapsis: float | None = None
+    body_landable: bool = False
+    body_was_discovered: bool = False
+    body_was_mapped: bool = False
+    body_was_footfalled: bool = False
+    body_distance_from_arrival: float | None = None
+    body_planet_class: str | None = None
+    body_terraform_state: str | None = None
+    body_materials: list[BodyMaterialInfo] | None = None
+    body_surface_temperature: float | None = None
+    body_atmosphere: str | None = None
+    body_atmosphere_type: str | None = None
+    body_radius: float | None = None
+    body_surface_gravity: float | None = None
+    body_surface_pressure: float | None = None
+    body_semi_major_axis: float | None = None
+    body_eccentricity: float | None = None
+    body_orbital_inclination: float | None = None
+    body_orbital_period: float | None = None
+    body_ascending_node: float | None = None
+    body_mean_anomaly: float | None = None
+    body_rotational_period: float | None = None
+    body_axial_tilt: float | None = None
+    body_tidal_lock: bool = False
+    body_signals: list[BodySignalInfo] | None = None
+    body_dss_scan_complete: bool = False
+    body_genuses: list[BodyGenusInfo] | None = None
+    exobio_scans: list[ExoBioScanInfo] | None = None
+
 
 
     def __post_init__(self) -> None:
@@ -120,54 +128,54 @@ class CelestialBody:
         dataclass representations.
 
         TODO:
-            Convert raw genus and organic-scan dictionaries into GenusInfo and
-            OrganicScanInfo instances when exobiology data integration is completed.
+            Convert raw genus and organic-scan dictionaries into BodyGenusInfo and
+            ExoBioScanInfo instances when exobiology data integration is completed.
         """
-        if isinstance(self.materials, list):
-            self.materials = [
-                MaterialInfo(**m) if isinstance(m, dict) else m 
-                for m in self.materials
+        if isinstance(self.body_materials, list):
+            self.body_materials = [
+                BodyMaterialInfo(**m) if isinstance(m, dict) else m 
+                for m in self.body_materials
             ]
 
-        # Automatically turn raw signal dictionaries into SignalInfo objects
-        if isinstance(self.signals, list):
-            self.signals = [
-                SignalInfo(
-                    type=signal.get("type", "--"),
-                    type_localised=signal.get("type_localised", "--"),
-                    count=signal.get("count", 0)
+        # Automatically turn raw signal dictionaries into BodySignalInfo objects
+        if isinstance(self.body_signals, list):
+            self.body_signals = [
+                BodySignalInfo(
+                    body_signal_type=body_signal.get("body_signal_type", "--"),
+                    body_signal_type_localised=body_signal.get("body_signal_type_localised", "--"),
+                    body_signal_count=body_signal.get("body_signal_count", 0)
                 )
-                if isinstance(signal, dict)
-                else signal
-                for signal in self.signals
+                if isinstance(body_signal, dict)
+                else body_signal
+                for body_signal in self.body_signals
             ]
 
-        if isinstance(self.genuses, list):
-            self.genuses = [
-                GenusInfo(
-                    genus=genus.get("genus", "--"),
-                    genus_localised=genus.get("genus_localised", "--")
+        if isinstance(self.body_genuses, list):
+            self.body_genuses = [
+                BodyGenusInfo(
+                    body_genus=genus.get("body_genus", "--"),
+                    body_genus_localised=genus.get("body_genus_localised", "--")
                 )
                 if isinstance(genus, dict)
                 else genus
-                for genus in self.genuses
+                for genus in self.body_genuses
             ]
 
-        if isinstance(self.organic_scans, list):
-            self.organic_scans = [
-                OrganicScanInfo(
-                    scan_type=scan.get("scan_type", "--"),
-                    genus=scan.get("genus", "--"),
-                    genus_localised=scan.get("genus_localised", "--"),
-                    species=scan.get("species", "--"),
-                    species_localised=scan.get("species_localised", "--"),
-                    variant=scan.get("variant", "--"),
-                    variant_localised=scan.get("variant_localised", "--"),
-                    was_scanned_and_submitted=scan.get("was_scanned_and_submitted", False)
+        if isinstance(self.exobio_scans, list):
+            self.exobio_scans = [
+                ExoBioScanInfo(
+                    exo_scan_type=scan.get("exo_scan_type", "--"),
+                    exo_genus=scan.get("exo_genus", "--"),
+                    exo_genus_localised=scan.get("exo_genus_localised", "--"),
+                    exo_species=scan.get("exo_species", "--"),
+                    exo_species_localised=scan.get("exo_species_localised", "--"),
+                    exo_variant=scan.get("exo_variant", "--"),
+                    exo_variant_localised=scan.get("exo_variant_localised", "--"),
+                    exo_was_scanned_and_submitted=scan.get("exo_was_scanned_and_submitted", False)
                 )
                 if isinstance(scan, dict)
                 else scan
-                for scan in self.organic_scans
+                for scan in self.exobio_scans
             ]
 
 
@@ -181,7 +189,7 @@ class FullStarSystemPayload:
     """
     schema_version: int
     system: SystemInfo
-    summary: SummaryInfo
+    summary: SystemSummaryInfo
     bodies: dict[str, CelestialBody] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -193,7 +201,7 @@ class FullStarSystemPayload:
             self.system = SystemInfo(**self.system)
 
         if isinstance(self.summary, dict):
-            self.summary = SummaryInfo(**self.summary)
+            self.summary = SystemSummaryInfo(**self.summary)
 
         if isinstance(self.bodies, dict):
             self.bodies = {
@@ -216,7 +224,7 @@ class FullStarSystemPayload:
             (
                 body
                 for body in self.bodies.values()
-                if body.planet_class is not None
+                if body.body_planet_class is not None
             ),
             key=lambda body: body.body_id
         )

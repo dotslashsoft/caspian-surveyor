@@ -92,20 +92,6 @@ class SystemInfoOverlay(QWidget):
         self.position_top_center()
 
     def refresh_system_data(self):
-        """
-        Reloads the current system record and refreshes the HUD display.
-
-        Updates system-summary metrics and planetary-body data from Caspian's
-        current runtime record. Resets the selected body index when the system
-        changes.
-
-        This method is unaware of polling or underlying data changes. It is
-        currently called every five seconds by the update timer started in
-        _start_update_timer().
-
-        TODO:
-            Consider replacing timer-based polling with event-driven updates.
-        """
         self.overlay_adapter.call_load_new_system_record()
         ui_data = self.overlay_adapter.full_system_data
 
@@ -115,11 +101,11 @@ class SystemInfoOverlay(QWidget):
 
         system_changed = (
             self.ui_data is None
-            or ui_data.system.address != self.ui_data.system.address
+            or ui_data.system.system_address != self.ui_data.system.system_address
         )
 
         self.ui_data = ui_data
-        self.planetary_bodies = self.overlay_adapter.planetary_bodies
+        self.planetary_bodies = ui_data.planetary_bodies
 
         if system_changed:
             self.current_body_index = 0
@@ -131,14 +117,14 @@ class SystemInfoOverlay(QWidget):
             body = self.planetary_bodies[self.current_body_index]
             self.body_display.update_body_display_metrics(body)
 
-        self.metric_system_name.set_value(ui_data.system.name.upper())
-        self.metric_system_planet_count.set_value(ui_data.summary.planets)
-        self.metric_system_elw_count.set_value(ui_data.summary.earthlike_worlds)
-        self.metric_system_tfww_count.set_value(ui_data.summary.tf_water_worlds)
-        self.metric_system_tfhmc_count.set_value(ui_data.summary.tf_hmc)
-        self.metric_system_ww_count.set_value(ui_data.summary.water_worlds)
-        self.metric_system_hmc_count.set_value(ui_data.summary.hmc)
-        self.metric_system_landable_count.set_value(ui_data.summary.landable)
+        self.metric_system_name.set_value(ui_data.system.system_name.upper())
+        self.metric_system_planet_count.set_value(ui_data.summary.system_planet_count)
+        self.metric_system_elw_count.set_value(ui_data.summary.system_earthlike_world_count)
+        self.metric_system_tfww_count.set_value(ui_data.summary.system_tf_water_world_count)
+        self.metric_system_tfhmc_count.set_value(ui_data.summary.system_tf_hmc_count)
+        self.metric_system_ww_count.set_value(ui_data.summary.system_water_world_count)
+        self.metric_system_hmc_count.set_value(ui_data.summary.system_hmc_count)
+        self.metric_system_landable_count.set_value(ui_data.summary.system_landable_body_count)
 
         
     def _load_initial_data(self):
@@ -241,18 +227,18 @@ class SystemInfoOverlay(QWidget):
 
         self.metric_system_name = MetricWidget(
             "SYSTEM",
-            self.ui_data.system.name.upper(),
+            self.ui_data.system.system_name.upper(),
             key_label_font_color=self.hud_factory.key_label_color,
             val_label_font_color=self.hud_factory.value_label_color
         )
 
-        self.metric_system_planet_count = MetricWidget("PLANETS", self.ui_data.summary.planets)
-        self.metric_system_elw_count = MetricWidget("ELW", self.ui_data.summary.earthlike_worlds)
-        self.metric_system_tfww_count = MetricWidget("TFWW", self.ui_data.summary.tf_water_worlds)
-        self.metric_system_tfhmc_count = MetricWidget("TFHMC", self.ui_data.summary.tf_hmc)
-        self.metric_system_ww_count = MetricWidget("WW", self.ui_data.summary.water_worlds)
-        self.metric_system_hmc_count = MetricWidget("HMC", self.ui_data.summary.hmc)
-        self.metric_system_landable_count = MetricWidget("LANDABLE", self.ui_data.summary.landable)
+        self.metric_system_planet_count = MetricWidget("PLANETS", self.ui_data.summary.system_planet_count)
+        self.metric_system_elw_count = MetricWidget("ELW", self.ui_data.summary.system_earthlike_world_count)
+        self.metric_system_tfww_count = MetricWidget("TFWW", self.ui_data.summary.system_tf_water_world_count)
+        self.metric_system_tfhmc_count = MetricWidget("TFHMC", self.ui_data.summary.system_hmc_count)
+        self.metric_system_ww_count = MetricWidget("WW", self.ui_data.summary.system_water_world_count)
+        self.metric_system_hmc_count = MetricWidget("HMC", self.ui_data.summary.system_hmc_count)
+        self.metric_system_landable_count = MetricWidget("LANDABLE", self.ui_data.summary.system_landable_body_count)
 
         metrics = [
             self.metric_system_name,
