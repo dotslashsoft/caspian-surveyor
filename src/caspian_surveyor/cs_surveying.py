@@ -279,28 +279,6 @@ class SurveyState:
 
         return True
 
-#     def record_notable_stellar_phenomena(self, event) -> bool:
-# # {
-# #   "timestamp": "2021-11-23T06:00:08Z",
-# #   "event": "FSSSignalDiscovered",
-# #   "SystemAddress": 33787140411779,
-# #   "SignalName": "$Fixed_Event_Life_Ring;",
-# #   "SignalName_Localised": "Notable stellar phenomena"
-# # }
-#         organic_scans.append({
-#             "ScanType": event.get("ScanType", "--"),
-#             "Genus": event.get("Genus", "--"),
-#             "Genus_Localised": event.get("Genus_Localised", "--"),
-#             "Species": event.get("Species", "--"),
-#             "Species_Localised": event.get("Species_Localised", "--"),
-#             "Variant": event.get("Variant", "--"),
-#             "Variant_Localised": event.get("Variant_Localised", "--"),
-#             "WasLogged": event.get("WasLogged", False),
-#         })
-
-
-        return
-
     def process_journal_event(self, event) -> bool:
         """
         One journal processor to rule them all.
@@ -337,9 +315,6 @@ class SurveyState:
 
         elif event_type == "FSSAllBodiesFound":
             return self.mark_all_bodies_found(event)
-
-        # elif event_type == "FSSSignalDiscovered" and signal_name == "$Fixed_Event_Life_Ring;":
-        #     return self.record_notable_stellar_phenomena(event)
 
         return False
 
@@ -544,8 +519,7 @@ class SurveyDataBuilder:
             body_materials=([self.build_body_material_record(material)
                                 for material in raw_body_materials]
                                 if isinstance(raw_body_materials, list)
-                                else None
-                            ),
+                                else None),
             body_periapsis=body.get("Periapsis"),
             body_surface_temperature=body.get("SurfaceTemperature"),
             body_was_discovered=body.get("WasDiscovered", False),
@@ -569,23 +543,16 @@ class SurveyDataBuilder:
             body_signals=([self.build_body_signal_record(signal)
                                 for signal in body_signals]
                                 if isinstance(body_signals, list)
-                                else None
-                            ),
+                                else None),
             body_dss_scan_complete=body.get("DSSScanComplete", False),
             body_landable=body.get("Landable", False),
             body_genuses=([self.build_body_genus_record(genus) 
                                 for genus in body_genuses]
                                 if isinstance(body_genuses, list)
-                                else None
-                            ),
-            exobio_scans=(
-                        [
-                            ExoBioScanInfo(**exoscan)
-                            for exoscan in exobio_scans
-                        ]
-                        if isinstance(exobio_scans, list)
-                        else None
-            )
+                                else None),
+            exobio_scans=([ExoBioScanInfo(**exoscan) for exoscan in exobio_scans]
+                                if isinstance(exobio_scans, list)
+                                else None)
         )
 
 class StateRecovery:
