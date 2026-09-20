@@ -69,7 +69,7 @@ class ExoBioScanInfo:
     exo_species_localised: str
     exo_variant: str
     exo_variant_localised: str
-    exo_was_scanned_and_submitted: bool
+    exo_was_logged: bool
 
 @dataclass
 class BodyGenusInfo:
@@ -79,6 +79,13 @@ class BodyGenusInfo:
     body_genus: str
     body_genus_localised: str
 
+@dataclass
+class BodyParentInfo:
+    """
+    Represents the parent relationship for a celestial body.
+    """
+    parent_type: str
+    parent_body_id: int
 
 @dataclass
 class CelestialBody:
@@ -90,7 +97,7 @@ class CelestialBody:
     """
     body_id: int
     body_name: str
-    body_parents: list[dict[str, int]] = field(default_factory=list)
+    body_parents: list[BodyParentInfo] = field(default_factory=list)
     body_periapsis: float | None = None
     body_landable: bool = False
     body_was_discovered: bool = False
@@ -150,6 +157,14 @@ class CelestialBody:
                 for body_signal in self.body_signals
             ]
 
+        if isinstance(self.body_parents, list):
+            self.body_parents = [
+                BodyParentInfo(**parent)
+                if isinstance(parent, dict)
+                else parent
+                for parent in self.body_parents
+            ]
+
         if isinstance(self.body_genuses, list):
             self.body_genuses = [
                 BodyGenusInfo(
@@ -171,7 +186,7 @@ class CelestialBody:
                     exo_species_localised=scan.get("exo_species_localised", "--"),
                     exo_variant=scan.get("exo_variant", "--"),
                     exo_variant_localised=scan.get("exo_variant_localised", "--"),
-                    exo_was_scanned_and_submitted=scan.get("exo_was_scanned_and_submitted", False)
+                    exo_was_logged=scan.get("exo_was_logged", False)
                 )
                 if isinstance(scan, dict)
                 else scan

@@ -7,7 +7,7 @@ class OverlayAdapter:
 
     def call_load_new_system_record(self):
         self.full_system_data = load_current_system_record()
-        print("\ncall_load_new_system_record\n")
+        # print("\ncall_load_new_system_record\n")
         return self.full_system_data
 
     def get_system_data(self):

@@ -1,6 +1,16 @@
 import logging
 import caspian_surveyor.cs_journal_toolbox as Journal
-import caspian_surveyor.cs_data_structures as cs_data_structures
+from caspian_surveyor.cs_data_structures import (
+    BodyMaterialInfo,
+    BodyParentInfo,
+    BodySignalInfo,
+    BodyGenusInfo,
+    ExoBioScanInfo,
+    CelestialBody,
+    FullStarSystemPayload,
+    SystemInfo,
+    SystemSummaryInfo
+)
 from typing import Any
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
@@ -161,6 +171,8 @@ class SurveyState:
         if scan_type and scan_type not in scan_types:
             scan_types.append(scan_type)
 
+        body["body_parents"] = event.get("Parents", [])
+
         body.update(event)
         return True
 
@@ -262,7 +274,7 @@ class SurveyState:
             "exo_species_localised": event.get("Species_Localised", "--"),
             "exo_variant": event.get("Variant", "--"),
             "exo_variant_localised": event.get("Variant_Localised", "--"),
-            "exo_was_scanned_and_submitted": event.get("WasLogged", False),
+            "exo_was_logged": event.get("WasLogged", False),
         })
 
         return True
@@ -351,7 +363,7 @@ class SurveyDataBuilder:
         self.survey_state = survey_state
 
 
-    def build_system_record(self) -> cs_data_structures.FullStarSystemPayload | None:
+    def build_system_record(self) -> FullStarSystemPayload | None:
         """
         Builds the output record for the current system survey state.
 
@@ -376,16 +388,16 @@ class SurveyDataBuilder:
         for body_id, body in current_system["bodies"].items():
             bodies[body_id] = self.build_body_record(body)
 
-        return cs_data_structures.FullStarSystemPayload(
+        return FullStarSystemPayload(
             schema_version=1,
             system=system_info,
             summary=system_summary,
             bodies=bodies,
         )
 
-    def build_system_info(self, current_system: dict[str, Any]) -> cs_data_structures.SystemInfo:
+    def build_system_info(self, current_system: dict[str, Any]) -> SystemInfo:
         
-        return cs_data_structures.SystemInfo(
+        return SystemInfo(
             system_name=current_system["system_name"],
             system_address=current_system["system_address"],
             system_position=current_system["system_position"],
@@ -393,7 +405,7 @@ class SurveyDataBuilder:
         )
 
 
-    def build_system_summary(self, current_system: dict[str, Any]) -> cs_data_structures.SystemSummaryInfo:
+    def build_system_summary(self, current_system: dict[str, Any]) -> SystemSummaryInfo:
         """
         Builds derived summary statistics for the current system survey state.
 
@@ -407,7 +419,7 @@ class SurveyDataBuilder:
         """    
         bodies = current_system["bodies"]
 
-        system_summary = cs_data_structures.SystemSummaryInfo(
+        system_summary = SystemSummaryInfo(
             system_scan_record_count=len(bodies),
             system_star_count=0,
             system_planet_count=0,
@@ -462,8 +474,51 @@ class SurveyDataBuilder:
 
         return system_summary
 
+    def build_body_parent_record(self, parent: dict[str, int]) -> BodyParentInfo:
 
-    def build_body_record(self, body: dict[str, Any]) -> cs_data_structures.CelestialBody:
+        parent_type, parent_body_id = next(iter(parent.items()))
+
+        return BodyParentInfo(
+            parent_type=parent_type,
+            parent_body_id=parent_body_id
+        )
+
+    def build_body_material_record(self, material: dict[str, Any]) -> BodyMaterialInfo:
+
+        return BodyMaterialInfo(
+            material_name=material.get("Name", "--"),
+            material_percent=material.get("Percent", 0.0)
+        )
+
+    def build_body_signal_record(self, body: dict[str, Any]) -> BodySignalInfo:
+
+        return BodySignalInfo(
+            body_signal_type=body.get("Type", "--"),
+            body_signal_type_localised=body.get("Type_Localised", "--"),
+            body_signal_count=body.get("Count", "--")
+        )
+
+    def build_body_genus_record(self, body: dict[str, Any]) -> BodyGenusInfo:
+
+        return BodyGenusInfo(
+            body_genus=body.get("Genus", "--"),
+            body_genus_localised=body.get("Genus_Localised", "--")
+        )
+
+    def build_exobio_scan_record(self, exoscan: dict[str, Any]) -> ExoBioScanInfo:
+
+        return ExoBioScanInfo(
+            exo_scan_type=exoscan.get("ScanType", "--"),
+            exo_genus=exoscan.get("Genus", "--"),
+            exo_genus_localised=exoscan.get("Genus_Localised", "--"),
+            exo_species=exoscan.get("Species", "--"),
+            exo_species_localised=exoscan.get("Species_Localised", "--"),
+            exo_variant=exoscan.get("Variant", "--"),
+            exo_variant_localised=exoscan.get("Variant_Localised", "--"),
+            exo_was_logged=exoscan.get("WasLogged", False)
+        )
+
+    def build_body_record(self, body: dict[str, Any]) -> CelestialBody:
         """
         Builds an output record for a single body in the current survey state.
 
@@ -476,14 +531,21 @@ class SurveyDataBuilder:
         Returns:
             The completed body-record dictionary.
         """
-
-        return cs_data_structures.CelestialBody(
+        raw_body_materials = body.get("Materials")
+        body_signals = body.get("Signals")
+        body_genuses = body.get("Genuses")
+        exobio_scans = body.get("exobio_scans")
+        return CelestialBody(
             body_id=body["BodyID"],
             body_name=body["BodyName"],
-            body_parents=body.get("Parents", []),
+            body_parents=[self.build_body_parent_record(parent) for parent in body.get("body_parents", [])],
             body_planet_class=body.get("PlanetClass"),
             body_terraform_state=body.get("TerraformState"),
-            body_materials=body.get("Materials"),
+            body_materials=([self.build_body_material_record(material)
+                                for material in raw_body_materials]
+                                if isinstance(raw_body_materials, list)
+                                else None
+                            ),
             body_periapsis=body.get("Periapsis"),
             body_surface_temperature=body.get("SurfaceTemperature"),
             body_was_discovered=body.get("WasDiscovered", False),
@@ -504,11 +566,26 @@ class SurveyDataBuilder:
             body_rotational_period=body.get("RotationPeriod"),
             body_axial_tilt=body.get("AxialTilt"),
             body_distance_from_arrival=body.get("DistanceFromArrivalLS"),
-            body_signals=body.get("Signals"),
+            body_signals=([self.build_body_signal_record(signal)
+                                for signal in body_signals]
+                                if isinstance(body_signals, list)
+                                else None
+                            ),
             body_dss_scan_complete=body.get("DSSScanComplete", False),
             body_landable=body.get("Landable", False),
-            body_genuses=body.get("Genuses", []),
-            exobio_scans=body.get("OrganicScans", [])
+            body_genuses=([self.build_body_genus_record(genus) 
+                                for genus in body_genuses]
+                                if isinstance(body_genuses, list)
+                                else None
+                            ),
+            exobio_scans=(
+                        [
+                            ExoBioScanInfo(**exoscan)
+                            for exoscan in exobio_scans
+                        ]
+                        if isinstance(exobio_scans, list)
+                        else None
+            )
         )
 
 class StateRecovery:

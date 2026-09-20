@@ -221,7 +221,7 @@ class BodyDisplayController:
         self.metric_body_landable.set_value(body.body_landable)
         #  body = self.planetary_bodies[self.current_body_index]
         if body.body_signals:
-            signal_text = "\n".join(f"{signal.type_localised}: {signal.count}" for signal in body.body_signals)
+            signal_text = "\n".join(f"{signal.body_signal_type_localised}: {signal.body_signal_count}" for signal in body.body_signals)
             self.metric_body_signals.set_value(signal_text)
         else:
             self.metric_body_signals.set_value("--")
@@ -230,7 +230,7 @@ class BodyDisplayController:
 
         if body.body_genuses:
             for genus in body.body_genuses:
-                self.genus_dict[genus.genus_localised] = genus
+                self.genus_dict[genus.body_genus_localised] = genus
 
             genus_pair = self.cycle_genus_display(self.genus_dict)
             self.metric_body_biosig_genus.set_value(genus_pair)
