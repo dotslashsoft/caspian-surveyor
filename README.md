@@ -1,4 +1,4 @@
-## New Alpha Release Available: [Version 0.9.5.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.5.0)
+## New Alpha Release Available: [Version 0.9.6.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.6.0)
 
 # Caspian Surveyor
 
@@ -14,7 +14,7 @@ The project aims to improve the exploration experience for the Elite Dangerous c
 
 Development of Caspian Surveyor is active and ongoing.
 
-**Current Version:** 0.9.5.0
+**Current Version:** 0.9.6.0
 
 ## Screenshots
 
@@ -71,7 +71,7 @@ Development of Caspian Surveyor is active and ongoing.
 
 ## Installation
 
-1. Download `CaspianSurveyor-0.9.5.0-Setup.exe` from the GitHub Releases page.
+1. Download `CaspianSurveyor-0.9.6.0-Setup.exe` from the GitHub Releases page.
 
 2. Because the installer is currently unsigned, Microsoft Edge or another browser may warn that the file is not commonly downloaded. Keep the file **only if you downloaded it from the official Caspian Surveyor GitHub release page**.
 
