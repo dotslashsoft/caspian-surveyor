@@ -25,7 +25,12 @@ overlay_analysis = Analysis(
     [str(SOURCE_DIRECTORY / "caspian_surveyor" / "ui" / "cs_overlay.py")],
     pathex=[str(SOURCE_DIRECTORY)],
     binaries=[],
-    datas=[],
+    datas=[
+        (
+            str(SOURCE_DIRECTORY / "caspian_surveyor" / "assets"),
+            "caspian_surveyor/assets",
+        ),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

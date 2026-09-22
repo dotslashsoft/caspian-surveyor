@@ -62,6 +62,13 @@ remain subject to the PyInstaller licensing terms and applicable exceptions.
 
 ---
 
+## Electrolize
+Copyright (c) 2011, Cyreal (www.cyreal.org),
+Licensed under the SIL Open Font License 1.1.
+See licenses/Electrolize-OFL-1.1.txt.
+
+---
+
 ## Additional Components
 
 Additional third-party libraries or runtime components may be included in

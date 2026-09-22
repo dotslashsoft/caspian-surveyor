@@ -1,16 +1,21 @@
+import logging
 import sys
+
+import caspian_surveyor
+import caspian_surveyor.ui.custom_color_picker as custom_color_picker
+from caspian_surveyor.ui.hotkey_manager import HotkeyManager
+from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
+from caspian_surveyor.ui.body_builder import BodyDisplayController
+from caspian_surveyor.ui.data_adapter import OverlayAdapter
+
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel,
     QVBoxLayout, QFrame, QSizePolicy,
 )
-import logging
-import caspian_surveyor.ui.custom_color_picker as custom_color_picker
-from caspian_surveyor.ui.hotkey_manager import HotkeyManager
-from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
-from caspian_surveyor.ui.body_builder import BodyDisplayController
-from caspian_surveyor.ui.data_adapter import OverlayAdapter
+from PySide6.QtGui import QFont, QFontDatabase
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -261,9 +266,8 @@ class SystemInfoOverlay(QWidget):
             QLabel#CaspianPanel {{
                 color: {caspian_color};
                 font-size: 12px;
-                font-weight: 800;
+                font-weight: bold;
                 letter-spacing: 2px;
-                font-family: Eurostile;
             }}
         """
     
@@ -275,7 +279,6 @@ class SystemInfoOverlay(QWidget):
                 font-size: 9px;
                 font-weight: bold;
                 letter-spacing: 1px;
-                font-family: Eurostile;
             }}
         """
 
@@ -545,11 +548,36 @@ class SystemInfoOverlay(QWidget):
         y = -8
         self.move(x, y)
 
+def load_application_font() -> str:
+    package_directory = Path(caspian_surveyor.__file__).resolve().parent
+    font_path = (
+        package_directory
+        / "assets"
+        / "fonts"
+        / "Electrolize-Regular.ttf"
+    )
+
+    font_id = QFontDatabase.addApplicationFont(str(font_path))
+    if font_id == -1:
+        raise RuntimeError(
+            f"Failed to load application font: {font_path}"
+        )
+
+    font_families = QFontDatabase.applicationFontFamilies(font_id)
+    if not font_families:
+        raise RuntimeError(
+            f"No font family found in: {font_path}"
+        )
+
+    return font_families[0]
+
 if __name__ == "__main__":
     logger.debug("Launching caspian surveyor HUD.")
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
+    font_family = load_application_font()
+    app.setFont(QFont(font_family))
     overlay = SystemInfoOverlay()
-    overlay.show()
+    overlay.show()  
     overlay.position_top_center()
     sys.exit(app.exec())

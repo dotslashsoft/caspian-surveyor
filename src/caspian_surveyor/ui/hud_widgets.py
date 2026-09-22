@@ -77,7 +77,6 @@ class MetricWidget(QWidget):
     def apply_colors(self) -> None:
         self.key_label.setStyleSheet(f"""
             color: {self.key_label_font_color};
-            font-family: Eurostile;
             font-size: {self.key_font_size}px;
             font-weight: 1000;
             letter-spacing: 1px;
@@ -85,7 +84,6 @@ class MetricWidget(QWidget):
 
         self.val_label.setStyleSheet(f"""
             color: {self.val_label_font_color};
-            font-family: Eurostile;
             font-size: 12px;
             font-weight: bold;
         """)
@@ -198,7 +196,6 @@ class HudFactory:
                 border-left: none;
                 border-right: none;
                 border-radius: 8px;
-                font-family: Eurostile;
             }}
         """
     

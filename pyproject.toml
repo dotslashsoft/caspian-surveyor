@@ -1,6 +1,6 @@
 [project]
 name = "caspian-surveyor"
-version = "0.9.5.0"
+version = "0.9.6.0"
 description = "An exploration companion for Elite Dangerous."
 requires-python = ">=3.10"
 
@@ -17,4 +17,10 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 include = [
     "caspian_surveyor*"
+]
+[tool.setuptools.package-data]
+caspian_surveyor = [
+    "assets/fonts/*.ttf",
+    "assets/fonts/*.otf",
+    "assets/fonts/*.txt"
 ]

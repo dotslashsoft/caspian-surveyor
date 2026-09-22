@@ -23,13 +23,11 @@ class DualColorDialog(QDialog):
                 border-radius: 8px;
                 border-left: 1px solid #004d80;
                 border-right: 1px solid #004d80;
-                font-family: Eurostile;
                 font-size: 12px;
                 color: #56cffc;
             }
             QLabel {
                 color: #e0f2fe;
-                font-family: Eurostile;
                 background-color: rgba(0, 0, 0, 220);
                 border-radius: 4px;
                 padding: 1px 2px;
@@ -41,16 +39,13 @@ class DualColorDialog(QDialog):
                 border: 1px solid #004d80;
                 border-radius: 4px;
                 padding: 1px 2px;
-                font-family: Eurostile;
             }
             QPushButton:hover {
                 background-color: #004d80;
                 border: 1px solid #0073b3;
-                font-family: Eurostile;
             }
             QPushButton:pressed {
                 background-color: #001f33;
-                font-family: Eurostile;
             }
 
             QLineEdit, QSpinBox {
@@ -59,13 +54,11 @@ class DualColorDialog(QDialog):
                 border: 1px solid #002e4d;
                 border-radius: 4px;
                 padding: 2px;
-                font-family: Eurostile;
             }
             QLineEdit:focus, QSpinBox:focus {
                 border: 1px solid #004d80;
                 border-radius: 4px;
                 padding: 2px;
-                font-family: Eurostile;
             }
         """)
 
