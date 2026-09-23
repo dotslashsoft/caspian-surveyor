@@ -15,7 +15,7 @@ from typing import Any
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 
-class SurveyState:
+class SurveyDataAggregator:
     """
     Central location for maintaining the current system survey state.
 
@@ -372,14 +372,14 @@ class SurveyState:
 
 class SurveyDataBuilder:
     """
-    Builds consumable survey-data records from the current SurveyState.
+    Builds consumable survey-data records from the current SurveyDataAggregator.
 
     Reads the current system survey state and constructs the structured
     system record used by Caspian Surveyor, including system-level data,
     derived summary statistics, and nested body records.
 
     SurveyDataBuilder does not process Elite Dangerous journal events
-    directly. Journal events are first applied to SurveyState, which this
+    directly. Journal events are first applied to SurveyDataAggregator, which this
     class then uses as the source for building output records.
     """
 
@@ -434,7 +434,7 @@ class SurveyDataBuilder:
         """
         Builds derived summary statistics for the current system survey state.
 
-        Examines the bodies stored in the current SurveyState and calculates
+        Examines the bodies stored in the current SurveyDataAggregator and calculates
         counts used by build_system_record(), such as planet classifications,
         terraformable bodies, and landable bodies.
 
@@ -547,7 +547,7 @@ class SurveyDataBuilder:
         """
         Builds an output record for a single body in the current survey state.
 
-        Transforms body data stored by SurveyState into the body-record structure
+        Transforms body data stored by SurveyDataAggregator into the body-record structure
         used by build_system_record().
 
         Args:
@@ -622,7 +622,7 @@ class StateRecovery:
     journals.
     """
     def __init__(self):
-        self.survey_state = SurveyState()
+        self.survey_data_aggregator = SurveyDataAggregator()
 
     def find_oldest_matching_journal_index(self, latest_journal_events: list[dict]) -> int:
         current_system_address = latest_journal_events[0].get("SystemAddress")
@@ -679,26 +679,26 @@ class StateRecovery:
                 continue
 
             if journal_index == oldest_matching_index:
-                self.survey_state.begin_system(journal_events[0])
+                self.survey_data_aggregator.begin_system(journal_events[0])
 
-            self.replay_system_events(self.survey_state, journal_events[1:])
-        return self.survey_state.current_system
+            self.replay_system_events(self.survey_data_aggregator, journal_events[1:])
+        return self.survey_data_aggregator.current_system
 
 
-    def replay_system_events(self, survey_state, events) -> None:
+    def replay_system_events(self, survey_data_aggregator, events) -> None:
         """
         Replays Elite Dangerous journal events into the current survey state.
 
         Called by reconstruct_system_data() to process journal events in
         chronological order. Each event is passed to process_journal_event(),
-        which applies supported event data to the supplied SurveyState instance.
+        which applies supported event data to the supplied SurveyDataAggregator instance.
 
         Args:
-            survey_state: SurveyState instance being reconstructed.
+            survey_state: SurveyDataAggregator instance being reconstructed.
             events: Parsed Elite Dangerous journal events to replay.
 
         Returns:
             None.
         """
         for event in events:
-            survey_state.process_journal_event(event)
+            survey_data_aggregator.process_journal_event(event)

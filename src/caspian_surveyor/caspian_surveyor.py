@@ -39,7 +39,7 @@ def main() -> None:
 
     During live processing, FSDJump events finalize the system being left
     and initialize the newly entered system. Other supported journal events
-    are delegated to SurveyState and cause the runtime system record to be
+    are delegated to SurveyDataAggregator and cause the runtime system record to be
     rebuilt when survey state changes.
 
     Exits with status code 2 if required journal data is unavailable,
@@ -79,11 +79,11 @@ def main() -> None:
     reconstructed_system = state_recovery.reconstruct_system_data(latest_journal_events)
 
     if reconstructed_system is None:
-        logger.critical("SurveyState system reconstruction failed: returned None. Exiting...")
+        logger.critical("SurveyDataAggregator system reconstruction failed: returned None. Exiting...")
         sys.exit(2)
 
-    survey_state = state_recovery.survey_state
-    survey_data_builder = Survey.SurveyDataBuilder(survey_state)
+    survey_data_aggregator = state_recovery.survey_data_aggregator
+    survey_data_builder = Survey.SurveyDataBuilder(survey_data_aggregator)
     data_orchestrator = cs_history.DataOrchestrator()
 
     system_record = survey_data_builder.build_system_record()
@@ -126,8 +126,8 @@ def main() -> None:
 
             if event_type == "FSDJump":
                 # Finalize the system being left.
-                logger.debug(f"Result of survey_state.current_system:\t {survey_state.current_system}")
-                if survey_state.current_system is not None:
+                logger.debug(f"Result of survey_state.current_system:\t {survey_data_aggregator.current_system}")
+                if survey_data_aggregator.current_system is not None:
                     system_record = survey_data_builder.build_system_record()
                     runtime_record_written = cs_runtime.write_current_system_record(system_record)
 
@@ -139,7 +139,7 @@ def main() -> None:
                     data_orchestrator.append_system_record_to_history_file()
 
                 # Begin the system just entered.
-                survey_state.begin_system(event)
+                survey_data_aggregator.begin_system(event)
                 system_record = survey_data_builder.build_system_record()
                 runtime_record_written = cs_runtime.write_current_system_record(system_record)
 
@@ -148,7 +148,7 @@ def main() -> None:
                     sys.exit(2)
 
             else:
-                state_updated = survey_state.process_journal_event(event)
+                state_updated = survey_data_aggregator.process_journal_event(event)
 
             if state_updated:
                 system_record = survey_data_builder.build_system_record()
