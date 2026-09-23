@@ -97,6 +97,7 @@ class CelestialBody:
     """
     body_id: int
     body_name: str
+    body_star_type: str | None = None
     body_parents: list[BodyParentInfo] = field(default_factory=list)
     body_periapsis: float | None = None
     body_landable: bool = False

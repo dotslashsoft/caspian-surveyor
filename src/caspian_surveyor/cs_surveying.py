@@ -113,18 +113,6 @@ class SurveyState:
         return True
 
     def record_body_signals(self, event) -> bool:
-        """
-        Records signals discovered from an FSS body scan for a body in the
-        current system.
-
-        Args:
-            event: Parsed Elite Dangerous journal event containing FSS body
-            signal data.
-
-        Returns:
-            True if the body signal data was applied to the current survey
-            state; otherwise False.
-        """
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
@@ -136,11 +124,23 @@ class SurveyState:
 
         body = current_system["bodies"].setdefault(body_id, {})
 
-        body["BodyID"] = body_id
-        body["BodyName"] = event.get("BodyName")
-        body["Signals"] = event.get("Signals", [])
+        body["body_id"] = body_id
+        body["body_name"] = event.get("BodyName")
+
+        body["body_signals"] = [
+            self.translate_body_signal_fields(signal)
+            for signal in event.get("Signals", [])
+        ]
 
         return True
+
+    def translate_body_signal_fields(self, signal: dict[str, Any]) -> dict[str, Any]:
+
+        return {
+            "body_signal_type": signal.get("Type", "--"),
+            "body_signal_type_localised": signal.get("Type_Localised", "--"),
+            "body_signal_count": signal.get("Count", 0),
+        }
 
     def record_body_scan(self, event) -> bool:
         """
@@ -173,7 +173,7 @@ class SurveyState:
 
         body["body_parents"] = event.get("Parents", [])
 
-        body.update(event)
+        body.update(self.translate_body_scalar_fields(event))
         return True
 
     def mark_all_bodies_found(self, event) -> bool:
@@ -215,9 +215,22 @@ class SurveyState:
             return False
 
         body = current_system["bodies"].setdefault(body_id, {})
-        body["DSSScanComplete"] = True
+
+        body["body_id"] = body_id
+
+        if "BodyName" in event:
+            body["body_name"] = event.get("BodyName")
+
+        body["body_dss_scan_complete"] = True
 
         return True
+
+    def translate_body_genus_fields(self, genus: dict[str, Any]) -> dict[str, Any]:
+
+        return {
+            "body_genus": genus.get("Genus", "--"),
+            "body_genus_localised": genus.get("Genus_Localised", "--"),
+        }
 
     def record_saa_signals(self, event) -> bool:
         """
@@ -242,10 +255,18 @@ class SurveyState:
             return False
 
         body = current_system["bodies"].setdefault(body_id, {})
-        body["BodyID"] = body_id
-        body["BodyName"] = event.get("BodyName")
-        body["Signals"] = event.get("Signals", [])
-        body["Genuses"] = event.get("Genuses", [])
+        body["body_id"] = body_id
+        body["body_name"] = event.get("BodyName")
+
+        body["body_signals"] = [
+            self.translate_body_signal_fields(signal)
+            for signal in event.get("Signals", [])
+        ]
+
+        body["body_genuses"] = [
+            self.translate_body_genus_fields(genus)
+            for genus in event.get("Genuses", [])
+        ]
 
         return True
     
@@ -318,7 +339,36 @@ class SurveyState:
 
         return False
 
+    def translate_body_scalar_fields(self, event: dict[str, Any], ) -> dict[str, Any]:
 
+        return {
+            "body_id": event.get("BodyID"),
+            "body_name": event.get("BodyName"),
+            "body_star_type": event.get("StarType"),
+            "body_planet_class": event.get("PlanetClass"),
+            "body_terraform_state": event.get("TerraformState"),
+            "body_periapsis": event.get("Periapsis"),
+            "body_surface_temperature": event.get("SurfaceTemperature"),
+            "body_was_discovered": event.get("WasDiscovered", False),
+            "body_was_mapped": event.get("WasMapped", False),
+            "body_was_footfalled": event.get("WasFootfalled", False),
+            "body_tidal_lock": event.get("TidalLock", False),
+            "body_atmosphere": event.get("Atmosphere"),
+            "body_atmosphere_type": event.get("AtmosphereType"),
+            "body_radius": event.get("Radius"),
+            "body_surface_gravity": event.get("SurfaceGravity"),
+            "body_surface_pressure": event.get("SurfacePressure"),
+            "body_semi_major_axis": event.get("SemiMajorAxis"),
+            "body_eccentricity": event.get("Eccentricity"),
+            "body_orbital_inclination": event.get("OrbitalInclination"),
+            "body_orbital_period": event.get("OrbitalPeriod"),
+            "body_ascending_node": event.get("AscendingNode"),
+            "body_mean_anomaly": event.get("MeanAnomaly"),
+            "body_rotational_period": event.get("RotationPeriod"),
+            "body_axial_tilt": event.get("AxialTilt"),
+            "body_distance_from_arrival": event.get("DistanceFromArrivalLS"),
+            "body_landable": event.get("Landable", False),
+        }
 
 class SurveyDataBuilder:
     """
@@ -367,7 +417,7 @@ class SurveyDataBuilder:
             schema_version=1,
             system=system_info,
             summary=system_summary,
-            bodies=bodies,
+            bodies = bodies,
         )
 
     def build_system_info(self, current_system: dict[str, Any]) -> SystemInfo:
@@ -410,25 +460,25 @@ class SurveyDataBuilder:
         )
 
         for body in bodies.values():
-            if body.get("StarType"):
+            if body.get("body_star_type"):
                 system_summary.system_star_count += 1
                 continue
 
-            planet_class = body.get("PlanetClass")
+            planet_class = body.get("body_planet_class")
             if planet_class is None:
-                body_name = body.get("BodyName", "")
+                body_name = body.get("body_name", "")
                 if "Belt Cluster" in body_name:
                     system_summary.system_belt_cluster_count += 1
                 else:
                     system_summary.system_unknown_scan_object_count += 1
-                    print("UNCLASSIFIED SCAN:", body.get("BodyID"), body.get("BodyName"))
+                    print("UNCLASSIFIED SCAN:", body.get("body_id"), body.get("body_name"))
                 continue
 
             system_summary.system_planet_count += 1
-            if body.get("Landable"):
+            if body.get("body_landable"):
                 system_summary.system_landable_body_count += 1
 
-            terraformable = (body.get("TerraformState") == "Terraformable")
+            terraformable = (body.get("body_terraform_state") == "Terraformable")
             if planet_class == "High metal content body":
                 system_summary.system_hmc_count += 1
 
@@ -468,16 +518,16 @@ class SurveyDataBuilder:
     def build_body_signal_record(self, body: dict[str, Any]) -> BodySignalInfo:
 
         return BodySignalInfo(
-            body_signal_type=body.get("Type", "--"),
-            body_signal_type_localised=body.get("Type_Localised", "--"),
-            body_signal_count=body.get("Count", "--")
+            body_signal_type = body.get("Type", "--"),
+            body_signal_type_localised = body.get("Type_Localised", "--"),
+            body_signal_count = body.get("Count", "--")
         )
 
     def build_body_genus_record(self, body: dict[str, Any]) -> BodyGenusInfo:
 
         return BodyGenusInfo(
-            body_genus=body.get("Genus", "--"),
-            body_genus_localised=body.get("Genus_Localised", "--")
+            body_genus = body.get("Genus", "--"),
+            body_genus_localised = body.get("Genus_Localised", "--")
         )
 
     def build_exobio_scan_record(self, exoscan: dict[str, Any]) -> ExoBioScanInfo:
@@ -506,50 +556,56 @@ class SurveyDataBuilder:
         Returns:
             The completed body-record dictionary.
         """
+        
         raw_body_materials = body.get("Materials")
-        body_signals = body.get("Signals")
-        body_genuses = body.get("Genuses")
+        body_signals = body.get("body_signals")
+        body_genuses = body.get("body_genuses")
         exobio_scans = body.get("exobio_scans")
+        
         return CelestialBody(
-            body_id=body["BodyID"],
-            body_name=body["BodyName"],
-            body_parents=[self.build_body_parent_record(parent) for parent in body.get("body_parents", [])],
-            body_planet_class=body.get("PlanetClass"),
-            body_terraform_state=body.get("TerraformState"),
+            body_id = body["body_id"],
+            body_name = body["body_name"],
+            body_star_type = body.get("body_star_type"),
+            body_parents=[
+                self.build_body_parent_record(parent)
+                for parent in body.get("body_parents", [])
+            ],
+            body_planet_class = body["body_planet_class"],
+            body_terraform_state = body["body_terraform_state"],
             body_materials=([self.build_body_material_record(material)
                                 for material in raw_body_materials]
                                 if isinstance(raw_body_materials, list)
                                 else None),
-            body_periapsis=body.get("Periapsis"),
-            body_surface_temperature=body.get("SurfaceTemperature"),
-            body_was_discovered=body.get("WasDiscovered", False),
-            body_was_mapped=body.get("WasMapped", False),
-            body_was_footfalled=body.get("WasFootfalled", False),
-            body_tidal_lock=body.get("TidalLock", False),
-            body_atmosphere=body.get("Atmosphere"),
-            body_atmosphere_type=body.get("AtmosphereType"),
-            body_radius=body.get("Radius"),
-            body_surface_gravity=body.get("SurfaceGravity"),
-            body_surface_pressure=body.get("SurfacePressure"),
-            body_semi_major_axis=body.get("SemiMajorAxis"),
-            body_eccentricity=body.get("Eccentricity"),
-            body_orbital_inclination=body.get("OrbitalInclination"),
-            body_orbital_period=body.get("OrbitalPeriod"),
-            body_ascending_node=body.get("AscendingNode"),
-            body_mean_anomaly=body.get("MeanAnomaly"),
-            body_rotational_period=body.get("RotationPeriod"),
-            body_axial_tilt=body.get("AxialTilt"),
-            body_distance_from_arrival=body.get("DistanceFromArrivalLS"),
-            body_signals=([self.build_body_signal_record(signal)
+            body_periapsis = body["body_periapsis"],
+            body_surface_temperature = body["body_surface_temperature"],
+            body_was_discovered = body["body_was_discovered"],
+            body_was_mapped = body["body_was_mapped"],
+            body_was_footfalled = body["body_was_footfalled"],
+            body_tidal_lock = body["body_tidal_lock"],
+            body_atmosphere = body["body_atmosphere"],
+            body_atmosphere_type = body["body_atmosphere_type"],
+            body_radius = body["body_radius"],
+            body_surface_gravity = body["body_surface_gravity"],
+            body_surface_pressure = body["body_surface_pressure"],
+            body_semi_major_axis = body["body_semi_major_axis"],
+            body_eccentricity = body["body_eccentricity"],
+            body_orbital_inclination = body["body_orbital_inclination"],
+            body_orbital_period = body["body_orbital_period"],
+            body_ascending_node = body["body_ascending_node"],
+            body_mean_anomaly = body["body_mean_anomaly"],
+            body_rotational_period = body["body_rotational_period"],
+            body_axial_tilt = body["body_axial_tilt"],
+            body_distance_from_arrival = body["body_distance_from_arrival"],
+            body_signals=([BodySignalInfo(**signal)
                                 for signal in body_signals]
                                 if isinstance(body_signals, list)
                                 else None),
-            body_dss_scan_complete=body.get("DSSScanComplete", False),
-            body_landable=body.get("Landable", False),
-            body_genuses=([self.build_body_genus_record(genus) 
-                                for genus in body_genuses]
+            body_dss_scan_complete = body.get("body_dss_scan_complete", False),
+            body_landable = body["body_landable"],
+            body_genuses=([BodyGenusInfo(**genus) for genus in body_genuses]
                                 if isinstance(body_genuses, list)
-                                else None),
+                                else None
+                        ),
             exobio_scans=([ExoBioScanInfo(**exoscan) for exoscan in exobio_scans]
                                 if isinstance(exobio_scans, list)
                                 else None)
