@@ -172,11 +172,17 @@ class SurveyDataAggregator:
             self.translate_body_parent_fields(parent)
             for parent in event.get("Parents", [])
         ]
-        # TODO - migrate:
-        #        SurveyDataBuilder.build_body_material_record()
-        #               to
-        #        SurveyDataAggregator.translate_body_material_fields()
-        body["body_materials"] = event.get("Materials")
+
+        if "Materials" in event:
+            raw_body_materials = event.get("Materials")
+            body["body_materials"] = (
+                [
+                    self.translate_body_material_fields(material)
+                    for material in raw_body_materials
+                ]
+                if isinstance(raw_body_materials, list)
+                else None
+            )
         return True
 
     def translate_body_parent_fields(self, parent: dict[str, Any]) -> dict[str, Any]:
@@ -184,6 +190,12 @@ class SurveyDataAggregator:
         return {
             "parent_type": parent_type,
             "parent_body_id": parent_body_id,
+        }
+
+    def translate_body_material_fields(self, material: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "material_name": material.get("Name", "--"),
+            "material_percent": material.get("Percent", 0.0)
         }
 
     def mark_all_bodies_found(self, event) -> bool:
@@ -493,37 +505,6 @@ class SurveyDataBuilder:
         return system_summary
 
 
-    def build_body_material_record(self, material: dict[str, Any]) -> BodyMaterialInfo:
-        return BodyMaterialInfo(
-            material_name=material.get("Name", "--"),
-            material_percent=material.get("Percent", 0.0)
-        )
-
-    def build_body_signal_record(self, body: dict[str, Any]) -> BodySignalInfo:
-        return BodySignalInfo(
-            body_signal_type = body.get("Type", "--"),
-            body_signal_type_localised = body.get("Type_Localised", "--"),
-            body_signal_count = body.get("Count", "--")
-        )
-
-    def build_body_genus_record(self, body: dict[str, Any]) -> BodyGenusInfo:
-        return BodyGenusInfo(
-            body_genus = body.get("Genus", "--"),
-            body_genus_localised = body.get("Genus_Localised", "--")
-        )
-
-    def build_exobio_scan_record(self, exoscan: dict[str, Any]) -> ExoBioScanInfo:
-        return ExoBioScanInfo(
-            exo_scan_type=exoscan.get("ScanType", "--"),
-            exo_genus=exoscan.get("Genus", "--"),
-            exo_genus_localised=exoscan.get("Genus_Localised", "--"),
-            exo_species=exoscan.get("Species", "--"),
-            exo_species_localised=exoscan.get("Species_Localised", "--"),
-            exo_variant=exoscan.get("Variant", "--"),
-            exo_variant_localised=exoscan.get("Variant_Localised", "--"),
-            exo_was_logged=exoscan.get("WasLogged", False)
-        )
-
     def build_body_record(self, body: dict[str, Any]) -> CelestialBody:
         """
         Builds an output record for a single body in the current survey state.
@@ -537,8 +518,7 @@ class SurveyDataBuilder:
         Returns:
             The completed body-record dictionary.
         """
-        
-        raw_body_materials = body.get("Materials")
+        body_materials = body.get("body_materials")
         body_signals = body.get("body_signals")
         body_genuses = body.get("body_genuses")
         exobio_scans = body.get("exobio_scans")
@@ -550,10 +530,11 @@ class SurveyDataBuilder:
             body_parents=[BodyParentInfo(**parent) for parent in body.get("body_parents", [])],
             body_planet_class = body["body_planet_class"],
             body_terraform_state = body["body_terraform_state"],
-            body_materials=([self.build_body_material_record(material)
-                                for material in raw_body_materials]
-                                if isinstance(raw_body_materials, list)
-                                else None),
+            body_materials=([BodyMaterialInfo(**material)
+                            for material in body_materials]
+                            if isinstance(body_materials, list)
+                            else None
+                        ),
             body_periapsis = body["body_periapsis"],
             body_surface_temperature = body["body_surface_temperature"],
             body_was_discovered = body["body_was_discovered"],
@@ -575,18 +556,22 @@ class SurveyDataBuilder:
             body_axial_tilt = body["body_axial_tilt"],
             body_distance_from_arrival = body["body_distance_from_arrival"],
             body_signals=([BodySignalInfo(**signal)
-                                for signal in body_signals]
-                                if isinstance(body_signals, list)
-                                else None),
+                            for signal in body_signals]
+                            if isinstance(body_signals, list)
+                            else None
+                        ),
             body_dss_scan_complete = body.get("body_dss_scan_complete", False),
             body_landable = body["body_landable"],
-            body_genuses=([BodyGenusInfo(**genus) for genus in body_genuses]
-                                if isinstance(body_genuses, list)
-                                else None
+            body_genuses=([BodyGenusInfo(**genus)
+                            for genus in body_genuses]
+                            if isinstance(body_genuses, list)
+                            else None
                         ),
-            exobio_scans=([ExoBioScanInfo(**exoscan) for exoscan in exobio_scans]
-                                if isinstance(exobio_scans, list)
-                                else None)
+            exobio_scans=([ExoBioScanInfo(**exoscan)
+                            for exoscan in exobio_scans]
+                            if isinstance(exobio_scans, list)
+                            else None
+                        )
         )
 
 
