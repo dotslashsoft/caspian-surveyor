@@ -1,6 +1,6 @@
 import caspian_surveyor.bootstrap.cs_log_factory as cs_log_factory
 import caspian_surveyor.cs_history as cs_history
-import caspian_surveyor.cs_surveying as Survey
+import caspian_surveyor.cs_survey_data as Survey
 import caspian_surveyor.cs_journal_toolbox as Journal
 import caspian_surveyor.runtime.cs_runtime as cs_runtime
 import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config

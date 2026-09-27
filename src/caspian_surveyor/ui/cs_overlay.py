@@ -240,7 +240,7 @@ class SystemInfoOverlay(QWidget):
         self.metric_system_planet_count = MetricWidget("PLANETS", self.ui_data.summary.system_planet_count)
         self.metric_system_elw_count = MetricWidget("ELW", self.ui_data.summary.system_earthlike_world_count)
         self.metric_system_tfww_count = MetricWidget("TFWW", self.ui_data.summary.system_tf_water_world_count)
-        self.metric_system_tfhmc_count = MetricWidget("TFHMC", self.ui_data.summary.system_hmc_count)
+        self.metric_system_tfhmc_count = MetricWidget("TFHMC", self.ui_data.summary.system_tf_hmc_count)
         self.metric_system_ww_count = MetricWidget("WW", self.ui_data.summary.system_water_world_count)
         self.metric_system_hmc_count = MetricWidget("HMC", self.ui_data.summary.system_hmc_count)
         self.metric_system_landable_count = MetricWidget("LANDABLE", self.ui_data.summary.system_landable_body_count)

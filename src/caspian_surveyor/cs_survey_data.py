@@ -15,6 +15,7 @@ from typing import Any
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
 
+
 class SurveyDataAggregator:
     """
     Central location for maintaining the current system survey state.
@@ -51,18 +52,15 @@ class SurveyDataAggregator:
         """
 
         current_system = self.current_system
-
         if current_system is None:
             return None
 
         event_address = event.get("SystemAddress")
-
         if event_address is None:
             return current_system
 
         if event_address != current_system["system_address"]:
             return None
-
         return current_system
 
     def begin_system(self, event) -> None:
@@ -79,6 +77,7 @@ class SurveyDataAggregator:
         Returns:
             None.
         """
+
         self.current_system = {
             "system_name": event.get("StarSystem"),
             "system_address": event.get("SystemAddress"),
@@ -87,7 +86,6 @@ class SurveyDataAggregator:
             "fss_complete": False,
             "bodies": {},
         }
-
         logger.info("Survey state initialized for system: %s", self.current_system["system_name"])
 
     def record_discovery_scan(self, event) -> bool:
@@ -104,12 +102,12 @@ class SurveyDataAggregator:
         Returns:
             True if the current survey state was updated; otherwise False.
         """
+
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
 
         current_system["system_body_count"] = event.get("BodyCount")
-
         return True
 
     def record_body_signals(self, event) -> bool:
@@ -123,19 +121,15 @@ class SurveyDataAggregator:
             return False
 
         body = current_system["bodies"].setdefault(body_id, {})
-
         body["body_id"] = body_id
         body["body_name"] = event.get("BodyName")
-
         body["body_signals"] = [
             self.translate_body_signal_fields(signal)
             for signal in event.get("Signals", [])
         ]
-
         return True
 
     def translate_body_signal_fields(self, signal: dict[str, Any]) -> dict[str, Any]:
-
         return {
             "body_signal_type": signal.get("Type", "--"),
             "body_signal_type_localised": signal.get("Type_Localised", "--"),
@@ -156,6 +150,7 @@ class SurveyDataAggregator:
             True if the body scan was applied to the current survey state;
             otherwise False.
         """
+        
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
@@ -168,13 +163,28 @@ class SurveyDataAggregator:
         body = current_system["bodies"].setdefault(body_id, {})
         scan_type = event.get("ScanType")
         scan_types = body.setdefault("_scan_types", [])
+
         if scan_type and scan_type not in scan_types:
             scan_types.append(scan_type)
 
-        body["body_parents"] = event.get("Parents", [])
-
         body.update(self.translate_body_scalar_fields(event))
+        body["body_parents"] = [
+            self.translate_body_parent_fields(parent)
+            for parent in event.get("Parents", [])
+        ]
+        # TODO - migrate:
+        #        SurveyDataBuilder.build_body_material_record()
+        #               to
+        #        SurveyDataAggregator.translate_body_material_fields()
+        body["body_materials"] = event.get("Materials")
         return True
+
+    def translate_body_parent_fields(self, parent: dict[str, Any]) -> dict[str, Any]:
+        parent_type, parent_body_id = next(iter(parent.items()))
+        return {
+            "parent_type": parent_type,
+            "parent_body_id": parent_body_id,
+        }
 
     def mark_all_bodies_found(self, event) -> bool:
         current_system = self._get_current_system(event)
@@ -182,10 +192,10 @@ class SurveyDataAggregator:
             return False
 
         already_complete = current_system["fss_complete"]
+
         current_system["fss_complete"] = True
         if current_system["system_body_count"] is None:
             current_system["system_body_count"] = event.get("Count")
-
         return not already_complete
 
     def record_dss_complete(self, event) -> bool:
@@ -205,28 +215,22 @@ class SurveyDataAggregator:
         """
 
         current_system = self._get_current_system(event)
-
         if current_system is None:
             return False
 
         body_id = event.get("BodyID")
-
         if body_id is None:
             return False
 
         body = current_system["bodies"].setdefault(body_id, {})
-
         body["body_id"] = body_id
-
         if "BodyName" in event:
             body["body_name"] = event.get("BodyName")
 
         body["body_dss_scan_complete"] = True
-
         return True
 
     def translate_body_genus_fields(self, genus: dict[str, Any]) -> dict[str, Any]:
-
         return {
             "body_genus": genus.get("Genus", "--"),
             "body_genus_localised": genus.get("Genus_Localised", "--"),
@@ -245,6 +249,7 @@ class SurveyDataAggregator:
             True if the SAASignalsFound was applied to the current survey state;
             otherwise False.
         """
+
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
@@ -267,17 +272,14 @@ class SurveyDataAggregator:
             self.translate_body_genus_fields(genus)
             for genus in event.get("Genuses", [])
         ]
-
         return True
     
     def record_organic_scans(self, event) -> bool:
         current_system = self._get_current_system(event)
-
         if current_system is None:
             return False
 
         body_id = event.get("Body")
-
         if body_id is None:
             logger.warning("ScanOrganic event received without Body.")
             return False
@@ -286,7 +288,6 @@ class SurveyDataAggregator:
         body["body_id"] = body_id
 
         exobio_scans = body.setdefault("exobio_scans", [])
-
         exobio_scans.append({
             "exo_scan_type": event.get("ScanType", "--"),
             "exo_genus": event.get("Genus", "--"),
@@ -297,7 +298,6 @@ class SurveyDataAggregator:
             "exo_variant_localised": event.get("Variant_Localised", "--"),
             "exo_was_logged": event.get("WasLogged", False),
         })
-
         return True
 
     def process_journal_event(self, event) -> bool:
@@ -314,8 +314,8 @@ class SurveyDataAggregator:
         Returns:
             bool: True if the event updated survey state; otherwise False.
         """
-        event_type = event.get("event")
 
+        event_type = event.get("event")
         if event_type == "FSSDiscoveryScan":
             return self.record_discovery_scan(event)
 
@@ -336,11 +336,9 @@ class SurveyDataAggregator:
 
         elif event_type == "FSSAllBodiesFound":
             return self.mark_all_bodies_found(event)
-
         return False
 
-    def translate_body_scalar_fields(self, event: dict[str, Any], ) -> dict[str, Any]:
-
+    def translate_body_scalar_fields(self, event: dict[str, Any]) -> dict[str, Any]:
         return {
             "body_id": event.get("BodyID"),
             "body_name": event.get("BodyName"),
@@ -370,6 +368,7 @@ class SurveyDataAggregator:
             "body_landable": event.get("Landable", False),
         }
 
+
 class SurveyDataBuilder:
     """
     Builds consumable survey-data records from the current SurveyDataAggregator.
@@ -383,10 +382,8 @@ class SurveyDataBuilder:
     class then uses as the source for building output records.
     """
 
-
-    def __init__(self, survey_state):
-        self.survey_state = survey_state
-
+    def __init__(self, survey_data_aggregator):
+        self.survey_data_aggregator = survey_data_aggregator
 
     def build_system_record(self) -> FullStarSystemPayload | None:
         """
@@ -400,16 +397,16 @@ class SurveyDataBuilder:
             The completed current-system record, or None if no current system
             survey state exists.
 
-        """ 
-        current_system = self.survey_state.current_system
-
+        """
+        
+        current_system = self.survey_data_aggregator.current_system
         if current_system is None:
             return None
         
         system_info = self.build_system_info(current_system)
         system_summary = self.build_system_summary(current_system)
+        
         bodies = {}
-
         for body_id, body in current_system["bodies"].items():
             bodies[body_id] = self.build_body_record(body)
 
@@ -417,18 +414,16 @@ class SurveyDataBuilder:
             schema_version=1,
             system=system_info,
             summary=system_summary,
-            bodies = bodies,
+            bodies = bodies
         )
 
     def build_system_info(self, current_system: dict[str, Any]) -> SystemInfo:
-        
         return SystemInfo(
             system_name=current_system["system_name"],
             system_address=current_system["system_address"],
             system_position=current_system["system_position"],
             system_body_count=current_system["system_body_count"],
         )
-
 
     def build_system_summary(self, current_system: dict[str, Any]) -> SystemSummaryInfo:
         """
@@ -441,9 +436,9 @@ class SurveyDataBuilder:
         Returns:
             The completed system-summary dictionary, or None if no current
             system survey state exists.
-        """    
+        """
+        
         bodies = current_system["bodies"]
-
         system_summary = SystemSummaryInfo(
             system_scan_record_count=len(bodies),
             system_star_count=0,
@@ -481,13 +476,11 @@ class SurveyDataBuilder:
             terraformable = (body.get("body_terraform_state") == "Terraformable")
             if planet_class == "High metal content body":
                 system_summary.system_hmc_count += 1
-
                 if terraformable:
                     system_summary.system_tf_hmc_count += 1
 
             elif planet_class == "Water world":
                 system_summary.system_water_world_count += 1
-
                 if terraformable:
                     system_summary.system_tf_water_world_count += 1
 
@@ -499,24 +492,14 @@ class SurveyDataBuilder:
 
         return system_summary
 
-    def build_body_parent_record(self, parent: dict[str, int]) -> BodyParentInfo:
-
-        parent_type, parent_body_id = next(iter(parent.items()))
-
-        return BodyParentInfo(
-            parent_type=parent_type,
-            parent_body_id=parent_body_id
-        )
 
     def build_body_material_record(self, material: dict[str, Any]) -> BodyMaterialInfo:
-
         return BodyMaterialInfo(
             material_name=material.get("Name", "--"),
             material_percent=material.get("Percent", 0.0)
         )
 
     def build_body_signal_record(self, body: dict[str, Any]) -> BodySignalInfo:
-
         return BodySignalInfo(
             body_signal_type = body.get("Type", "--"),
             body_signal_type_localised = body.get("Type_Localised", "--"),
@@ -524,14 +507,12 @@ class SurveyDataBuilder:
         )
 
     def build_body_genus_record(self, body: dict[str, Any]) -> BodyGenusInfo:
-
         return BodyGenusInfo(
             body_genus = body.get("Genus", "--"),
             body_genus_localised = body.get("Genus_Localised", "--")
         )
 
     def build_exobio_scan_record(self, exoscan: dict[str, Any]) -> ExoBioScanInfo:
-
         return ExoBioScanInfo(
             exo_scan_type=exoscan.get("ScanType", "--"),
             exo_genus=exoscan.get("Genus", "--"),
@@ -566,10 +547,7 @@ class SurveyDataBuilder:
             body_id = body["body_id"],
             body_name = body["body_name"],
             body_star_type = body.get("body_star_type"),
-            body_parents=[
-                self.build_body_parent_record(parent)
-                for parent in body.get("body_parents", [])
-            ],
+            body_parents=[BodyParentInfo(**parent) for parent in body.get("body_parents", [])],
             body_planet_class = body["body_planet_class"],
             body_terraform_state = body["body_terraform_state"],
             body_materials=([self.build_body_material_record(material)
@@ -611,6 +589,7 @@ class SurveyDataBuilder:
                                 else None)
         )
 
+
 class StateRecovery:
     """
     Reconstructs the current system survey state from Elite Dangerous
@@ -621,12 +600,12 @@ class StateRecovery:
     journal events forward chronologically through subsequent matching
     journals.
     """
+
     def __init__(self):
         self.survey_data_aggregator = SurveyDataAggregator()
 
     def find_oldest_matching_journal_index(self, latest_journal_events: list[dict]) -> int:
         current_system_address = latest_journal_events[0].get("SystemAddress")
-
         oldest_matching_index = 0
         journal_index = 1
 
@@ -646,7 +625,6 @@ class StateRecovery:
 
             oldest_matching_index = journal_index
             journal_index += 1
-
         return oldest_matching_index
 
     def reconstruct_system_data(self, latest_journal_events)-> dict[str, Any] | None:
@@ -662,6 +640,7 @@ class StateRecovery:
         Returns:
             reconstructed current system state as dict
         """
+
         if not latest_journal_events:
             return None
 
@@ -684,7 +663,6 @@ class StateRecovery:
             self.replay_system_events(self.survey_data_aggregator, journal_events[1:])
         return self.survey_data_aggregator.current_system
 
-
     def replay_system_events(self, survey_data_aggregator, events) -> None:
         """
         Replays Elite Dangerous journal events into the current survey state.
@@ -694,11 +672,12 @@ class StateRecovery:
         which applies supported event data to the supplied SurveyDataAggregator instance.
 
         Args:
-            survey_state: SurveyDataAggregator instance being reconstructed.
+            survey_data_aggregator: SurveyDataAggregator instance being reconstructed.
             events: Parsed Elite Dangerous journal events to replay.
 
         Returns:
             None.
         """
+
         for event in events:
             survey_data_aggregator.process_journal_event(event)
