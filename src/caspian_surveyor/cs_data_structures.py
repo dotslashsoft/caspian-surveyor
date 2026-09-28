@@ -62,6 +62,7 @@ class ExoBioScanInfo:
     """
     Represents an exobiology scan record for a planetary body.
     """
+    exo_scan_timestamp: int | None
     exo_scan_type: str
     exo_genus: str
     exo_genus_localised: str
@@ -134,10 +135,6 @@ class CelestialBody:
         """
         Converts raw material and signal dictionaries into their corresponding
         dataclass representations.
-
-        TODO:
-            Convert raw genus and organic-scan dictionaries into BodyGenusInfo and
-            ExoBioScanInfo instances when exobiology data integration is completed.
         """
         if isinstance(self.body_materials, list):
             self.body_materials = [
@@ -180,6 +177,7 @@ class CelestialBody:
         if isinstance(self.exobio_scans, list):
             self.exobio_scans = [
                 ExoBioScanInfo(
+                    exo_scan_timestamp=scan.get("exo_scan_timestamp", None),
                     exo_scan_type=scan.get("exo_scan_type", "--"),
                     exo_genus=scan.get("exo_genus", "--"),
                     exo_genus_localised=scan.get("exo_genus_localised", "--"),

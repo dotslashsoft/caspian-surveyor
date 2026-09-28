@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import caspian_surveyor.cs_journal_toolbox as Journal
 from caspian_surveyor.cs_data_structures import (
@@ -285,6 +286,10 @@ class SurveyDataAggregator:
             for genus in event.get("Genuses", [])
         ]
         return True
+
+    def translate_organic_scan_timestamp(self, timestamp) -> int:
+        epoch_format = int(datetime.timestamp(datetime.fromisoformat(timestamp)))
+        return epoch_format
     
     def record_organic_scans(self, event) -> bool:
         current_system = self._get_current_system(event)
@@ -300,7 +305,15 @@ class SurveyDataAggregator:
         body["body_id"] = body_id
 
         exobio_scans = body.setdefault("exobio_scans", [])
+
+        exo_scan_iso_timestamp = event.get("timestamp", None)
+        if exo_scan_iso_timestamp is None:
+            exo_scan_timestamp = None
+        else:
+            exo_scan_timestamp = self.translate_organic_scan_timestamp(exo_scan_iso_timestamp)
+
         exobio_scans.append({
+            "exo_scan_timestamp": exo_scan_timestamp,
             "exo_scan_type": event.get("ScanType", "--"),
             "exo_genus": event.get("Genus", "--"),
             "exo_genus_localised": event.get("Genus_Localised", "--"),
