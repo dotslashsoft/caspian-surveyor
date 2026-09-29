@@ -1,13 +1,12 @@
 import json
 import logging
-import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
+from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
 from pathlib import Path
 import queue
 
 
 ### ### ### ### ### ### ### ### ### ### ### ###
 logger = logging.getLogger(__name__)
-JOURNAL_DIRECTORY = cs_baseline_config.JOURNAL_DIRECTORY
 
 class JournalReader:
     """

@@ -1,32 +1,15 @@
 import json
-import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
 import caspian_surveyor.cs_data_structures as cs_data_structures
+from caspian_surveyor.bootstrap.cs_baseline_config import (
+    RUNTIME_DIRECTORY, 
+    CURRENT_SYSTEM_FILE, 
+    TEMP_SYSTEM_FILE
+)
 import logging
 from dataclasses import asdict
 
 logger = logging.getLogger(__name__)
 
-APPLICATION_DATA_DIRECTORY = cs_baseline_config.APPLICATION_DATA_DIRECTORY
-RUNTIME_DIRECTORY = cs_baseline_config.RUNTIME_DIRECTORY
-"""
-Path: runtime directory where current_system.json lives.
-"""
-
-CURRENT_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.json"
-"""
-JSON formatted file that holds current system data.
-
-Path: current_system.json file
-"""
-
-TEMP_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.tmp"
-"""
-JSON formatted temporary file that holds current system data.
-Used temporarily to so the current system JSON file can be
-atomically overwritten.
-
-Path: current_system.tmp file
-"""
 ##############################
 
 def system_record_encoder(system_record: cs_data_structures.FullStarSystemPayload) -> dict:

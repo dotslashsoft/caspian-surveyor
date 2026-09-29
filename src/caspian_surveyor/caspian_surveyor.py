@@ -3,7 +3,7 @@ import caspian_surveyor.cs_history as cs_history
 import caspian_surveyor.cs_survey_data as Survey
 import caspian_surveyor.cs_journal_toolbox as Journal
 import caspian_surveyor.runtime.cs_runtime as cs_runtime
-import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
+from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
 import threading
 import logging
 import sys
@@ -112,7 +112,7 @@ def main() -> None:
     shutdown_event = threading.Event()
     journal_monitor_thread = threading.Thread(
         target=journal_reader.heal_monitor_journal_directory,
-        args=(cs_baseline_config.JOURNAL_DIRECTORY, fatal_error_event, shutdown_event)
+        args=(JOURNAL_DIRECTORY, fatal_error_event, shutdown_event)
     )
     try:
         journal_monitor_thread.start()

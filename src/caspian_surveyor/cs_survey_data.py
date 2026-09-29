@@ -541,40 +541,40 @@ class SurveyDataBuilder:
             body_name = body["body_name"],
             body_star_type = body.get("body_star_type"),
             body_parents=[BodyParentInfo(**parent) for parent in body.get("body_parents", [])],
-            body_planet_class = body["body_planet_class"],
-            body_terraform_state = body["body_terraform_state"],
+            body_planet_class = body.get("body_planet_class"),
+            body_terraform_state = body.get("body_terraform_state"),
             body_materials=([BodyMaterialInfo(**material)
                             for material in body_materials]
                             if isinstance(body_materials, list)
                             else None
                         ),
-            body_periapsis = body["body_periapsis"],
-            body_surface_temperature = body["body_surface_temperature"],
-            body_was_discovered = body["body_was_discovered"],
-            body_was_mapped = body["body_was_mapped"],
-            body_was_footfalled = body["body_was_footfalled"],
-            body_tidal_lock = body["body_tidal_lock"],
-            body_atmosphere = body["body_atmosphere"],
-            body_atmosphere_type = body["body_atmosphere_type"],
-            body_radius = body["body_radius"],
-            body_surface_gravity = body["body_surface_gravity"],
-            body_surface_pressure = body["body_surface_pressure"],
-            body_semi_major_axis = body["body_semi_major_axis"],
-            body_eccentricity = body["body_eccentricity"],
-            body_orbital_inclination = body["body_orbital_inclination"],
-            body_orbital_period = body["body_orbital_period"],
-            body_ascending_node = body["body_ascending_node"],
-            body_mean_anomaly = body["body_mean_anomaly"],
-            body_rotational_period = body["body_rotational_period"],
-            body_axial_tilt = body["body_axial_tilt"],
-            body_distance_from_arrival = body["body_distance_from_arrival"],
+            body_periapsis = body.get("body_periapsis"),
+            body_surface_temperature = body.get("body_surface_temperature"),
+            body_was_discovered = body.get("body_was_discovered", False),
+            body_was_mapped = body.get("body_was_mapped", False),
+            body_was_footfalled = body.get("body_was_footfalled", False),
+            body_tidal_lock = body.get("body_tidal_lock", False),
+            body_atmosphere = body.get("body_atmosphere"),
+            body_atmosphere_type = body.get("body_atmosphere_type"),
+            body_radius = body.get("body_radius"),
+            body_surface_gravity = body.get("body_surface_gravity"),
+            body_surface_pressure = body.get("body_surface_pressure"),
+            body_semi_major_axis = body.get("body_semi_major_axis"),
+            body_eccentricity = body.get("body_eccentricity"),
+            body_orbital_inclination = body.get("body_orbital_inclination"),
+            body_orbital_period = body.get("body_orbital_period"),
+            body_ascending_node = body.get("body_ascending_node"),
+            body_mean_anomaly = body.get("body_mean_anomaly"),
+            body_rotational_period = body.get("body_rotational_period"),
+            body_axial_tilt = body.get("body_axial_tilt"),
+            body_distance_from_arrival = body.get("body_distance_from_arrival"),
             body_signals=([BodySignalInfo(**signal)
                             for signal in body_signals]
                             if isinstance(body_signals, list)
                             else None
                         ),
             body_dss_scan_complete = body.get("body_dss_scan_complete", False),
-            body_landable = body["body_landable"],
+            body_landable = body.get("body_landable", False),
             body_genuses=([BodyGenusInfo(**genus)
                             for genus in body_genuses]
                             if isinstance(body_genuses, list)

@@ -1,12 +1,11 @@
 import json
-import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
+from caspian_surveyor.bootstrap.cs_baseline_config import (
+    EXPLORATION_HISTORY_FILE,
+    CURRENT_SYSTEM_FILE
+)
 import logging
 
 logger = logging.getLogger(__name__)
-
-EXPLORATION_HISTORY_FILE = cs_baseline_config.APPLICATION_DATA_DIRECTORY / "data" / "exploration_history.jsonl"
-CURRENT_SYSTEM_FILE = cs_baseline_config.APPLICATION_DATA_DIRECTORY / "runtime" / "current_system.json"
-
 
 class DataOrchestrator:
     """

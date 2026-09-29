@@ -1,5 +1,5 @@
 import logging
-import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
+from caspian_surveyor.bootstrap.cs_baseline_config import LOG_DIRECTORY
 from pathlib import Path
 from datetime import datetime
 import sys
@@ -13,10 +13,6 @@ class LogManager:
     Creates the logging directory, generates a timestamped log filename,
     and applies the default logging configuration.
     """
-    ### 
-    APPLICATION_DATA_DIRECTORY = cs_baseline_config.APPLICATION_DATA_DIRECTORY
-    DEFAULT_LOG_DIR = APPLICATION_DATA_DIRECTORY / "logs"
-    """Dude, it's in the name. just...read the fucking constant."""
 
     ###
     DEFAULT_LOG_LEVEL = logging.DEBUG
@@ -26,7 +22,7 @@ class LogManager:
     TODO: change from static to user facing setting. Even though DEBUG is BEST LOGGING.
     """
 
-    def __init__(self, log_dir=DEFAULT_LOG_DIR) -> None:
+    def __init__(self, log_dir=LOG_DIRECTORY) -> None:
         """
         Initializes logging paths and filename information.
 
