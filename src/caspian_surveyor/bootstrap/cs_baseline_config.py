@@ -12,14 +12,21 @@ DATA_DIRECTORY = APPLICATION_DATA_DIRECTORY / "data"
 DATABASE_DIRECTORY = DATA_DIRECTORY / "db"
 LOG_DIRECTORY = APPLICATION_DATA_DIRECTORY / "logs"
 
-# file pathing
+# mutable user data file pathing
 EXPLORATION_HISTORY_FILE = DATA_DIRECTORY / "exploration_history.jsonl"
 CURRENT_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.json"
 TEMP_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.tmp"
 DATABASE_FILE = DATABASE_DIRECTORY / "caspian_surveyor.db"
+
+# immutable caspian file pathing
+CASPIAN_ROOT = Path(__file__).resolve().parents[1]
+DATABASE_SCHEMA = CASPIAN_ROOT / "db" / "schema.sql"
 
 #FDev specific pathing
 JOURNAL_DIRECTORY = (Path.home() / "Saved Games" / "Frontier Developments" / "Elite Dangerous")
 """
 Path to the Elite Dangerous journal directory.
 """
+
+if __name__ == "__main__":
+    print(CASPIAN_ROOT)
