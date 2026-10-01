@@ -59,13 +59,15 @@ def main() -> None:
     survey_data_aggregator = state_recovery.survey_data_aggregator
     survey_data_builder = Survey.SurveyDataBuilder(survey_data_aggregator)
     data_orchestrator = cs_history.DataOrchestrator()
+
+    system_record = survey_data_builder.build_system_record()
     
     sql_adapter = SqliteDataAdapter()
     conn = sql_adapter.establish_db_connection()
     sql_adapter.initialize_schema(conn)
+    sql_adapter.insert_current_system_record(conn, system_record)
     sql_adapter.close_db_connection(conn)
 
-    system_record = survey_data_builder.build_system_record()
 
     try:
         runtime_record_written = cs_runtime.write_current_system_record(system_record)
@@ -114,12 +116,12 @@ def main() -> None:
                         logger.critical("Current-system runtime record was not written. Exiting...")
                         sys.exit(2)
 
-                    # --- sqlite insert system info
-                    conn = sql_adapter.establish_db_connection()
-                    try:
-                        sql_adapter.insert_current_system_record(conn, system_record)
-                    finally:
-                        sql_adapter.close_db_connection(conn)
+                    # # --- sqlite insert system info
+                    # conn = sql_adapter.establish_db_connection()
+                    # try:
+                    #     sql_adapter.insert_current_system_record(conn, system_record)
+                    # finally:
+                    #     sql_adapter.close_db_connection(conn)
 
                     data_orchestrator.load_current_system_data_to_dict()
                     data_orchestrator.append_system_record_to_history_file()
