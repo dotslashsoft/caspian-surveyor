@@ -17,6 +17,7 @@ EXPLORATION_HISTORY_FILE = DATA_DIRECTORY / "exploration_history.jsonl"
 CURRENT_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.json"
 TEMP_SYSTEM_FILE = RUNTIME_DIRECTORY / "current_system.tmp"
 DATABASE_FILE = DATABASE_DIRECTORY / "caspian_surveyor.db"
+TESTDEV_DATABASE_FILE = DATABASE_DIRECTORY / "caspian_surveyor_testdev.db"
 
 # immutable caspian file pathing
 CASPIAN_ROOT = Path(__file__).resolve().parents[1]

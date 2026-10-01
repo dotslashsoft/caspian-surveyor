@@ -4,6 +4,7 @@ import caspian_surveyor.cs_survey_data as Survey
 import caspian_surveyor.cs_journal_toolbox as Journal
 import caspian_surveyor.runtime.cs_runtime as cs_runtime
 from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
+from caspian_surveyor.db.database_adapter import SqliteDataAdapter
 import threading
 import logging
 import sys
@@ -85,8 +86,13 @@ def main() -> None:
     survey_data_aggregator = state_recovery.survey_data_aggregator
     survey_data_builder = Survey.SurveyDataBuilder(survey_data_aggregator)
     data_orchestrator = cs_history.DataOrchestrator()
+    sql_adapter = SqliteDataAdapter()
 
     system_record = survey_data_builder.build_system_record()
+    conn = sql_adapter.establish_db_connection()
+    sql_adapter.initialize_schema(conn)
+    sql_adapter.insert_current_system_record(conn, system_record)
+    
 
     try:
         runtime_record_written = cs_runtime.write_current_system_record(system_record)
