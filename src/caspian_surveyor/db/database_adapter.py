@@ -65,11 +65,13 @@ class SqliteDataAdapter:
                 system_dict["position_z"] = position[2]
                 cursor.execute(
                     """
-                    INSERT INTO systems (system_name, system_address, position_x, position_y, position_z)
-                    VALUES (:system_name, :system_address, :position_x, :position_y, :position_z)
+                    INSERT INTO systems (system_name, system_address, system_body_count, position_x, position_y, position_z)
+                    VALUES (:system_name, :system_address, :system_body_count, :position_x, :position_y, :position_z)
                     """, 
                     system_dict
                 )
+
+                
 
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
@@ -93,7 +95,6 @@ class SqliteDataAdapter:
             raise
 
     def close_db_connection(self, connection):
-        cursor = connection.cursor()
         connection.close()
 
 
@@ -102,4 +103,3 @@ if __name__ == "__main__":
     conn = adapter.establish_db_connection()
     adapter.initialize_schema(conn)
     adapter.query_db(conn)
-    

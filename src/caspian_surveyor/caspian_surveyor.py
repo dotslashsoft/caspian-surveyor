@@ -20,33 +20,6 @@ logger = logging.getLogger(__name__)
 #################################
 
 def main() -> None:
-    """
-    The final boss.
-
-    Runs the primary Caspian Surveyor application workflow from startup
-    through live journal monitoring:
-
-        - establishes logging configuration
-        - locates the latest Elite Dangerous journal
-            - exits with status code 2 if no journal is available
-        - retrieves the starting events required for state reconstruction
-        - creates StateRecovery and reconstructs the current survey state
-        - initializes survey-data and history-management components
-        - writes the reconstructed current-system record before live 
-            monitoring begins
-        - creates the fatal-error signaling event
-        - starts the journal-directory monitoring thread
-        - follows and processes live journal events
-
-    During live processing, FSDJump events finalize the system being left
-    and initialize the newly entered system. Other supported journal events
-    are delegated to SurveyDataAggregator and cause the runtime system record to be
-    rebuilt when survey state changes.
-
-    Exits with status code 2 if required journal data is unavailable,
-    system reconstruction fails, runtime persistence fails, or journal
-    monitoring reaches a fatal failure.
-    """
     shutdown_event = threading.Event()
 
     def request_shutdown() -> None:
@@ -86,13 +59,13 @@ def main() -> None:
     survey_data_aggregator = state_recovery.survey_data_aggregator
     survey_data_builder = Survey.SurveyDataBuilder(survey_data_aggregator)
     data_orchestrator = cs_history.DataOrchestrator()
+    
     sql_adapter = SqliteDataAdapter()
-
-    system_record = survey_data_builder.build_system_record()
     conn = sql_adapter.establish_db_connection()
     sql_adapter.initialize_schema(conn)
-    sql_adapter.insert_current_system_record(conn, system_record)
-    
+    sql_adapter.close_db_connection(conn)
+
+    system_record = survey_data_builder.build_system_record()
 
     try:
         runtime_record_written = cs_runtime.write_current_system_record(system_record)
@@ -140,6 +113,13 @@ def main() -> None:
                     if not runtime_record_written:
                         logger.critical("Current-system runtime record was not written. Exiting...")
                         sys.exit(2)
+
+                    # --- sqlite insert system info
+                    conn = sql_adapter.establish_db_connection()
+                    try:
+                        sql_adapter.insert_current_system_record(conn, system_record)
+                    finally:
+                        sql_adapter.close_db_connection(conn)
 
                     data_orchestrator.load_current_system_data_to_dict()
                     data_orchestrator.append_system_record_to_history_file()

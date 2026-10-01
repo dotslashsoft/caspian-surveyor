@@ -14,6 +14,7 @@ class SystemInfo:
     system_position: list[float] = field(default_factory=list)
     system_body_count: int = 0
 
+
 @dataclass
 class SystemSummaryInfo:
     """
@@ -32,6 +33,7 @@ class SystemSummaryInfo:
     system_earthlike_world_count: int
     system_ammonia_world_count: int
 
+
 @dataclass
 class SystemSignalInfo:
     """
@@ -39,6 +41,7 @@ class SystemSignalInfo:
     """
     system_signal_name: str
     system_signal_name_localised: str
+
 
 @dataclass
 class BodyMaterialInfo:
@@ -48,6 +51,7 @@ class BodyMaterialInfo:
     material_name: str
     material_percent: float
 
+
 @dataclass
 class BodySignalInfo:
     """
@@ -56,6 +60,7 @@ class BodySignalInfo:
     body_signal_type: str
     body_signal_type_localised: str
     body_signal_count: int
+
 
 @dataclass
 class ExoBioScanInfo:
@@ -71,6 +76,7 @@ class ExoBioScanInfo:
     exo_variant: str
     exo_variant_localised: str
     exo_was_logged: bool
+
 
 @dataclass
 class BodyGenusInfo:
@@ -128,7 +134,6 @@ class CelestialBody:
     body_dss_scan_complete: bool = False
     body_genuses: list[BodyGenusInfo] | None = None
     exobio_scans: list[ExoBioScanInfo] | None = None
-
 
 
     def __post_init__(self) -> None:
