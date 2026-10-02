@@ -98,10 +98,10 @@ CREATE TABLE IF NOT EXISTS body_detected_genuses (
 );
 
 CREATE TABLE IF NOT EXISTS body_exobio_scans (
-    database_exobio_scan_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    database_exobio_scan_id INTEGER PRIMARY KEY,
     database_body_id        INTEGER NOT NULL,
     scan_type               TEXT NOT NULL,
-    scan_timestamp          INTEGER,
+    scan_timestamp          INTEGER NOT NULL,
     genus                   TEXT,
     genus_localised         TEXT,
     species                 TEXT,
@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS body_exobio_scans (
     variant                 TEXT,
     variant_localised       TEXT,
     was_logged              INTEGER,
+    UNIQUE (database_body_id, scan_type, scan_timestamp),
     FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );

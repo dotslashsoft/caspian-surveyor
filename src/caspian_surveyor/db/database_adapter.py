@@ -37,6 +37,17 @@ class SqliteDataAdapter:
             schema = file.read()
         connection.executescript(schema)
 
+    def _insert_body_child_records(self, cursor, records, database_body_id, insert_sql) -> None:
+        if records is None:
+            return
+
+        for record_obj in records:
+            record_dict = asdict(record_obj)
+            record_dict["database_body_id"] = database_body_id
+
+            cursor.execute(insert_sql, record_dict)
+
+
     def insert_current_system_record(self, connection, full_system_data: FullStarSystemPayload):
         cursor = connection.cursor()
         try:
@@ -55,47 +66,25 @@ class SqliteDataAdapter:
                 for body_obj in full_system_data.bodies.values():
                     body_dict = asdict(body_obj)
                     body_dict["system_id"] = database_system_id
-
                     cursor.execute(BODY_INSERT_SQL, body_dict)
 
                     database_body_id = cursor.lastrowid
-                    
+                    # special-case parent relationship
                     for parent_order, parent in enumerate(body_obj.body_parents):
                         parent_dict = asdict(parent)
-
                         parent_dict["database_body_id"] = database_body_id
                         parent_dict["parent_order"] = parent_order
-
                         cursor.execute(BODY_PARENTS_INSERT_SQL, parent_dict)
 
-                    if body_obj.body_materials is not None:
-                        for material_obj in body_obj.body_materials:
-                            material_dict = asdict(material_obj)
-                            material_dict["database_body_id"] = database_body_id
-
-                            cursor.execute(BODY_MATERIALS_INSERT_SQL, material_dict)
-
+                    # one-to-one physorb
                     body_dict["database_body_id"] = database_body_id
                     cursor.execute(BODY_PHYSORB_INSERT_SQL, body_dict)
 
-                    if body_obj.body_signals is not None:
-                        for body_signal_obj in body_obj.body_signals:
-                            body_signal_dict = asdict(body_signal_obj)
-                            body_signal_dict["database_body_id"] = database_body_id
-                            cursor.execute(BODY_SIGNALS_INSERT_SQL, body_signal_dict)
-
-                    if body_obj.body_genuses is not None:
-                        for body_genus_obj in body_obj.body_genuses:
-                            body_genus_dict = asdict(body_genus_obj)
-                            body_genus_dict["database_body_id"] = database_body_id
-                            cursor.execute(BODY_DETECTED_GENUSES_INSERT_SQL, body_genus_dict)
-
-                    if body_obj.exobio_scans is not None:
-                        for exobio_obj in body_obj.exobio_scans:
-                            exobio_dict = asdict(exobio_obj)
-                            exobio_dict["database_body_id"] = database_body_id
-                            cursor.execute(BODY_EXOBIO_SCANS_INSERT_SQL, exobio_dict)
-
+                    # repeating child collections
+                    self._insert_body_child_records(cursor, body_obj.body_materials, database_body_id, BODY_MATERIALS_INSERT_SQL)
+                    self._insert_body_child_records(cursor, body_obj.body_signals, database_body_id, BODY_SIGNALS_INSERT_SQL)
+                    self._insert_body_child_records(cursor, body_obj.body_genuses, database_body_id, BODY_DETECTED_GENUSES_INSERT_SQL)
+                    self._insert_body_child_records(cursor, body_obj.exobio_scans, database_body_id, BODY_EXOBIO_SCANS_INSERT_SQL)
 
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
@@ -277,5 +266,5 @@ if __name__ == "__main__":
     adapter = SqliteDataAdapter()
     conn = adapter.establish_db_connection()
     adapter.initialize_schema(conn)
-    adapter.query_body_exobio_scans(conn)
+    adapter.query_body_exobio_scans(conn)   
     adapter.close_db_connection(conn)
