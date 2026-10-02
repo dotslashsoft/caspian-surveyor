@@ -61,11 +61,13 @@ def main() -> None:
     data_orchestrator = cs_history.DataOrchestrator()
 
     system_record = survey_data_builder.build_system_record()
-    
+
     sql_adapter = SqliteDataAdapter()
     conn = sql_adapter.establish_db_connection()
     sql_adapter.initialize_schema(conn)
-    sql_adapter.insert_current_system_record(conn, system_record)
+    if system_record is not None:
+        sql_adapter.insert_current_system_record(conn, system_record)
+        
     sql_adapter.close_db_connection(conn)
 
 

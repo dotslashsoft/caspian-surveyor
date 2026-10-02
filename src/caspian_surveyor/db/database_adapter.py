@@ -2,13 +2,10 @@ import sqlite3
 import logging
 from dataclasses import asdict
 from pprint import pprint
-from caspian_surveyor.cs_data_structures import (
-    FullStarSystemPayload,
-    CelestialBody
-)
+from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 from caspian_surveyor.bootstrap.cs_baseline_config import (
     DATABASE_SCHEMA,
-    TESTDEV_DATABASE_FILE,
+    TESTDEV_DATABASE_FILE
 )
 logger = logging.getLogger(__name__)
 
@@ -86,6 +83,57 @@ VALUES (
 )
 """
 
+BODY_MATERIALS_INSERT_SQL = \
+"""
+INSERT INTO body_materials (
+    database_body_id,
+    material_name,
+    material_percentage
+)
+VALUES (
+    :database_body_id,
+    :material_name,
+    :material_percent
+)
+"""
+
+BODY_PHYSORB_INSERT_SQL = \
+"""
+INSERT INTO body_physical_orbital_properties (
+    database_body_id,
+    radius,
+    surface_gravity,
+    surface_pressure,
+    surface_temperature,
+    semi_major_axis,
+    eccentricity,
+    orbital_inclination,
+    orbital_period,
+    ascending_node,
+    mean_anomaly,
+    rotational_period,
+    axial_tilt,
+    periapsis
+)
+VALUES (
+    :database_body_id,
+    :body_radius,
+    :body_surface_gravity,
+    :body_surface_pressure,
+    :body_surface_temperature,
+    :body_semi_major_axis,
+    :body_eccentricity,
+    :body_orbital_inclination,
+    :body_orbital_period,
+    :body_ascending_node,
+    :body_mean_anomaly,
+    :body_rotational_period,
+    :body_axial_tilt,
+    :body_periapsis
+)
+"""
+
+
 class SqliteDataAdapter:
 
     def __init__(self) -> None:
@@ -138,29 +186,10 @@ class SqliteDataAdapter:
                             material_dict = asdict(material_obj)
                             material_dict["database_body_id"] = database_body_id
 
-                            cursor.execute("""
-                                INSERT INTO body_materials (
-                                    database_body_id,
-                                    material_name,
-                                    material_percentage
-                                )
-                                VALUES (
-                                    :database_body_id,
-                                    :material_name,
-                                    :material_percent
-                                )
-                                """, material_dict
-                            )
+                            cursor.execute(BODY_MATERIALS_INSERT_SQL, material_dict)
 
-                # CREATE TABLE IF NOT EXISTS body_materials (
-                # database_body_id     INTEGER NOT NULL,
-                # material_name        TEXT NOT NULL,
-                # material_percentage  REAL NOT NULL,
-                # PRIMARY KEY (database_body_id, material_name),
-                # FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
-                #     ON DELETE NO ACTION ON UPDATE NO ACTION
-
-
+                    body_dict["database_body_id"] = database_body_id
+                    cursor.execute(BODY_PHYSORB_INSERT_SQL, body_dict)
 
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
@@ -191,7 +220,9 @@ class SqliteDataAdapter:
                     """
                     SELECT DISTINCT
                         bodies.database_body_id,
-                        bodies.body_name
+                        bodies.body_name,
+                        body_materials.material_name,
+                        body_materials.material_percentage
                     FROM bodies
                     JOIN body_materials
                         ON bodies.database_body_id = body_materials.database_body_id;
@@ -204,6 +235,41 @@ class SqliteDataAdapter:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
 
+    def query_physorb_table(self, connection) -> None:
+        cursor = connection.cursor()
+        try:
+            with connection:
+                cursor.execute(
+                    """
+                    SELECT
+                        CONCAT(bodies.database_body_id,': ',bodies.body_name) as full_body_id,
+                        bodies.planet_class,
+                        bodies.star_type,
+                        body_physical_orbital_properties.radius, 
+                        body_physical_orbital_properties.surface_gravity,
+                        body_physical_orbital_properties.surface_pressure,
+                        body_physical_orbital_properties.surface_temperature,
+                        body_physical_orbital_properties.semi_major_axis,
+                        body_physical_orbital_properties.eccentricity,
+                        body_physical_orbital_properties.orbital_inclination,
+                        body_physical_orbital_properties.orbital_period,
+                        body_physical_orbital_properties.ascending_node,
+                        body_physical_orbital_properties.mean_anomaly,
+                        body_physical_orbital_properties.rotational_period,
+                        body_physical_orbital_properties.axial_tilt,
+                        body_physical_orbital_properties.periapsis
+                    FROM bodies
+                    INNER JOIN body_physical_orbital_properties
+                        ON bodies.database_body_id = body_physical_orbital_properties.database_body_id
+                    WHERE bodies.planet_class NOT LIKE '%Cluster%'
+                    """
+                )
+                results = cursor.fetchall()
+                pprint(results)
+
+        except sqlite3.Error as e:
+            print(f"Transaction failed! Database changes rolled back automatically: {e}")
+            raise
     def query_all_the_things(self, connection) -> None:
         cursor = connection.cursor()
         try:
@@ -235,5 +301,5 @@ if __name__ == "__main__":
     adapter = SqliteDataAdapter()
     conn = adapter.establish_db_connection()
     adapter.initialize_schema(conn)
-    adapter.query_all_bodies(conn)
+    adapter.query_physorb_table(conn)
     adapter.close_db_connection(conn)
