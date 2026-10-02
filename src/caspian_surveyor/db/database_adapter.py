@@ -150,6 +150,47 @@ VALUES (
 )
 """
 
+BODY_DETECTED_GENUSES_INSERT_SQL = \
+"""
+INSERT INTO body_detected_genuses (
+    database_body_id,
+    genus,
+    genus_localised
+)
+VALUES (
+    :database_body_id,
+    :body_genus,
+    :body_genus_localised
+)
+"""
+
+BODY_EXOBIO_SCANS_INSERT_SQL = \
+"""
+INSERT INTO body_exobio_scans (
+    database_body_id,
+    scan_type,
+    scan_timestamp,
+    genus,
+    genus_localised,
+    species,
+    species_localised,
+    variant,
+    variant_localised,
+    was_logged
+)
+VALUES (
+    :database_body_id,
+    :exo_scan_type,
+    :exo_scan_timestamp,
+    :exo_genus,
+    :exo_genus_localised,
+    :exo_species,
+    :exo_species_localised,
+    :exo_variant,
+    :exo_variant_localised,
+    :exo_was_logged
+)
+"""
 
 
 class SqliteDataAdapter:
@@ -213,8 +254,20 @@ class SqliteDataAdapter:
                         for body_signal_obj in body_obj.body_signals:
                             body_signal_dict = asdict(body_signal_obj)
                             body_signal_dict["database_body_id"] = database_body_id
-
                             cursor.execute(BODY_SIGNALS_INSERT_SQL, body_signal_dict)
+
+                    if body_obj.body_genuses is not None:
+                        for body_genus_obj in body_obj.body_genuses:
+                            body_genus_dict = asdict(body_genus_obj)
+                            body_genus_dict["database_body_id"] = database_body_id
+                            cursor.execute(BODY_DETECTED_GENUSES_INSERT_SQL, body_genus_dict)
+
+                    if body_obj.exobio_scans is not None:
+                        for exobio_obj in body_obj.exobio_scans:
+                            exobio_dict = asdict(exobio_obj)
+                            exobio_dict["database_body_id"] = database_body_id
+                            cursor.execute(BODY_EXOBIO_SCANS_INSERT_SQL, exobio_dict)
+
 
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
@@ -342,6 +395,52 @@ class SqliteDataAdapter:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
 
+    def query_body_detected_genuses(self, connection) -> None:
+        cursor = connection.cursor()
+        try:
+            with connection:
+                cursor.execute(
+                    """
+                    SELECT
+                        CONCAT('System Body: ',bodies.body_name) as system_body_name,
+                        body_detected_genuses.genus_localised
+                    FROM systems
+                    JOIN bodies
+                        ON systems.database_system_id = bodies.database_system_id
+                    JOIN body_detected_genuses
+                        ON bodies.database_body_id = body_detected_genuses.database_body_id
+                    """
+                )
+                
+                results = cursor.fetchall()
+                pprint(results)
+
+        except sqlite3.Error as e:
+            print(f"Transaction failed! Database changes rolled back automatically: {e}")
+            raise
+
+    def query_body_exobio_scans(self, connection) -> None:
+        cursor = connection.cursor()
+        try:
+            with connection:
+                cursor.execute(
+                    """
+                    SELECT
+                        bodies.body_name,
+                        body_exobio_scans.*
+                    FROM bodies
+                    JOIN body_exobio_scans
+                        ON bodies.database_body_id = body_exobio_scans.database_body_id
+                    """
+                )
+                
+                results = cursor.fetchall()
+                pprint(results)
+
+        except sqlite3.Error as e:
+            print(f"Transaction failed! Database changes rolled back automatically: {e}")
+            raise
+
     def close_db_connection(self, connection):
         connection.close()
 
@@ -350,5 +449,5 @@ if __name__ == "__main__":
     adapter = SqliteDataAdapter()
     conn = adapter.establish_db_connection()
     adapter.initialize_schema(conn)
-    adapter.query_body_signals(conn)
+    adapter.query_body_exobio_scans(conn)
     adapter.close_db_connection(conn)
