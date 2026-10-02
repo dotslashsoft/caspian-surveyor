@@ -134,6 +134,24 @@ VALUES (
 """
 
 
+BODY_SIGNALS_INSERT_SQL = \
+"""
+INSERT INTO body_signals (
+    database_body_id,
+    signal_type,
+    signal_type_localised,
+    signal_count
+)
+VALUES (
+    :database_body_id,
+    :body_signal_type,
+    :body_signal_type_localised,
+    :body_signal_count
+)
+"""
+
+
+
 class SqliteDataAdapter:
 
     def __init__(self) -> None:
@@ -190,6 +208,13 @@ class SqliteDataAdapter:
 
                     body_dict["database_body_id"] = database_body_id
                     cursor.execute(BODY_PHYSORB_INSERT_SQL, body_dict)
+
+                    if body_obj.body_signals is not None:
+                        for body_signal_obj in body_obj.body_signals:
+                            body_signal_dict = asdict(body_signal_obj)
+                            body_signal_dict["database_body_id"] = database_body_id
+
+                            cursor.execute(BODY_SIGNALS_INSERT_SQL, body_signal_dict)
 
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
@@ -270,6 +295,30 @@ class SqliteDataAdapter:
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
+
+    def query_body_signals(self, connection) -> None:
+        cursor = connection.cursor()
+        try:
+            with connection:
+                cursor.execute(
+                    """
+                    SELECT
+                        CONCAT('Body ID | ', bodies.database_body_id,': ', bodies.body_name) as full_body_id,
+                        CONCAT('Signal | ', body_signals.signal_type_localised,': ', body_signals.signal_count) as signal_type_count,
+                        CONCAT('-------------------------------------------------------------')
+                    FROM bodies
+                    INNER JOIN body_signals
+                        ON bodies.database_body_id = body_signals.database_body_id
+                    ORDER BY bodies.database_body_id
+                    """
+                )
+                results = cursor.fetchall()
+                pprint(results)
+
+        except sqlite3.Error as e:
+            print(f"Transaction failed! Database changes rolled back automatically: {e}")
+            raise
+
     def query_all_the_things(self, connection) -> None:
         cursor = connection.cursor()
         try:
@@ -301,5 +350,5 @@ if __name__ == "__main__":
     adapter = SqliteDataAdapter()
     conn = adapter.establish_db_connection()
     adapter.initialize_schema(conn)
-    adapter.query_physorb_table(conn)
+    adapter.query_body_signals(conn)
     adapter.close_db_connection(conn)
