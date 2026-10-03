@@ -280,12 +280,6 @@ class SqliteQuery:
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
-        
-        
-        
-        
-        
-
 
 if __name__ == '__main__':
     adapter = SqliteDataAdapter()

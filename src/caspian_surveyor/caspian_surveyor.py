@@ -70,7 +70,6 @@ def main() -> None:
         
     sql_adapter.close_db_connection(conn)
 
-
     try:
         runtime_record_written = cs_runtime.write_current_system_record(system_record)
     except OSError:
@@ -118,12 +117,13 @@ def main() -> None:
                         logger.critical("Current-system runtime record was not written. Exiting...")
                         sys.exit(2)
 
-                    # # --- sqlite insert system info
-                    # conn = sql_adapter.establish_db_connection()
-                    # try:
-                    #     sql_adapter.insert_current_system_record(conn, system_record)
-                    # finally:
-                    #     sql_adapter.close_db_connection(conn)
+                    # --- sqlite insert system info
+                    if system_record is not None:
+                        conn = sql_adapter.establish_db_connection()
+                        try:
+                            sql_adapter.persist_current_system_record(conn, system_record)
+                        finally:
+                            sql_adapter.close_db_connection(conn)
 
                     data_orchestrator.load_current_system_data_to_dict()
                     data_orchestrator.append_system_record_to_history_file()
