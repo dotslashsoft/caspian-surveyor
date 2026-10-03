@@ -2,6 +2,7 @@ import sqlite3
 import logging
 from dataclasses import asdict
 from pprint import pprint
+from typing import Any
 from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 from caspian_surveyor.bootstrap.cs_baseline_config import (
     DATABASE_SCHEMA,
@@ -52,43 +53,66 @@ class SqliteDataAdapter:
         cursor = connection.cursor()
         try:
             with connection:
-                system_dict = asdict(full_system_data.system)
-                position = system_dict.pop("system_position")
+                database_system_id = self._get_existing_system_id(
+                    cursor,
+                    full_system_data.system.system_address
+                )
 
-                system_dict["position_x"] = position[0]
-                system_dict["position_y"] = position[1]
-                system_dict["position_z"] = position[2]
-                cursor.execute(SYSTEM_INSERT_SQL, system_dict)
-                
-                # parent foreign key; var name == column name for simplification and readability
-                database_system_id = cursor.lastrowid
+                if database_system_id is None:
+                    system_dict = asdict(full_system_data.system)
+                    position = system_dict.pop("system_position")
 
-                for body_obj in full_system_data.bodies.values():
-                    body_dict = asdict(body_obj)
-                    body_dict["system_id"] = database_system_id
-                    cursor.execute(BODY_INSERT_SQL, body_dict)
+                    system_dict["position_x"] = position[0]
+                    system_dict["position_y"] = position[1]
+                    system_dict["position_z"] = position[2]
+                    cursor.execute(SYSTEM_INSERT_SQL, system_dict)
+                    
+                    # parent foreign key; var name == column name for simplification and readability
+                    database_system_id = cursor.lastrowid
 
-                    database_body_id = cursor.lastrowid
-                    # special-case parent relationship
-                    for parent_order, parent in enumerate(body_obj.body_parents):
-                        parent_dict = asdict(parent)
-                        parent_dict["database_body_id"] = database_body_id
-                        parent_dict["parent_order"] = parent_order
-                        cursor.execute(BODY_PARENTS_INSERT_SQL, parent_dict)
+                    for body_obj in full_system_data.bodies.values():
+                        body_dict = asdict(body_obj)
+                        body_dict["system_id"] = database_system_id
+                        cursor.execute(BODY_INSERT_SQL, body_dict)
 
-                    # one-to-one physorb
-                    body_dict["database_body_id"] = database_body_id
-                    cursor.execute(BODY_PHYSORB_INSERT_SQL, body_dict)
+                        database_body_id = cursor.lastrowid
+                        # special-case parent relationship
+                        for parent_order, parent in enumerate(body_obj.body_parents):
+                            parent_dict = asdict(parent)
+                            parent_dict["database_body_id"] = database_body_id
+                            parent_dict["parent_order"] = parent_order
+                            cursor.execute(BODY_PARENTS_INSERT_SQL, parent_dict)
 
-                    # repeating child collections
-                    self._insert_body_child_records(cursor, body_obj.body_materials, database_body_id, BODY_MATERIALS_INSERT_SQL)
-                    self._insert_body_child_records(cursor, body_obj.body_signals, database_body_id, BODY_SIGNALS_INSERT_SQL)
-                    self._insert_body_child_records(cursor, body_obj.body_genuses, database_body_id, BODY_DETECTED_GENUSES_INSERT_SQL)
-                    self._insert_body_child_records(cursor, body_obj.exobio_scans, database_body_id, BODY_EXOBIO_SCANS_INSERT_SQL)
+                        # one-to-one physorb
+                        body_dict["database_body_id"] = database_body_id
+                        cursor.execute(BODY_PHYSORB_INSERT_SQL, body_dict)
+
+                        # repeating child collections
+                        self._insert_body_child_records(cursor, body_obj.body_materials, database_body_id, BODY_MATERIALS_INSERT_SQL)
+                        self._insert_body_child_records(cursor, body_obj.body_signals, database_body_id, BODY_SIGNALS_INSERT_SQL)
+                        self._insert_body_child_records(cursor, body_obj.body_genuses, database_body_id, BODY_DETECTED_GENUSES_INSERT_SQL)
+                        self._insert_body_child_records(cursor, body_obj.exobio_scans, database_body_id, BODY_EXOBIO_SCANS_INSERT_SQL)
 
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
+
+    def _get_existing_system_id(self, cursor, system_address) -> int | None:
+        cursor.execute(
+            """
+            SELECT database_system_id
+            FROM systems
+            WHERE system_address = ?
+            """,
+            (system_address,)
+        )
+
+        result = cursor.fetchone()
+        if result is None:
+            return None
+        return result[0]
+
+
 
     def query_all_systems(self, connection):
         cursor = connection.cursor()
@@ -261,10 +285,33 @@ class SqliteDataAdapter:
     def close_db_connection(self, connection):
         connection.close()
 
+    def query_counts(self, connection):
+        cursor = connection.cursor()
+        try:
+            with connection:
+                cursor.execute("SELECT COUNT(*) FROM systems")
+                systems_count = cursor.fetchone()[0]
 
+                cursor.execute("SELECT COUNT(*) FROM bodies")
+                bodies_count = cursor.fetchone()[0]
+
+                cursor.execute("SELECT COUNT(*) FROM body_exobio_scans")
+                exobio_count = cursor.fetchone()[0]
+
+                print(systems_count, bodies_count, exobio_count)
+
+        except sqlite3.Error as e:
+            print(f"Transaction failed! Database changes rolled back automatically: {e}")
+            raise
+        
+        """
+        SELECT COUNT(*) FROM systems;
+        SELECT COUNT(*) FROM bodies;
+        SELECT COUNT(*) FROM body_exobio_scans;
+        """
 if __name__ == "__main__":
     adapter = SqliteDataAdapter()
     conn = adapter.establish_db_connection()
     adapter.initialize_schema(conn)
-    adapter.query_body_exobio_scans(conn)   
+    adapter.query_counts(conn)   
     adapter.close_db_connection(conn)
