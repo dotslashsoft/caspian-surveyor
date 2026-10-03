@@ -66,7 +66,7 @@ def main() -> None:
     conn = sql_adapter.establish_db_connection()
     sql_adapter.initialize_schema(conn)
     if system_record is not None:
-        sql_adapter.insert_current_system_record(conn, system_record)
+        sql_adapter.persist_current_system_record(conn, system_record)
         
     sql_adapter.close_db_connection(conn)
 
