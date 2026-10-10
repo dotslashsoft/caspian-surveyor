@@ -7,6 +7,7 @@ from caspian_surveyor.bootstrap.cs_baseline_config import (
     TESTDEV_DATABASE_FILE
 )
 from caspian_surveyor.db.sql_statements import *
+from caspian_surveyor.db.database_queries import ArchivedSystemQueries
 
 logger = logging.getLogger(__name__)
 
@@ -16,34 +17,24 @@ class SqliteDataAdapter:
     def __init__(self) -> None:
         self.database_schema = DATABASE_SCHEMA
         self.database_file = TESTDEV_DATABASE_FILE
+        self.archived_system_queries = ArchivedSystemQueries()
+
 
     def establish_db_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.database_file)
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
+
     def initialize_schema(self, connection: sqlite3.Connection) -> None:
         with self.database_schema.open("r", encoding="utf-8") as file:
             schema = file.read()
         connection.executescript(schema)
 
+
     def close_db_connection(self, connection) -> None:
         connection.close()
 
-    def _get_existing_system_id(self, cursor, system_address) -> int | None:
-        cursor.execute(
-            """
-            SELECT database_system_id
-            FROM systems
-            WHERE system_address = ?
-            """,
-            (system_address,)
-        )
-
-        result = cursor.fetchone()
-        if result is None:
-            return None
-        return result[0]
 
     def _persist_body_child_records(self, cursor, records, database_body_id, sql_statement) -> None:
         if records is None:
@@ -55,12 +46,13 @@ class SqliteDataAdapter:
 
             cursor.execute(sql_statement, record_dict)
 
+
     def persist_current_system_record(self, connection, full_system_data: FullStarSystemPayload) -> None:
         cursor = connection.cursor()
 
         try:
             with connection:
-                database_system_id = self._get_existing_system_id(
+                database_system_id = self.archived_system_queries.get_system_id(
                     cursor,
                     full_system_data.system.system_address
                 )
@@ -106,6 +98,7 @@ class SqliteDataAdapter:
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
+
 
 
 if __name__ == "__main__":
