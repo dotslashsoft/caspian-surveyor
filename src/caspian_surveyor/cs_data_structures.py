@@ -18,7 +18,7 @@ class SystemInfo:
 @dataclass
 class SystemSummaryInfo:
     """
-    Stores derived summary counts for the current system.
+    Stores derived summary statistics and survey completion status.
     """
     system_scan_record_count: int
     system_star_count: int
@@ -32,6 +32,7 @@ class SystemSummaryInfo:
     system_tf_water_world_count: int
     system_earthlike_world_count: int
     system_ammonia_world_count: int
+    system_fss_complete: bool = False
 
 
 @dataclass

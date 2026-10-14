@@ -5,6 +5,9 @@ import caspian_surveyor.cs_journal_toolbox as Journal
 import caspian_surveyor.runtime.cs_runtime as cs_runtime
 from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
 from caspian_surveyor.db.database_adapter import SqliteDataAdapter
+from caspian_surveyor.db.connection_manager import ConnectionManager
+from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
+from caspian_surveyor.runtime.cs_runtime import system_record_encoder
 import threading
 import logging
 import sys
@@ -62,13 +65,12 @@ def main() -> None:
 
     system_record = survey_data_builder.build_system_record()
 
+    connection_manager = ConnectionManager()
     sql_adapter = SqliteDataAdapter()
-    conn = sql_adapter.establish_db_connection()
-    sql_adapter.initialize_schema(conn)
-    if system_record is not None:
-        sql_adapter.persist_current_system_record(conn, system_record)
-        
-    sql_adapter.close_db_connection(conn)
+    archived_system_queries = ArchivedSystemQueries()
+
+    conn = connection_manager.establish_db_connection()
+    connection_manager.initialize_schema(conn)
 
     try:
         runtime_record_written = cs_runtime.write_current_system_record(system_record)
@@ -91,7 +93,7 @@ def main() -> None:
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
     fatal_error_event = threading.Event()
-    shutdown_event = threading.Event()
+
     journal_monitor_thread = threading.Thread(
         target=journal_reader.heal_monitor_journal_directory,
         args=(JOURNAL_DIRECTORY, fatal_error_event, shutdown_event)
@@ -108,7 +110,11 @@ def main() -> None:
 
             if event_type == "FSDJump":
                 # Finalize the system being left.
-                logger.debug(f"Result of survey_state.current_system:\t {survey_data_aggregator.current_system}")
+                logger.debug(
+                    "Result of survey_state.current_system:\t %s",
+                    survey_data_aggregator.current_system
+                )
+
                 if survey_data_aggregator.current_system is not None:
                     system_record = survey_data_builder.build_system_record()
                     runtime_record_written = cs_runtime.write_current_system_record(system_record)
@@ -117,19 +123,33 @@ def main() -> None:
                         logger.critical("Current-system runtime record was not written. Exiting...")
                         sys.exit(2)
 
-                    # --- sqlite insert system info
+                    # Persist departing system to SQLite.
                     if system_record is not None:
-                        conn = sql_adapter.establish_db_connection()
-                        try:
-                            sql_adapter.persist_current_system_record(conn, system_record)
-                        finally:
-                            sql_adapter.close_db_connection(conn)
+                        sql_adapter.persist_current_system_record(conn, system_record)
 
                     data_orchestrator.load_current_system_data_to_dict()
                     data_orchestrator.append_system_record_to_history_file()
 
                 # Begin the system just entered.
                 survey_data_aggregator.begin_system(event)
+
+                system_address = event.get("SystemAddress")
+
+                reconstructed_system = archived_system_queries.get_archived_system_info(
+                    conn,
+                    system_address
+                )
+
+                if reconstructed_system is not None:
+                    logger.info(
+                        "Previously archived system found: %s",
+                        event.get("StarSystem")
+                    )
+
+                    survey_data_aggregator.restore_archived_system(
+                        reconstructed_system
+                    )
+
                 system_record = survey_data_builder.build_system_record()
                 runtime_record_written = cs_runtime.write_current_system_record(system_record)
 
@@ -170,6 +190,8 @@ def main() -> None:
         if journal_monitor_thread.is_alive():
             logger.info("Journal is alive. Joining the threads...")
             journal_monitor_thread.join()
+
+        connection_manager.close_db_connection(conn)
 
         logger.info("Journal monitor thread joined successfully. Thread alive: %s", journal_monitor_thread.is_alive())
 

@@ -12,6 +12,7 @@ from caspian_surveyor.cs_data_structures import (
     SystemInfo,
     SystemSummaryInfo
 )
+from caspian_surveyor.runtime.cs_runtime import system_record_encoder, write_current_system_record
 from typing import Any
 ### ### ### ### ### ### ### ### ### ### ### ### 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,19 @@ class SurveyDataAggregator:
         if event_address != current_system["system_address"]:
             return None
         return current_system
+
+    def restore_archived_system(self, archived_payload: FullStarSystemPayload) -> None:
+        encoded_payload = system_record_encoder(archived_payload)
+
+        self.current_system = {
+            **encoded_payload["system"],
+            "fss_complete": encoded_payload["summary"]["system_fss_complete"],
+            "bodies": {
+                int(body_id): body
+                for body_id, body in encoded_payload["bodies"].items()
+            }
+        }
+        
 
     def begin_system(self, event) -> None:
         """
@@ -459,10 +473,10 @@ class SurveyDataBuilder:
         terraformable bodies, and landable bodies.
 
         Returns:
-            The completed system-summary dictionary, or None if no current
-            system survey state exists.
+            The completed SystemSummaryInfo containing derived survey
+            statistics and FSS completion status.
         """
-        
+        system_fss_complete = current_system["fss_complete"]
         bodies = current_system["bodies"]
         system_summary = SystemSummaryInfo(
             system_scan_record_count=len(bodies),
@@ -477,6 +491,7 @@ class SurveyDataBuilder:
             system_tf_water_world_count=0,
             system_earthlike_world_count=0,
             system_ammonia_world_count=0,
+            system_fss_complete=system_fss_complete
         )
 
         for body in bodies.values():
@@ -679,3 +694,7 @@ class StateRecovery:
 
         for event in events:
             survey_data_aggregator.process_journal_event(event)
+
+
+if __name__ == "__main__":
+    pass

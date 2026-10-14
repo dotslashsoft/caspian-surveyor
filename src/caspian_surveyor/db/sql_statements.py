@@ -1,3 +1,9 @@
+# ------------------------------------
+#
+#       SQL INSERTS/UPSERTS
+#
+# ------------------------------------
+
 SYSTEM_INSERT_SQL = """
 INSERT INTO systems (
     system_name,
@@ -268,4 +274,135 @@ ON CONFLICT (
     scan_timestamp
 )
 DO NOTHING
+"""
+
+
+
+# ------------------------------------
+#
+#       SQL Query Templates
+#
+# ------------------------------------
+
+GET_MOST_RECENT_BODY = """
+SELECT max(database_body_id)
+FROM bodies
+"""
+
+GET_NEXT_BODY_ID = """
+SELECT max(database_body_id) + 1 
+FROM bodies
+"""
+
+QUERY_BODY_EXOBIO_SCANS = """
+SELECT
+    bodies.body_name,
+    body_exobio_scans.*
+FROM bodies
+JOIN body_exobio_scans
+    ON bodies.database_body_id = body_exobio_scans.database_body_id
+"""
+
+QUERY_BODY_DETECTED_GENUSES = """
+SELECT
+    CONCAT('System Body: ',bodies.body_name) as system_body_name,
+    body_detected_genuses.genus_localised
+FROM systems
+JOIN bodies
+    ON systems.database_system_id = bodies.database_system_id
+JOIN body_detected_genuses
+    ON bodies.database_body_id = body_detected_genuses.database_body_id
+"""
+
+QUERY_BODY_SIGNALS = """
+SELECT
+    CONCAT('Body ID | ', bodies.database_body_id,': ', bodies.body_name) as full_body_id,
+    CONCAT('Signal | ', body_signals.signal_type_localised,': ', body_signals.signal_count) as signal_type_count,
+    CONCAT('-------------------------------------------------------------')
+FROM bodies
+INNER JOIN body_signals
+    ON bodies.database_body_id = body_signals.database_body_id
+ORDER BY bodies.database_body_id
+"""
+
+QUERY_ALL_BODIES = """
+SELECT DISTINCT
+    bodies.database_body_id,
+    bodies.body_name,
+    body_materials.material_name,
+    body_materials.material_percentage
+FROM bodies
+JOIN body_materials
+    ON bodies.database_body_id = body_materials.database_body_id;
+"""
+
+QUERY_ALL_SYSTEMS = """
+SELECT *
+FROM systems
+"""
+
+
+# ------------------------------------
+#
+#    System Reconstruction Queries
+#
+# ------------------------------------
+
+GET_SYSTEM_INFO = """
+SELECT *
+FROM systems
+WHERE database_system_id = ?
+"""
+
+GET_SYSTEM_BODIES = """
+SELECT *
+FROM bodies
+WHERE database_system_id = ?
+"""
+
+GET_SYSTEM_PARENTS = """
+SELECT body_parents.*
+FROM body_parents
+JOIN bodies 
+    ON body_parents.database_body_id = bodies.database_body_id
+WHERE bodies.database_system_id = ?
+"""
+
+GET_SYSTEM_MATERIALS = """
+SELECT body_materials.*
+FROM body_materials
+JOIN bodies 
+    ON body_materials.database_body_id = bodies.database_body_id
+WHERE bodies.database_system_id = ?
+"""
+
+GET_SYSTEM_PHYSORB = """
+SELECT body_physical_orbital_properties.*
+FROM body_physical_orbital_properties
+JOIN bodies 
+    ON body_physical_orbital_properties.database_body_id = bodies.database_body_id
+WHERE bodies.database_system_id = ?
+"""
+
+GET_SYSTEM_SIGNALS = """
+SELECT body_signals.*
+FROM body_signals
+JOIN bodies 
+    ON body_signals.database_body_id = bodies.database_body_id
+WHERE bodies.database_system_id = ?
+"""
+
+GET_SYSTEM_GENUSES = """SELECT body_detected_genuses.*
+FROM body_detected_genuses
+JOIN bodies 
+    ON body_detected_genuses.database_body_id = bodies.database_body_id
+WHERE bodies.database_system_id = ?
+"""
+
+GET_SYSTEM_EXOBIO = """
+SELECT body_exobio_scans.*
+FROM body_exobio_scans
+JOIN bodies 
+    ON body_exobio_scans.database_body_id = bodies.database_body_id
+WHERE bodies.database_system_id = ?
 """

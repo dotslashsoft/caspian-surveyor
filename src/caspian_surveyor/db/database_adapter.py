@@ -7,7 +7,7 @@ from caspian_surveyor.bootstrap.cs_baseline_config import (
     TESTDEV_DATABASE_FILE
 )
 from caspian_surveyor.db.sql_statements import *
-from caspian_surveyor.db.database_queries import ArchivedSystemQueries
+from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
 
 logger = logging.getLogger(__name__)
 

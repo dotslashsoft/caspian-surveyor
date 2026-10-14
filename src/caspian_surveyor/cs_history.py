@@ -1,8 +1,14 @@
 import json
+from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 from caspian_surveyor.bootstrap.cs_baseline_config import (
     EXPLORATION_HISTORY_FILE,
     CURRENT_SYSTEM_FILE
 )
+from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
+from caspian_surveyor.db.connection_manager import ConnectionManager
+from caspian_surveyor.cs_survey_data import SurveyDataAggregator, SurveyDataBuilder
+from caspian_surveyor.runtime.cs_runtime import write_current_system_record
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -82,3 +88,89 @@ class DataOrchestrator:
             raise
 
         return True
+
+    def get_latest_system_record_from_history(self, system_address: int) -> FullStarSystemPayload | None:
+
+        latest_record = None
+
+        try:
+            with self.exploration_history_file.open("r", encoding="utf-8") as file:
+
+                for line_number, line in enumerate(file, start=1):
+                    if not line.strip():
+                        continue
+
+                    try:
+                        record = json.loads(line)
+                    except json.JSONDecodeError:
+                        logger.warning("Invalid exploration history record at line %d.", line_number)
+                        continue
+
+                    if not isinstance(record, dict):
+                        continue
+
+                    system = record.get("system")
+
+                    if (isinstance(system, dict)
+                        and system.get("system_address") == system_address):
+                        latest_record = record
+
+        except FileNotFoundError:
+            logger.info("Exploration history file does not exist.")
+            return None
+
+        if latest_record is None:
+            return None
+
+        return FullStarSystemPayload(**latest_record)
+
+
+if __name__ == "__main__":
+
+    # connect, init schema
+    data_orchestrator = DataOrchestrator()
+    archived_system_queries = ArchivedSystemQueries()
+    connection_manager = ConnectionManager()
+    system_aggregator = SurveyDataAggregator()
+
+    conn = connection_manager.establish_db_connection()
+
+    try:
+        connection_manager.initialize_schema(conn)
+
+        original_payload = data_orchestrator.get_latest_system_record_from_history(
+            38562352187
+        )
+
+        reconstructed_payload = archived_system_queries.get_archived_system_info(
+            conn,
+            38562352187
+        )
+
+        assert original_payload is not None
+        assert reconstructed_payload is not None
+
+        archived_system_queries._compare_fullstarsystem_payloads(
+            original_payload,
+            reconstructed_payload
+        )
+
+        print("FullStarSystemPayload round-trip validation passed.")
+
+        system_aggregator.restore_archived_system(reconstructed_payload)
+
+        survey_data_builder = SurveyDataBuilder(system_aggregator)
+        rehydrated_payload = survey_data_builder.build_system_record()
+
+        assert rehydrated_payload is not None
+
+        archived_system_queries._compare_fullstarsystem_payloads(
+            reconstructed_payload,
+            rehydrated_payload
+        )
+
+        print("SurveyDataAggregator restoration validation passed.")
+
+
+    finally:
+        connection_manager.close_db_connection(conn)
