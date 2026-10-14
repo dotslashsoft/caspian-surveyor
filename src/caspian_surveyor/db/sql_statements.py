@@ -11,7 +11,8 @@ INSERT INTO systems (
     system_body_count,
     position_x,
     position_y,
-    position_z
+    position_z,
+    system_fss_complete
 )
 VALUES (
     :system_name,
@@ -19,7 +20,8 @@ VALUES (
     :system_body_count,
     :position_x,
     :position_y,
-    :position_z
+    :position_z,
+    :system_fss_complete
 )
 """
 
@@ -30,7 +32,8 @@ INSERT INTO systems (
     system_body_count,
     position_x,
     position_y,
-    position_z
+    position_z,
+    system_fss_complete
 )
 VALUES (
     :system_name,
@@ -38,19 +41,35 @@ VALUES (
     :system_body_count,
     :position_x,
     :position_y,
-    :position_z
+    :position_z,
+    :system_fss_complete
 )
 ON CONFLICT (
     system_address
 )
 DO UPDATE SET
-    system_body_count = excluded.system_body_count
+    system_body_count = CASE
+        WHEN excluded.system_body_count IS NOT NULL
+            AND (
+                systems.system_body_count IS NULL
+                OR excluded.system_body_count > systems.system_body_count
+            )
+        THEN excluded.system_body_count
+        ELSE systems.system_body_count
+    END,
+    system_fss_complete = MAX(
+        systems.system_fss_complete,
+        excluded.system_fss_complete
+    )
 WHERE
-    excluded.system_body_count IS NOT NULL
-    AND (
-        system_body_count IS NULL
-        OR excluded.system_body_count > system_body_count
-    );
+    (
+        excluded.system_body_count IS NOT NULL
+        AND (
+            systems.system_body_count IS NULL
+            OR excluded.system_body_count > systems.system_body_count
+        )
+    )
+    OR excluded.system_fss_complete > systems.system_fss_complete;
 """
 
 BODY_UPSERT_SQL = """

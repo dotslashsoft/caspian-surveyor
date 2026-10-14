@@ -325,7 +325,7 @@ class ArchivedSystemQueries:
         self._construct_archived_body_exobio(exobio, bodies_by_database_id)
 
         system_summary_info = self._construct_system_summary_info(bodies_by_elite_id)
-
+        system_summary_info.system_fss_complete = bool(system["system_fss_complete"])
 
         for body in bodies_by_database_id.values():
             if body.exobio_scans:

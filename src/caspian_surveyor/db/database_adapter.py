@@ -63,6 +63,10 @@ class SqliteDataAdapter:
                 system_dict["position_x"] = position[0]
                 system_dict["position_y"] = position[1]
                 system_dict["position_z"] = position[2]
+                
+                system_dict["system_fss_complete"] = int(
+                    full_system_data.summary.system_fss_complete
+                )
 
                 if database_system_id is None:
                     cursor.execute(SYSTEM_INSERT_SQL, system_dict)

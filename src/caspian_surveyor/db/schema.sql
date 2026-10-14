@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS systems (
     system_body_count    INTEGER,
     position_x           REAL,
     position_y           REAL,
-    position_z           REAL
+    position_z           REAL,
+    system_fss_complete  INTEGER NOT NULL DEFAULT 0
+        CHECK (system_fss_complete IN (0, 1))
 );
 
 CREATE TABLE IF NOT EXISTS bodies (
