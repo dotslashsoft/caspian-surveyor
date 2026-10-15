@@ -2,7 +2,7 @@ import sqlite3
 import logging
 from caspian_surveyor.bootstrap.cs_baseline_config import (
     DATABASE_SCHEMA,
-    TESTDEV_DATABASE_FILE
+    DATABASE_FILE
 )
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class ConnectionManager:
 
     def __init__(self) -> None:
         self.database_schema = DATABASE_SCHEMA
-        self.database_file = TESTDEV_DATABASE_FILE
+        self.database_file = DATABASE_FILE
 
 
     def establish_db_connection(self) -> sqlite3.Connection:

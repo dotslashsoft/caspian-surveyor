@@ -183,10 +183,12 @@ class SurveyDataAggregator:
             scan_types.append(scan_type)
 
         body.update(self.translate_body_scalar_fields(event))
-        body["body_parents"] = [
-            self.translate_body_parent_fields(parent)
-            for parent in event.get("Parents", [])
-        ]
+
+        if "Parents" in event:
+            body["body_parents"] = [
+                self.translate_body_parent_fields(parent)
+                for parent in event["Parents"]
+            ]
 
         if "Materials" in event:
             raw_body_materials = event.get("Materials")
@@ -315,18 +317,27 @@ class SurveyDataAggregator:
             logger.warning("ScanOrganic event received without Body.")
             return False
 
+        exo_scan_iso_timestamp = event.get("timestamp")
+        if not exo_scan_iso_timestamp:
+            logger.warning(
+                "ScanOrganic event received without a timestamp. "
+                "BodyID: %s. Event ignored.",
+                body_id
+            )
+            return False
+
+        exo_scan_timestamp = self.translate_organic_scan_timestamp(exo_scan_iso_timestamp)
+
         body = current_system["bodies"].setdefault(body_id, {})
         body["body_id"] = body_id
 
-        exobio_scans = body.setdefault("exobio_scans", [])
+        exobio_scans = body.get("exobio_scans")
 
-        exo_scan_iso_timestamp = event.get("timestamp", None)
-        if exo_scan_iso_timestamp is None:
-            exo_scan_timestamp = None
-        else:
-            exo_scan_timestamp = self.translate_organic_scan_timestamp(exo_scan_iso_timestamp)
+        if exobio_scans is None:
+            exobio_scans = []
+            body["exobio_scans"] = exobio_scans
 
-        exobio_scans.append({
+        scan_record = {
             "exo_scan_timestamp": exo_scan_timestamp,
             "exo_scan_type": event.get("ScanType", "--"),
             "exo_genus": event.get("Genus", "--"),
@@ -336,7 +347,13 @@ class SurveyDataAggregator:
             "exo_variant": event.get("Variant", "--"),
             "exo_variant_localised": event.get("Variant_Localised", "--"),
             "exo_was_logged": event.get("WasLogged", False),
-        })
+        }
+
+        if scan_record in exobio_scans:
+            return False
+
+        exobio_scans.append(scan_record)
+
         return True
 
     def process_journal_event(self, event) -> bool:
@@ -378,33 +395,39 @@ class SurveyDataAggregator:
         return False
 
     def translate_body_scalar_fields(self, event: dict[str, Any]) -> dict[str, Any]:
+        field_map = {
+            "BodyID": "body_id",
+            "BodyName": "body_name",
+            "StarType": "body_star_type",
+            "PlanetClass": "body_planet_class",
+            "TerraformState": "body_terraform_state",
+            "Periapsis": "body_periapsis",
+            "SurfaceTemperature": "body_surface_temperature",
+            "WasDiscovered": "body_was_discovered",
+            "WasMapped": "body_was_mapped",
+            "WasFootfalled": "body_was_footfalled",
+            "TidalLock": "body_tidal_lock",
+            "Atmosphere": "body_atmosphere",
+            "AtmosphereType": "body_atmosphere_type",
+            "Radius": "body_radius",
+            "SurfaceGravity": "body_surface_gravity",
+            "SurfacePressure": "body_surface_pressure",
+            "SemiMajorAxis": "body_semi_major_axis",
+            "Eccentricity": "body_eccentricity",
+            "OrbitalInclination": "body_orbital_inclination",
+            "OrbitalPeriod": "body_orbital_period",
+            "AscendingNode": "body_ascending_node",
+            "MeanAnomaly": "body_mean_anomaly",
+            "RotationPeriod": "body_rotational_period",
+            "AxialTilt": "body_axial_tilt",
+            "DistanceFromArrivalLS": "body_distance_from_arrival",
+            "Landable": "body_landable",
+        }
+
         return {
-            "body_id": event.get("BodyID"),
-            "body_name": event.get("BodyName"),
-            "body_star_type": event.get("StarType"),
-            "body_planet_class": event.get("PlanetClass"),
-            "body_terraform_state": event.get("TerraformState"),
-            "body_periapsis": event.get("Periapsis"),
-            "body_surface_temperature": event.get("SurfaceTemperature"),
-            "body_was_discovered": event.get("WasDiscovered", False),
-            "body_was_mapped": event.get("WasMapped", False),
-            "body_was_footfalled": event.get("WasFootfalled", False),
-            "body_tidal_lock": event.get("TidalLock", False),
-            "body_atmosphere": event.get("Atmosphere"),
-            "body_atmosphere_type": event.get("AtmosphereType"),
-            "body_radius": event.get("Radius"),
-            "body_surface_gravity": event.get("SurfaceGravity"),
-            "body_surface_pressure": event.get("SurfacePressure"),
-            "body_semi_major_axis": event.get("SemiMajorAxis"),
-            "body_eccentricity": event.get("Eccentricity"),
-            "body_orbital_inclination": event.get("OrbitalInclination"),
-            "body_orbital_period": event.get("OrbitalPeriod"),
-            "body_ascending_node": event.get("AscendingNode"),
-            "body_mean_anomaly": event.get("MeanAnomaly"),
-            "body_rotational_period": event.get("RotationPeriod"),
-            "body_axial_tilt": event.get("AxialTilt"),
-            "body_distance_from_arrival": event.get("DistanceFromArrivalLS"),
-            "body_landable": event.get("Landable", False),
+            translated_key: event[journal_key]
+            for journal_key, translated_key in field_map.items()
+            if journal_key in event
         }
 
 
@@ -640,7 +663,7 @@ class StateRecovery:
             journal_index += 1
         return oldest_matching_index
 
-    def reconstruct_system_data(self, latest_journal_events)-> dict[str, Any] | None:
+    def reconstruct_system_data(self, latest_journal_events, archived_payload: FullStarSystemPayload | None = None) -> dict[str, Any] | None:
         """
         Loops from the returned value of find_oldest_matching_journal_index(), 
         if the value is not None, and reconstructs system data from events within
@@ -673,8 +696,15 @@ class StateRecovery:
             if journal_index == oldest_matching_index:
                 self.survey_data_aggregator.begin_system(journal_events[0])
 
+                if archived_payload is not None:
+                    self.survey_data_aggregator.restore_archived_system(
+                        archived_payload
+                    )
+
             self.replay_system_events(self.survey_data_aggregator, journal_events[1:])
+
         return self.survey_data_aggregator.current_system
+    
 
     def replay_system_events(self, survey_data_aggregator, events) -> None:
         """

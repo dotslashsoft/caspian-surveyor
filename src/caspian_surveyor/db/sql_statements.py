@@ -112,19 +112,58 @@ ON CONFLICT (
     elite_body_id
 )
 DO UPDATE SET
-    body_name = excluded.body_name,
-    planet_class = excluded.planet_class,
-    star_type = excluded.star_type,
-    terraform_state = excluded.terraform_state,
-    was_discovered = excluded.was_discovered,
-    was_mapped = excluded.was_mapped,
-    was_footfalled = excluded.was_footfalled,
-    landable = excluded.landable,
-    dss_scan_complete = excluded.dss_scan_complete,
-    tidal_lock = excluded.tidal_lock,
-    atmosphere = excluded.atmosphere,
-    atmosphere_type = excluded.atmosphere_type,
-    distance_from_arrival = excluded.distance_from_arrival
+    body_name = COALESCE(
+        excluded.body_name,
+        bodies.body_name
+    ),
+    planet_class = COALESCE(
+        excluded.planet_class,
+        bodies.planet_class
+    ),
+    star_type = COALESCE(
+        excluded.star_type,
+        bodies.star_type
+    ),
+    terraform_state = COALESCE(
+        excluded.terraform_state,
+        bodies.terraform_state
+    ),
+    was_discovered = MAX(
+        COALESCE(bodies.was_discovered, 0),
+        COALESCE(excluded.was_discovered, 0)
+    ),
+    was_mapped = MAX(
+        COALESCE(bodies.was_mapped, 0),
+        COALESCE(excluded.was_mapped, 0)
+    ),
+    was_footfalled = MAX(
+        COALESCE(bodies.was_footfalled, 0),
+        COALESCE(excluded.was_footfalled, 0)
+    ),
+    landable = MAX(
+        COALESCE(bodies.landable, 0),
+        COALESCE(excluded.landable, 0)
+    ),
+    dss_scan_complete = MAX(
+        COALESCE(bodies.dss_scan_complete, 0),
+        COALESCE(excluded.dss_scan_complete, 0)
+    ),
+    tidal_lock = MAX(
+        COALESCE(bodies.tidal_lock, 0),
+        COALESCE(excluded.tidal_lock, 0)
+    ),
+    atmosphere = COALESCE(
+        excluded.atmosphere,
+        bodies.atmosphere
+    ),
+    atmosphere_type = COALESCE(
+        excluded.atmosphere_type,
+        bodies.atmosphere_type
+    ),
+    distance_from_arrival = COALESCE(
+        excluded.distance_from_arrival,
+        bodies.distance_from_arrival
+    )
 RETURNING database_body_id;
 """
 
@@ -206,19 +245,58 @@ ON CONFLICT (
     database_body_id
 )
 DO UPDATE SET
-    radius = excluded.radius,
-    surface_gravity = excluded.surface_gravity,
-    surface_pressure = excluded.surface_pressure,
-    surface_temperature = excluded.surface_temperature,
-    semi_major_axis = excluded.semi_major_axis,
-    eccentricity = excluded.eccentricity,
-    orbital_inclination = excluded.orbital_inclination,
-    orbital_period = excluded.orbital_period,
-    ascending_node = excluded.ascending_node,
-    mean_anomaly = excluded.mean_anomaly,
-    rotational_period = excluded.rotational_period,
-    axial_tilt = excluded.axial_tilt,
-    periapsis = excluded.periapsis
+    radius = COALESCE(
+        excluded.radius,
+        body_physical_orbital_properties.radius
+    ),
+    surface_gravity = COALESCE(
+        excluded.surface_gravity,
+        body_physical_orbital_properties.surface_gravity
+    ),
+    surface_pressure = COALESCE(
+        excluded.surface_pressure,
+        body_physical_orbital_properties.surface_pressure
+    ),
+    surface_temperature = COALESCE(
+        excluded.surface_temperature,
+        body_physical_orbital_properties.surface_temperature
+    ),
+    semi_major_axis = COALESCE(
+        excluded.semi_major_axis,
+        body_physical_orbital_properties.semi_major_axis
+    ),
+    eccentricity = COALESCE(
+        excluded.eccentricity,
+        body_physical_orbital_properties.eccentricity
+    ),
+    orbital_inclination = COALESCE(
+        excluded.orbital_inclination,
+        body_physical_orbital_properties.orbital_inclination
+    ),
+    orbital_period = COALESCE(
+        excluded.orbital_period,
+        body_physical_orbital_properties.orbital_period
+    ),
+    ascending_node = COALESCE(
+        excluded.ascending_node,
+        body_physical_orbital_properties.ascending_node
+    ),
+    mean_anomaly = COALESCE(
+        excluded.mean_anomaly,
+        body_physical_orbital_properties.mean_anomaly
+    ),
+    rotational_period = COALESCE(
+        excluded.rotational_period,
+        body_physical_orbital_properties.rotational_period
+    ),
+    axial_tilt = COALESCE(
+        excluded.axial_tilt,
+        body_physical_orbital_properties.axial_tilt
+    ),
+    periapsis = COALESCE(
+        excluded.periapsis,
+        body_physical_orbital_properties.periapsis
+    )
 """
 
 BODY_SIGNALS_UPSERT_SQL = """

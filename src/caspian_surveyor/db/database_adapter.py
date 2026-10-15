@@ -4,7 +4,7 @@ from dataclasses import asdict
 from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 from caspian_surveyor.bootstrap.cs_baseline_config import (
     DATABASE_SCHEMA,
-    TESTDEV_DATABASE_FILE
+    DATABASE_FILE
 )
 from caspian_surveyor.db.sql_statements import *
 from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
@@ -16,7 +16,7 @@ class SqliteDataAdapter:
 
     def __init__(self) -> None:
         self.database_schema = DATABASE_SCHEMA
-        self.database_file = TESTDEV_DATABASE_FILE
+        self.database_file = DATABASE_FILE
         self.archived_system_queries = ArchivedSystemQueries()
 
 
