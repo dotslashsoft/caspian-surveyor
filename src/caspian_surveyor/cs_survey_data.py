@@ -663,7 +663,7 @@ class StateRecovery:
             journal_index += 1
         return oldest_matching_index
 
-    def reconstruct_system_data(self, latest_journal_events, archived_payload: FullStarSystemPayload | None = None) -> dict[str, Any] | None:
+    def recover_current_system_state(self, latest_journal_events, archived_payload: FullStarSystemPayload | None = None) -> dict[str, Any] | None:
         """
         Loops from the returned value of find_oldest_matching_journal_index(), 
         if the value is not None, and reconstructs system data from events within
@@ -710,7 +710,7 @@ class StateRecovery:
         """
         Replays Elite Dangerous journal events into the current survey state.
 
-        Called by reconstruct_system_data() to process journal events in
+        Called by recover_current_system_state() to process journal events in
         chronological order. Each event is passed to process_journal_event(),
         which applies supported event data to the supplied SurveyDataAggregator instance.
 

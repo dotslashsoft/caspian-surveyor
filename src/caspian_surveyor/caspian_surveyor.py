@@ -7,7 +7,6 @@ from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
 from caspian_surveyor.db.database_adapter import SqliteDataAdapter
 from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
-from caspian_surveyor.runtime.cs_runtime import system_record_encoder
 import threading
 import logging
 import sys
@@ -52,8 +51,64 @@ def main() -> None:
 
         latest_journal_events = Journal.get_reconstruction_start_events(reconstruction_journal)
         journal_index += 1
+
+    connection_manager = ConnectionManager()
+    sql_adapter = SqliteDataAdapter()
+    archived_system_queries = ArchivedSystemQueries()
+
+    conn = connection_manager.establish_db_connection()
+    connection_manager.initialize_schema(conn)
+
+
     state_recovery = Survey.StateRecovery()
-    reconstructed_system = state_recovery.reconstruct_system_data(latest_journal_events)
+
+    oldest_matching_index = state_recovery.find_oldest_matching_journal_index(
+        latest_journal_events
+    )
+
+    if oldest_matching_index is None:
+        logger.critical("No matching journal reconstruction point found.")
+        sys.exit(2)
+
+    recovery_journal = Journal.get_journal_file_by_index(
+        oldest_matching_index
+    )
+
+    if recovery_journal is None:
+        logger.critical("Recovery journal could not be located.")
+        sys.exit(2)
+
+
+    recovery_events = Journal.get_reconstruction_start_events(
+        recovery_journal
+    )
+
+    if not recovery_events:
+        logger.critical("No reconstruction events found in recovery journal.")
+        sys.exit(2)
+
+    recovery_start_event = recovery_events[0]
+
+    system_address = recovery_start_event.get("SystemAddress")
+
+    archived_payload = None
+
+    if system_address is not None:
+        archived_payload = archived_system_queries.get_archived_system_info(
+            conn,
+            system_address
+        )
+
+    logger.info(
+        "Startup archive lookup: SystemAddress=%s, archived=%s",
+        system_address,
+        archived_payload is not None
+    )
+
+    reconstructed_system = state_recovery.recover_current_system_state(
+        latest_journal_events,
+        archived_payload=archived_payload
+    )
 
     if reconstructed_system is None:
         logger.critical("SurveyDataAggregator system reconstruction failed: returned None. Exiting...")
@@ -64,13 +119,6 @@ def main() -> None:
     data_orchestrator = cs_history.DataOrchestrator()
 
     system_record = survey_data_builder.build_system_record()
-
-    connection_manager = ConnectionManager()
-    sql_adapter = SqliteDataAdapter()
-    archived_system_queries = ArchivedSystemQueries()
-
-    conn = connection_manager.establish_db_connection()
-    connection_manager.initialize_schema(conn)
 
     try:
         runtime_record_written = cs_runtime.write_current_system_record(system_record)
