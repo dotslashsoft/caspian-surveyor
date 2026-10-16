@@ -11,7 +11,12 @@ core_analysis = Analysis(
     [str(SOURCE_DIRECTORY / "caspian_surveyor" / "caspian_surveyor.py")],
     pathex=[str(SOURCE_DIRECTORY)],
     binaries=[],
-    datas=[],
+    datas=[
+        (
+            str(SOURCE_DIRECTORY / "caspian_surveyor" / "db" / "schema.sql"),
+            "caspian_surveyor/db",
+        ),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -20,6 +25,7 @@ core_analysis = Analysis(
     noarchive=False,
     optimize=0,
 )
+
 
 overlay_analysis = Analysis(
     [str(SOURCE_DIRECTORY / "caspian_surveyor" / "ui" / "cs_overlay.py")],
