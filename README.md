@@ -1,8 +1,22 @@
 ## New Alpha Release Available: [Version 0.9.7.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.7.0)
 
+
+
 # Caspian Surveyor
 
 **An exploration companion for Elite Dangerous.**
+
+# IMPORTANT - FIRST TIME RUN INFO 
+As of version 0.9.8.0, Caspian Surveyor will read your available Elite Dangerous: Odyssey journal files on first launch to reconstruct your historical exploration data.
+
+For explorers with more than 2,000 systems visited since Odyssey, this process may take some time. During testing, approximately 2,000 systems were reconstructed in 8–10 seconds. For an explorer with 50,000 systems, the estimated processing time could reach 3.5 minutes, depending on system performance.
+
+Please be patient during the initial launch. The application may appear inactive while historical ingestion is running. Once ingestion completes successfully, this process will be skipped on subsequent launches.
+
+I am currently working on a progress indicator to improve visibility during this process.
+
+Thanks,
+dot
 
 ## What is Caspian Surveyor?
 

@@ -16,6 +16,10 @@ core_analysis = Analysis(
             str(SOURCE_DIRECTORY / "caspian_surveyor" / "db" / "schema.sql"),
             "caspian_surveyor/db",
         ),
+        (
+            str(SOURCE_DIRECTORY / "caspian_surveyor" / "assets" / "historical_event_ingestion.ini"),
+            "caspian_surveyor/assets",
+        ),
     ],
     hiddenimports=[],
     hookspath=[],

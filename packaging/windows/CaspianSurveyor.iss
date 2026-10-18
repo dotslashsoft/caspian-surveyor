@@ -1,5 +1,5 @@
 #define MyAppName "Caspian Surveyor"
-#define MyAppVersion "0.9.7.0"
+#define MyAppVersion "0.9.8.0"
 #define MyAppExeName "CaspianSurveyor.exe"
 
 [Setup]
@@ -33,6 +33,7 @@ Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "licenses\*"; DestDir: "{app}\licenses"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "src\caspian_surveyor\assets\historical_event_ingestion.ini"; DestDir: "{localappdata}\CaspianSurveyor\data"; Flags: onlyifdoesntexist uninsneveruninstall
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\CaspianSurveyor.ico"
