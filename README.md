@@ -1,7 +1,5 @@
 ## New Alpha Release Available: [Version 0.9.8.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.8.0)
 
-
-
 # Caspian Surveyor
 
 **An exploration companion for Elite Dangerous.**
