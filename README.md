@@ -1,4 +1,4 @@
-## New Alpha Release Available: [Version 0.9.8.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.8.0)
+## New Alpha Release Available: [Version 0.9.8.1](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.8.1)
 
 # Caspian Surveyor
 
@@ -26,7 +26,7 @@ The project aims to improve the exploration experience for the Elite Dangerous c
 
 Development of Caspian Surveyor is active and ongoing.
 
-**Current Version:** 0.9.8.0
+**Current Version:** 0.9.8.1
 
 ## Screenshots
 
@@ -83,7 +83,7 @@ Development of Caspian Surveyor is active and ongoing.
 
 ## Installation
 
-1. Download `CaspianSurveyor-0.9.8.0-Setup.exe` from the GitHub Releases page.
+1. Download `CaspianSurveyor-0.9.8.1-Setup.exe` from the GitHub Releases page.
 
 2. Because the installer is currently unsigned, Microsoft Edge or another browser may warn that the file is not commonly downloaded. Keep the file **only if you downloaded it from the official Caspian Surveyor GitHub release page**.
 
@@ -239,7 +239,7 @@ Caspian Surveyor is free software: you can redistribute it and/or modify it unde
 
 > **Note:** The roadmap is tentative and subject to change as development continues and feedback is received. Changes to the roadmap will be reflected on GitHub.
 
-1. **SQLite integration** - After public alpha feedback, SQLite will be implemented to support querying previously visited systems and future exploration-data features.
-2. **HUD color customization**
+~~1. **SQLite integration** - After public alpha feedback, SQLite will be implemented to support querying previously visited systems and future exploration-data features.~~ DONE!
+~~2. **HUD color customization**~~ DONE!
 3. **System priority calculations**
 4. **REBOUND integration** - Orbital simulations for analyzing system stability and long-term orbital evolution.
