@@ -7,6 +7,11 @@ from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
 from caspian_surveyor.db.database_adapter import SqliteDataAdapter
 from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
+from caspian_surveyor.ui.historical_ingestion_progress import HistoryProgressbar, HistoryIngestionSignals
+from caspian_surveyor.ui.caspian_theme import load_application_font
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QFont
 import threading
 import logging
 import sys
@@ -34,10 +39,56 @@ def main() -> None:
     log_manager.set_log_config()
 
     history = Journal.HistoricalJournalIngestion()
-    history.process_and_persist_historical_journal_events()
+    if history.check_historical_event_ingestion_flag():
+        app = QApplication(sys.argv)
+        app.setQuitOnLastWindowClosed(False)
+
+        font_family = load_application_font()
+        app.setFont(QFont(font_family))
+
+        progress_window = HistoryProgressbar()
+        progress_signals = HistoryIngestionSignals()
+        progress_signals.progress.connect(progress_window.update_progress_bar)
+        progress_window.show()
+
+        QTimer.singleShot(0, progress_window.raise_)
+        QTimer.singleShot(0, progress_window.activateWindow)
+
+        ingestion_errors = []
+
+        def run_historical_ingestion() -> None:
+            try:
+                history.process_and_persist_historical_journal_events(
+                    progress_callback=progress_signals.progress.emit
+                )
+            except Exception as exc:
+                ingestion_errors.append(exc)
+                progress_signals.failed.emit(str(exc))
+            else:
+                progress_signals.finished.emit()
+
+        progress_signals.finished.connect(progress_window.close)
+        progress_signals.finished.connect(app.quit)
+
+        progress_signals.failed.connect(lambda _error_message: progress_window.close())
+        progress_signals.failed.connect(lambda _error_message: app.quit())
+
+        history_ingestion_thread = threading.Thread(
+            target=run_historical_ingestion,
+            name="HistoricalIngestion",
+        )
+        history_ingestion_thread.start()
+        app.exec()
+        history_ingestion_thread.join()
+
+        if ingestion_errors:
+            logger.critical(
+                "Historical journal ingestion failed: %s",
+                ingestion_errors[0],
+            )
+            sys.exit(2)
 
     latest_journal = Journal.get_latest_journal_file()
-
     if latest_journal is None:
         logger.critical("No Elite Dangerous journal file was found. Caspian Surveyor is exiting.")
         sys.exit(2)

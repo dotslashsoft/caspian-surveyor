@@ -455,73 +455,66 @@ class HistoricalJournalIngestion:
         return current_system
 
 
-    def process_and_persist_historical_journal_events(self):
+    def process_and_persist_historical_journal_events(self, progress_callback=None):
+        from caspian_surveyor.cs_survey_data import SurveyDataAggregator, SurveyDataBuilder
+        from caspian_surveyor.cs_history import DataOrchestrator
+        from caspian_surveyor.runtime.cs_runtime import system_record_encoder
+        from caspian_surveyor.db.database_adapter import SqliteDataAdapter
+        from caspian_surveyor.db.connection_manager import ConnectionManager
 
-        if self.check_historical_event_ingestion_flag() == True:
-            print("Historical ingestion flag is set to True.")
-            print("Processing exploration events for all Odyssey journals.")
+        aggregator = SurveyDataAggregator()
+        builder = SurveyDataBuilder(aggregator)
+        orchestrator = DataOrchestrator()
+        sql_adapter = SqliteDataAdapter()
+        connection_manager = ConnectionManager()
 
-            from caspian_surveyor.cs_survey_data import SurveyDataAggregator, SurveyDataBuilder
-            from caspian_surveyor.cs_history import DataOrchestrator
-            from caspian_surveyor.runtime.cs_runtime import system_record_encoder
-            from caspian_surveyor.db.database_adapter import SqliteDataAdapter
-            from caspian_surveyor.db.connection_manager import ConnectionManager
+        conn = connection_manager.establish_db_connection()
+        processed_system_count = 0
+        persisted_system_count = 0
 
-            aggregator = SurveyDataAggregator()
-            builder = SurveyDataBuilder(aggregator)
-            orchestrator = DataOrchestrator()
-            sql_adapter = SqliteDataAdapter()
-            connection_manager = ConnectionManager()
+        try:
+            connection_manager.initialize_schema(conn)
+            odyssey_journals = self.find_odyssey_journal_files()
+            system_events = self.group_historical_events_by_system_address(odyssey_journals)
 
-            # db connection & schema
-            conn = connection_manager.establish_db_connection()
-            processed_system_count = 0
-            persisted_system_count = 0
+            if not system_events:
+                raise RuntimeError("No historical systems found. Ingestion flag remains True.")
 
-            try:
-                connection_manager.initialize_schema(conn)
-                odyssey_journals = self.find_odyssey_journal_files()
-                system_events = self.group_historical_events_by_system_address(odyssey_journals)
+            total_system_count = len(system_events)
+            if progress_callback is not None:
+                progress_callback(0, 0, total_system_count)
 
-                if not system_events:
-                    raise RuntimeError("No historical systems found. Ingestion flag remains True.")
-                
-                for system_address, events in self.iterate_historical_system_event_groups(system_events):
-                    historical_record = self.reconstruct_historical_system_from_events(
-                        system_address, events, aggregator
-                    )
+            for system_address, events in self.iterate_historical_system_event_groups(system_events):
+                historical_record = self.reconstruct_historical_system_from_events(system_address, events, aggregator)
 
-                    if historical_record is not None:
-                        system_record = builder.build_system_record()
+                if historical_record is not None:
+                    system_record = builder.build_system_record()
 
-                        if system_record is not None:
-                            # Persist to SQLite.
-                            sql_adapter.persist_current_system_record(conn, system_record)
+                    if system_record is not None:
+                        sql_adapter.persist_current_system_record(conn, system_record)
+                        encoded_record = system_record_encoder(system_record)
+                        orchestrator.current_system_data = encoded_record
+                        orchestrator.append_system_record_to_history_file()
+                        persisted_system_count += 1
 
-                            # Encode and append to exploration history.
-                            encoded_record = system_record_encoder(system_record)
-                            orchestrator.current_system_data = encoded_record
-                            orchestrator.append_system_record_to_history_file()
+                processed_system_count += 1
+                if progress_callback is not None:
+                    if (
+                        processed_system_count % 25 == 0
+                        or processed_system_count == total_system_count
+                    ):
+                        progress_callback(processed_system_count, persisted_system_count, total_system_count)
 
-                            persisted_system_count += 1
+            if processed_system_count != persisted_system_count:
+                raise RuntimeError(
+                    "Historical ingestion incomplete. "
+                    f"Processed: {processed_system_count}, "
+                    f"Persisted: {persisted_system_count}")
 
-                    processed_system_count += 1
-                    print(f"Systems processed: {processed_system_count}")
-                    print(f"Systems persisted: {persisted_system_count}")
+        finally:
+            connection_manager.close_db_connection(conn)
 
-                if processed_system_count != persisted_system_count:
-                    raise RuntimeError(
-                        "Historical ingestion incomplete. "
-                        f"Processed: {processed_system_count}, "
-                        f"Persisted: {persisted_system_count}")
-
-            finally:
-                connection_manager.close_db_connection(conn)
-
-            self.set_historical_event_ingestion_flag_false()
-            print("Historical SQLite processing complete.")
-            print(f"Total systems processed: {processed_system_count}")
-            print(f"Total systems persisted: {persisted_system_count}")
+        self.set_historical_event_ingestion_flag_false()
 
 
     def check_historical_event_ingestion_flag(self, historical_flag_file=HISTORICAL_EVENT_INGESTION) -> bool:
