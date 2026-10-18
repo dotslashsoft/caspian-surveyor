@@ -33,6 +33,9 @@ def main() -> None:
     log_manager = cs_log_factory.LogManager()
     log_manager.set_log_config()
 
+    history = Journal.HistoricalJournalIngestion()
+    history.process_and_persist_historical_journal_events()
+
     latest_journal = Journal.get_latest_journal_file()
 
     if latest_journal is None:
@@ -58,7 +61,6 @@ def main() -> None:
 
     conn = connection_manager.establish_db_connection()
     connection_manager.initialize_schema(conn)
-
 
     state_recovery = Survey.StateRecovery()
 
@@ -88,9 +90,7 @@ def main() -> None:
         sys.exit(2)
 
     recovery_start_event = recovery_events[0]
-
     system_address = recovery_start_event.get("SystemAddress")
-
     archived_payload = None
 
     if system_address is not None:

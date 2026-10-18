@@ -23,6 +23,9 @@ TESTDEV_DATABASE_FILE = DATABASE_DIRECTORY / "caspian_surveyor_testdev.db"
 CASPIAN_ROOT = Path(__file__).resolve().parents[1]
 DATABASE_SCHEMA = CASPIAN_ROOT / "db" / "schema.sql"
 
+# historical event ingestion file
+HISTORICAL_EVENT_INGESTION = DATA_DIRECTORY / "historical_event_ingestion.ini"
+
 #FDev specific pathing
 JOURNAL_DIRECTORY = (Path.home() / "Saved Games" / "Frontier Developments" / "Elite Dangerous")
 """

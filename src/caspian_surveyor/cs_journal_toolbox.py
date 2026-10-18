@@ -3,6 +3,8 @@ import logging
 from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
 from pathlib import Path
 import queue
+import configparser
+from caspian_surveyor.bootstrap.cs_baseline_config import HISTORICAL_EVENT_INGESTION
 
 
 
@@ -350,105 +352,196 @@ def get_journal_file_by_index(index) -> Path | None:
     return journal_file
 
 
-def find_odyssey_journals() -> list[Path]:
-    odyssey_journals = []
-    journal_files = sorted(JOURNAL_DIRECTORY.glob("Journal.*.log"))
+class HistoricalJournalIngestion:
 
-    if not journal_files:
-        logger.warning("No Elite Dangerous journal files found.")
-        return odyssey_journals
+    def find_odyssey_journal_files(self) -> list[Path]:
+        odyssey_journals = []
+        journal_files = sorted(JOURNAL_DIRECTORY.glob("Journal.*.log"))
 
-    for journal_path in journal_files:
-        with open(journal_path, "r", encoding="utf-8") as f:
-            first_line = f.readline()
+        if not journal_files:
+            logger.warning("No Elite Dangerous journal files found.")
+            return odyssey_journals
 
-        try:
-            header = json.loads(first_line)
-        except json.JSONDecodeError:
-            continue
+        for journal_path in journal_files:
+            with open(journal_path, "r", encoding="utf-8") as f:
+                first_line = f.readline()
 
-        if not isinstance(header, dict):
-            continue
-
-        if header.get("event") != "Fileheader":
-            continue
-
-        if header.get("Odyssey", False) is True:
-            odyssey_journals.append(journal_path)
-
-    return odyssey_journals
-
-
-def read_journal_events(journal_path):
-    with open(journal_path, "r", encoding='utf-8') as file:
-        lines = [line.rstrip("\r\n") for line in file]
-        
-    return lines
-
-
-def create_historical_event_dictionaries(odyssey_journals):
-    system_events = {}
-    current_system_address = None
-
-    for journal_path in odyssey_journals:
-        for event in read_journal_events(journal_path):
-
-            event_data = json.loads(event)
-            event_dict = dict(event_data)
-
-            if event_dict["event"] in ("FSDJump", "Location", "CarrierJump"):
-                current_system_address = event_dict.get(
-                    "SystemAddress",
-                    current_system_address
-                )
-
-            if current_system_address is None:
+            try:
+                header = json.loads(first_line)
+            except json.JSONDecodeError:
                 continue
 
-            system_events.setdefault(
-                current_system_address, []
-            ).append(event)
-    return system_events
+            if not isinstance(header, dict):
+                continue
+
+            if header.get("event") != "Fileheader":
+                continue
+
+            if header.get("Odyssey", False) is True:
+                odyssey_journals.append(journal_path)
+
+        return odyssey_journals
 
 
-def historical_event_orchestrator(system_events: dict):
-    for system_address, events in system_events.items():
-        yield system_address, events
+    def read_raw_journal_event_lines(self, journal_path):
+        with open(journal_path, "r", encoding='utf-8') as file:
+            lines = [line.rstrip("\r\n") for line in file]
+            
+        return lines
 
 
-def process_historical_events(system_address, system_events, aggregator):
+    def group_historical_events_by_system_address(self, odyssey_journals):
+        system_events = {}
+        current_system_address = None
 
-    if not system_events:
-        print(f"No events found for system: {system_address}")
-        return None
+        for journal_path in odyssey_journals:
+            for event in self.read_raw_journal_event_lines(journal_path):
 
-    # Initialize the historical system.
-    initialized = False
+                event_data = json.loads(event)
+                event_dict = dict(event_data)
 
-    for raw_event in system_events:
-        event = json.loads(raw_event)
+                if event_dict["event"] in ("FSDJump", "Location", "CarrierJump"):
+                    current_system_address = event_dict.get(
+                        "SystemAddress",
+                        current_system_address
+                    )
 
-        if (
-            event.get("event") in ("FSDJump", "Location", "CarrierJump")
-            and event.get("SystemAddress") == system_address
-        ):
-            aggregator.begin_system(event)
-            initialized = True
-            break
+                if current_system_address is None:
+                    continue
 
-    if not initialized:
-        print(f"No initialization event found for system: {system_address}")
-        return None
+                system_events.setdefault(
+                    current_system_address, []
+                ).append(event)
+        return system_events
 
-    # Process all exploration events for this system.
-    for raw_event in system_events:
-        event = json.loads(raw_event)
-        aggregator.process_journal_event(event)
 
-    # Inspect the reconstructed system.
-    current_system = aggregator.current_system
+    def iterate_historical_system_event_groups(self, system_events: dict):
+        for system_address, events in system_events.items():
+            yield system_address, events
 
-    return current_system
+
+    def reconstruct_historical_system_from_events(self, system_address, system_events, aggregator):
+
+        if not system_events:
+            print(f"No events found for system: {system_address}")
+            return None
+
+        # Initialize the historical system.
+        initialized = False
+
+        for raw_event in system_events:
+            event = json.loads(raw_event)
+
+            if (
+                event.get("event") in ("FSDJump", "Location", "CarrierJump")
+                and event.get("SystemAddress") == system_address
+            ):
+                aggregator.begin_system(event)
+                initialized = True
+                break
+
+        if not initialized:
+            print(f"No initialization event found for system: {system_address}")
+            return None
+
+        # Process all exploration events for this system.
+        for raw_event in system_events:
+            event = json.loads(raw_event)
+            aggregator.process_journal_event(event)
+
+        # Inspect the reconstructed system.
+        current_system = aggregator.current_system
+
+        return current_system
+
+
+    def process_and_persist_historical_journal_events(self):
+
+        if self.check_historical_event_ingestion_flag() == True:
+            print("Historical ingestion flag is set to True.")
+            print("Processing exploration events for all Odyssey journals.")
+
+            from caspian_surveyor.cs_survey_data import SurveyDataAggregator, SurveyDataBuilder
+            from caspian_surveyor.cs_history import DataOrchestrator
+            from caspian_surveyor.runtime.cs_runtime import system_record_encoder
+            from caspian_surveyor.db.database_adapter import SqliteDataAdapter
+            from caspian_surveyor.db.connection_manager import ConnectionManager
+
+            aggregator = SurveyDataAggregator()
+            builder = SurveyDataBuilder(aggregator)
+            orchestrator = DataOrchestrator()
+            sql_adapter = SqliteDataAdapter()
+            connection_manager = ConnectionManager()
+
+            # db connection & schema
+            conn = connection_manager.establish_db_connection()
+            processed_system_count = 0
+            persisted_system_count = 0
+
+            try:
+                connection_manager.initialize_schema(conn)
+                odyssey_journals = self.find_odyssey_journal_files()
+                system_events = self.group_historical_events_by_system_address(odyssey_journals)
+
+                if not system_events:
+                    raise RuntimeError("No historical systems found. Ingestion flag remains True.")
+                
+                for system_address, events in self.iterate_historical_system_event_groups(system_events):
+                    historical_record = self.reconstruct_historical_system_from_events(
+                        system_address, events, aggregator
+                    )
+
+                    if historical_record is not None:
+                        system_record = builder.build_system_record()
+
+                        if system_record is not None:
+                            # Persist to SQLite.
+                            sql_adapter.persist_current_system_record(conn, system_record)
+
+                            # Encode and append to exploration history.
+                            encoded_record = system_record_encoder(system_record)
+                            orchestrator.current_system_data = encoded_record
+                            orchestrator.append_system_record_to_history_file()
+
+                            persisted_system_count += 1
+
+                    processed_system_count += 1
+                    print(f"Systems processed: {processed_system_count}")
+                    print(f"Systems persisted: {persisted_system_count}")
+
+                if processed_system_count != persisted_system_count:
+                    raise RuntimeError(
+                        "Historical ingestion incomplete. "
+                        f"Processed: {processed_system_count}, "
+                        f"Persisted: {persisted_system_count}")
+
+            finally:
+                connection_manager.close_db_connection(conn)
+
+            self.set_historical_event_ingestion_flag_false()
+            print("Historical SQLite processing complete.")
+            print(f"Total systems processed: {processed_system_count}")
+            print(f"Total systems persisted: {persisted_system_count}")
+
+
+    def check_historical_event_ingestion_flag(self, historical_flag_file=HISTORICAL_EVENT_INGESTION) -> bool:
+        history_config = configparser.ConfigParser()
+        history_config.read(historical_flag_file)
+
+        if history_config["history_ingestion"]["historical_event_ingestion"] == "True":
+            print("TRUE")
+            return True
+
+        return False
+
+    def set_historical_event_ingestion_flag_false(self, historical_flag_file=HISTORICAL_EVENT_INGESTION):
+        history_config = configparser.ConfigParser()
+        history_config.read(historical_flag_file)
+
+        history_config["history_ingestion"]["historical_event_ingestion"] = "False"
+
+        with open(historical_flag_file, "w") as config_file:
+            history_config.write(config_file)
 
 
 DEBUG_LOG_PAYLOAD_EVENTS = {
@@ -469,38 +562,6 @@ DEBUG logging is enabled.
 """ 
 
 if __name__ == "__main__":
-    from caspian_surveyor.cs_survey_data import SurveyDataAggregator, SurveyDataBuilder
-    from caspian_surveyor.cs_history import DataOrchestrator
-    from caspian_surveyor.runtime.cs_runtime import system_record_encoder
+    history = HistoricalJournalIngestion()
 
-    aggregator = SurveyDataAggregator()
-    builder = SurveyDataBuilder(aggregator)
-    orchestrator = DataOrchestrator()
-
-    odyssey_journals = find_odyssey_journals()
-    system_events = create_historical_event_dictionaries(odyssey_journals)
-
-    processed_system_count = 0
-    archived_system_count = 0
-
-    for system_address, events in historical_event_orchestrator(system_events):
-        historical_record = process_historical_events(system_address, events, aggregator)
-
-        if historical_record is not None:
-            system_record = builder.build_system_record()
-
-            if system_record is not None:
-                encoded_record = system_record_encoder(system_record)
-                orchestrator.current_system_data = encoded_record
-                orchestrator.append_system_record_to_history_file()
-                
-                archived_system_count += 1
-
-        processed_system_count += 1
-
-        print(f"Systems processed: {processed_system_count}")
-        print(f"Systems archived: {archived_system_count}")
-
-    print("Historical journal processing complete.")
-    print(f"Total systems processed: {processed_system_count}")
-    print(f"Total systems archived: {archived_system_count}")
+    history.process_and_persist_historical_journal_events()
