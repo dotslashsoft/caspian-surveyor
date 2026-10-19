@@ -110,10 +110,16 @@ Development of Caspian Surveyor is active and ongoing.
 
 ## What Caspian Surveyor Currently Does
 
-- Live journal monitoring
-- System and body survey reconstruction
-- HUD-style overlay
+- Live Elite Dangerous journal monitoring
+- Current-system and body survey reconstruction
+- Historical Odyssey journal ingestion and archive reconstruction
 - Persistent exploration history
+- SQLite-backed system and body archive, including exobio scanning
+- HUD-style exploration overlay
+- Exobiology, biosignal, and planetary survey tracking
+- Orbital and physical body data display
+- Customizable HUD colors and theming
+- Packaged Windows installer and portable build
 
 ## Where Caspian Surveyor Stores Data
 
