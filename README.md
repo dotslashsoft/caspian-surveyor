@@ -1,5 +1,7 @@
 ## New Alpha Release Available: [Version 0.9.8.1](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.8.1)
 
+Jump to: [Keyboard Shortcuts](#keyboard-shortcuts)
+
 # Caspian Surveyor
 
 **An exploration companion for Elite Dangerous.**
