@@ -112,7 +112,7 @@ Development of Caspian Surveyor is active and ongoing.
 - Current-system and body survey reconstruction
 - Historical Odyssey journal ingestion and archive reconstruction
 - Persistent exploration history
-- SQLite-backed system and body archive, including exobio scanning
+- SQLite-backed archive for systems, bodies, signals, and exobiology scans
 - HUD-style exploration overlay
 - Exobiology, biosignal, and planetary survey tracking
 - Orbital and physical body data display
