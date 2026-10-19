@@ -235,7 +235,5 @@ Caspian Surveyor is free software: you can redistribute it and/or modify it unde
 
 > **Note:** The roadmap is tentative and subject to change as development continues and feedback is received. Changes to the roadmap will be reflected on GitHub.
 
-~~1. **SQLite integration** - After public alpha feedback, SQLite will be implemented to support querying previously visited systems and future exploration-data features.~~ DONE!
-~~2. **HUD color customization**~~ DONE!
-3. **System priority calculations**
-4. **REBOUND integration** - Orbital simulations for analyzing system stability and long-term orbital evolution.
+1. **REBOUND integration** - Orbital simulations for analyzing system stability and long-term orbital evolution. 
+2. **System priority calculations**
