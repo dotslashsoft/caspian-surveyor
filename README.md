@@ -28,54 +28,46 @@ Development of Caspian Surveyor is active and ongoing.
 
 ### Default HUD Panel
 
-![Caspian Surveyor default HUD panel](docs/images/default_panel_0920.png)
+![Caspian Surveyor default HUD panel](docs/images/0981_default_panel.png)
 
 ### Planetary Body Information
 
-![Caspian Surveyor planetary body information panel](docs/images/planet-body-info_0920.png)
+![Caspian Surveyor planetary body information panel](docs/images/0981_orbital_properites.png)
 
 ***BIOSIG panel cycling*** 
-![Caspian Surveyor exobiology information panel](docs/images/exobio_scrolling_genus_001_0930.png)
-![Caspian Surveyor exobiology information panel](docs/images/exobio_scrolling_genus_002_0930.png)
+![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-01.png)
+![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-02.png)
+![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-03.png)
 
 ### Exobiology Information
 
-***Exobiology Panel - pre-exobio scan***
-![Caspian Surveyor exobiology information panel](docs/images/exobio_001_0920.png)
+***Exobiology Panel***
+![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-complete.png)
 
-***Exobiology Panel - post-exobio scan #1***
-![Caspian Surveyor exobiology information panel](docs/images/exobio_002_0920.png)
+***Exobiology Incomplete Variant Scan***
+![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-incomplete-scan.png)
 
-***Exobiology Panel - post-exobio scan #2***
-![Caspian Surveyor exobiology information panel](docs/images/exobio_003_0920.png)
-
-***Exobiology Panel - post-exobio scan #3 - Analysed and Logged***
-![Caspian Surveyor exobiology information panel](docs/images/exobio_004_0920.png)
-
-***Exobiology Panel - post-exobio scan - two genus species variants***
-![Caspian Surveyor exobiology information panel](docs/images/exobio_005_0920.png)
-
-***Exobiology Panel - post-exobio scan - four genus species variants***
-![Caspian Surveyor exobiology information panel](docs/images/exobio_006_0920.png)
+***Exobiology Complete Variant Scan***
+![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-complete-scan.png)
 
 ### Color Picker Dialog
 ***Dialog pop up*** 
-![Color picker dialog](docs/images/color_picker_dialog_001_v0950.png)
+![Color picker dialog](docs/images/0981_colorpicker.png)
 
 ***After selecting new colors and clicking OK***
-![After selecting new colors](docs/images/color_picker_result_001_v0950.png)
+![After selecting new colors](docs/images/0981_custom_colors.png)
 
 ### Orbital and Physical Information
 
-![Caspian Surveyor planetary orbital and physical information panel](docs/images/planet-orbital-physical-info_0920.png)
+![Caspian Surveyor planetary orbital and physical information panel](docs/images/0981_orbital_properites.png)
 
 ### Orbital / Physical Data Legend
 
-![Caspian Surveyor orbital and physical data legend](docs/images/orbital-physical-legend_0920.png)
+![Caspian Surveyor orbital and physical data legend](docs/images/0981_legend.png)
 
 ### In-Cockpit View
 
-![Caspian Surveyor HUD overlay shown in the Elite Dangerous cockpit](docs/images/cockpit-view_0920.png)
+![Caspian Surveyor HUD overlay shown in the Elite Dangerous cockpit](docs/images/0981_cockpit-view.png)
 
 ## Installation
 
