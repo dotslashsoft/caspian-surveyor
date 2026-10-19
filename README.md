@@ -33,11 +33,9 @@ Development of Caspian Surveyor is active and ongoing.
 ![Caspian Surveyor default HUD panel](docs/images/0981_default_panel.png)
 
 ### Planetary Body Information
-
-![Caspian Surveyor planetary body information panel](docs/images/0981_orbital_properites.png)
+![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-01.png)
 
 ***BIOSIG panel cycling*** 
-![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-01.png)
 ![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-02.png)
 ![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-03.png)
 
