@@ -9,10 +9,9 @@ from caspian_surveyor.cs_data_structures import (
 )
 from caspian_surveyor.runtime.cs_runtime import load_current_system_record, write_current_system_record
 from caspian_surveyor.db.sql_statements import (
-    GET_MOST_RECENT_BODY, QUERY_BODY_EXOBIO_SCANS, QUERY_BODY_DETECTED_GENUSES,
-    QUERY_ALL_BODIES, QUERY_ALL_SYSTEMS, GET_SYSTEM_INFO, GET_SYSTEM_BODIES,
-    GET_SYSTEM_PARENTS, GET_SYSTEM_MATERIALS, GET_SYSTEM_PHYSORB,
-    GET_SYSTEM_SIGNALS, GET_SYSTEM_GENUSES, GET_SYSTEM_EXOBIO
+    GET_SYSTEM_INFO, GET_SYSTEM_BODIES, GET_SYSTEM_PARENTS,
+    GET_SYSTEM_MATERIALS, GET_SYSTEM_PHYSORB, GET_SYSTEM_SIGNALS,
+    GET_SYSTEM_GENUSES, GET_SYSTEM_EXOBIO
 )
 
 logger = logging.getLogger(__name__)
@@ -155,18 +154,19 @@ class ArchivedSystemQueries:
             database_body_id = physorb[0]
             physorb_obj_dict = {
                 "body_radius": physorb[1],
-                "body_surface_gravity": physorb[2],
-                "body_surface_pressure": physorb[3],
-                "body_surface_temperature": physorb[4],
-                "body_semi_major_axis": physorb[5],
-                "body_eccentricity": physorb[6],
-                "body_orbital_inclination": physorb[7],
-                "body_orbital_period": physorb[8],
-                "body_ascending_node": physorb[9],
-                "body_mean_anomaly": physorb[10],
-                "body_rotational_period": physorb[11],
-                "body_axial_tilt": physorb[12],
-                "body_periapsis": physorb[13]
+                "body_mass": physorb[2],
+                "body_surface_gravity": physorb[3],
+                "body_surface_pressure": physorb[4],
+                "body_surface_temperature": physorb[5],
+                "body_semi_major_axis": physorb[6],
+                "body_eccentricity": physorb[7],
+                "body_orbital_inclination": physorb[8],
+                "body_orbital_period": physorb[9],
+                "body_ascending_node": physorb[10],
+                "body_mean_anomaly": physorb[11],
+                "body_rotational_period": physorb[12],
+                "body_axial_tilt": physorb[13],
+                "body_periapsis": physorb[14],
             }
 
             body = bodies_by_database_id[database_body_id]

@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS body_materials (
 CREATE TABLE IF NOT EXISTS body_physical_orbital_properties (
     database_body_id     INTEGER PRIMARY KEY,
     radius               REAL,
+    mass                 REAL,
     surface_gravity      REAL,
     surface_pressure     REAL,
     surface_temperature  REAL,

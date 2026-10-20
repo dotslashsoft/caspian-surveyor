@@ -10,6 +10,7 @@ license-files = ["LICENSE"]
 dependencies = [
     "keyboard",
     "PySide6",
+    "rebound==5.2.2",
 ]
 
 [build-system]

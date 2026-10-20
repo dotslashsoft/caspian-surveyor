@@ -212,6 +212,7 @@ BODY_PHYSORB_UPSERT_SQL = """
 INSERT INTO body_physical_orbital_properties (
     database_body_id,
     radius,
+    mass,
     surface_gravity,
     surface_pressure,
     surface_temperature,
@@ -228,6 +229,7 @@ INSERT INTO body_physical_orbital_properties (
 VALUES (
     :database_body_id,
     :body_radius,
+    :body_mass,
     :body_surface_gravity,
     :body_surface_pressure,
     :body_surface_temperature,
@@ -248,6 +250,10 @@ DO UPDATE SET
     radius = COALESCE(
         excluded.radius,
         body_physical_orbital_properties.radius
+    ),
+    mass = COALESCE(
+        excluded.mass,
+        body_physical_orbital_properties.mass
     ),
     surface_gravity = COALESCE(
         excluded.surface_gravity,

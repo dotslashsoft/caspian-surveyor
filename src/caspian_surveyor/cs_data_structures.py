@@ -120,6 +120,7 @@ class CelestialBody:
     body_atmosphere: str | None = None
     body_atmosphere_type: str | None = None
     body_radius: float | None = None
+    body_mass: float | None = None
     body_surface_gravity: float | None = None
     body_surface_pressure: float | None = None
     body_semi_major_axis: float | None = None

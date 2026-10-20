@@ -398,6 +398,8 @@ class SurveyDataAggregator:
         field_map = {
             "BodyID": "body_id",
             "BodyName": "body_name",
+            "MassEM": "body_mass",
+            "StellarMass": "body_mass",
             "StarType": "body_star_type",
             "PlanetClass": "body_planet_class",
             "TerraformState": "body_terraform_state",
@@ -577,6 +579,7 @@ class SurveyDataBuilder:
         return CelestialBody(
             body_id = body["body_id"],
             body_name = body["body_name"],
+            body_mass = body.get("body_mass"),
             body_star_type = body.get("body_star_type"),
             body_parents=[BodyParentInfo(**parent) for parent in body.get("body_parents", [])],
             body_planet_class = body.get("body_planet_class"),
