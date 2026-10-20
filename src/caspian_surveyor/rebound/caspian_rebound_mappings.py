@@ -4,10 +4,12 @@ from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
 from caspian_surveyor.cs_data_structures import CelestialBody, FullStarSystemPayload
 
+SOLAR_MASS_CONVERSION=333029.70449
 
 @dataclass
 class Rebound:
     body_id: int
+    body_scan_timestamp: int
     body_name: str
     body_mass: float
     body_periapsis: float
@@ -43,16 +45,27 @@ class CaspianReboundMappings:
         rebound_bodies = {}
         for body_obj in bodies.values():
 
+            if body_obj.body_mass is None:
+                continue
+
+            if body_obj.body_star_type is not None:
+                rebound_mass = body_obj.body_mass
+            else:
+                rebound_mass = body_obj.body_mass / SOLAR_MASS_CONVERSION
+
             celestial_physorb_dict = {
-                    "body_id": body_obj.body_id,
-                    "body_name": body_obj.body_name,
-                    "body_periapsis": body_obj.body_periapsis,
-                    "body_semi_major_axis": body_obj.body_semi_major_axis,
-                    "body_eccentricity": body_obj.body_eccentricity,
-                    "body_orbital_inclination": body_obj.body_orbital_inclination,
-                    "body_ascending_node": body_obj.body_ascending_node,
-                    "body_mean_anomaly": body_obj.body_mean_anomaly
+                "body_id": body_obj.body_id,
+                "body_scan_timestamp": body_obj.body_scan_timestamp,
+                "body_name": body_obj.body_name,
+                "body_mass": rebound_mass,
+                "body_periapsis": body_obj.body_periapsis,
+                "body_semi_major_axis": body_obj.body_semi_major_axis,
+                "body_eccentricity": body_obj.body_eccentricity,
+                "body_orbital_inclination": body_obj.body_orbital_inclination,
+                "body_ascending_node": body_obj.body_ascending_node,
+                "body_mean_anomaly": body_obj.body_mean_anomaly,
             }
+
 
             rebound_data = Rebound(
                 **celestial_physorb_dict
@@ -62,6 +75,10 @@ class CaspianReboundMappings:
             rebound_bodies[rebound_body_id] = rebound_data
         
         return rebound_bodies
+
+
+    def convert_to_solar_masses(self):
+        print()
 
 
     def build_rebound_bodies_dict(self) -> dict[str, Rebound]:

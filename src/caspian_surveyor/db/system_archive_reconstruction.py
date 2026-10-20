@@ -94,19 +94,20 @@ class ArchivedSystemQueries:
         for body_obj in bodies:
             body_obj_dict = {
                 "body_id": body_obj[2],
-                "body_name": body_obj[3],
-                "body_planet_class": body_obj[4],
-                "body_star_type": body_obj[5],
-                "body_terraform_state": body_obj[6],
-                "body_was_discovered": bool(body_obj[7]),
-                "body_was_mapped": bool(body_obj[8]),
-                "body_was_footfalled": bool(body_obj[9]),
-                "body_landable": bool(body_obj[10]),
-                "body_dss_scan_complete": bool(body_obj[11]),
-                "body_tidal_lock": bool(body_obj[12]),
-                "body_atmosphere": body_obj[13],
-                "body_atmosphere_type": body_obj[14],
-                "body_distance_from_arrival": body_obj[15],
+                "body_scan_timestamp": body_obj[3],
+                "body_name": body_obj[4],
+                "body_planet_class": body_obj[5],
+                "body_star_type": body_obj[6],
+                "body_terraform_state": body_obj[7],
+                "body_was_discovered": bool(body_obj[8]),
+                "body_was_mapped": bool(body_obj[9]),
+                "body_was_footfalled": bool(body_obj[10]),
+                "body_landable": bool(body_obj[11]),
+                "body_dss_scan_complete": bool(body_obj[12]),
+                "body_tidal_lock": bool(body_obj[13]),
+                "body_atmosphere": body_obj[14],
+                "body_atmosphere_type": body_obj[15],
+                "body_distance_from_arrival": body_obj[16],
             }
 
             celestial_body = CelestialBody(

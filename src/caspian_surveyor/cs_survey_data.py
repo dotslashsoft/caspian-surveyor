@@ -200,6 +200,11 @@ class SurveyDataAggregator:
                 if isinstance(raw_body_materials, list)
                 else None
             )
+
+        body_scan_iso_timestamp = event.get("timestamp")
+        body_scan_timestamp = self.translate_scan_timestamp(body_scan_iso_timestamp)
+        body["body_scan_timestamp"] = body_scan_timestamp
+
         return True
 
     def translate_body_parent_fields(self, parent: dict[str, Any]) -> dict[str, Any]:
@@ -306,7 +311,13 @@ class SurveyDataAggregator:
     def translate_organic_scan_timestamp(self, timestamp) -> int:
         epoch_format = int(datetime.timestamp(datetime.fromisoformat(timestamp)))
         return epoch_format
+
     
+    def translate_scan_timestamp(self, timestamp) -> int:
+        epoch_format = int(datetime.timestamp(datetime.fromisoformat(timestamp)))
+        return epoch_format
+
+
     def record_organic_scans(self, event) -> bool:
         current_system = self._get_current_system(event)
         if current_system is None:
@@ -625,7 +636,8 @@ class SurveyDataBuilder:
                             for exoscan in exobio_scans]
                             if isinstance(exobio_scans, list)
                             else None
-                        )
+                        ),
+            body_scan_timestamp=body["body_scan_timestamp"]
         )
 
 
@@ -730,4 +742,6 @@ class StateRecovery:
 
 
 if __name__ == "__main__":
-    pass
+    aggregator = SurveyDataAggregator()
+
+    print(aggregator.translate_scan_timestamp("2026-07-28T22:26:30Z"))

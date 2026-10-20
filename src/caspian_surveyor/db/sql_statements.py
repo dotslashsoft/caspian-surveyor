@@ -76,6 +76,7 @@ BODY_UPSERT_SQL = """
 INSERT INTO bodies (
     database_system_id,
     elite_body_id,
+    scan_timestamp,
     body_name,
     planet_class,
     star_type,
@@ -93,6 +94,7 @@ INSERT INTO bodies (
 VALUES (
     :system_id,
     :body_id,
+    :body_scan_timestamp,
     :body_name,
     :body_planet_class,
     :body_star_type,
@@ -112,6 +114,7 @@ ON CONFLICT (
     elite_body_id
 )
 DO UPDATE SET
+    scan_timestamp = excluded.scan_timestamp,
     body_name = COALESCE(
         excluded.body_name,
         bodies.body_name

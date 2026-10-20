@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS bodies (
     database_body_id     INTEGER PRIMARY KEY,
     database_system_id   INTEGER NOT NULL,
     elite_body_id        INTEGER NOT NULL,
+    scan_timestamp       INTEGER NOT NULL,
     body_name            TEXT,
     planet_class         TEXT,
     star_type            TEXT,
