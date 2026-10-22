@@ -170,6 +170,69 @@ DO UPDATE SET
 RETURNING database_body_id;
 """
 
+
+BARYCENTER_UPSERT_SQL = """
+INSERT INTO barycentres (
+    database_system_id,
+    elite_body_id,
+    scan_timestamp,
+    semi_major_axis,
+    eccentricity,
+    orbital_inclination,
+    periapsis,
+    orbital_period,
+    ascending_node,
+    mean_anomaly
+)
+VALUES (
+    :database_system_id,
+    :elite_body_id,
+    :scan_timestamp,
+    :semi_major_axis,
+    :eccentricity,
+    :orbital_inclination,
+    :periapsis,
+    :orbital_period,
+    :ascending_node,
+    :mean_anomaly
+)
+ON CONFLICT (
+    database_system_id,
+    elite_body_id
+)
+DO UPDATE SET
+    scan_timestamp = excluded.scan_timestamp,
+    semi_major_axis = COALESCE(
+        excluded.semi_major_axis,
+        barycentres.semi_major_axis
+    ),
+    eccentricity = COALESCE(
+        excluded.eccentricity,
+        barycentres.eccentricity
+    ),
+    orbital_inclination = COALESCE(
+        excluded.orbital_inclination,
+        barycentres.orbital_inclination
+    ),
+    periapsis = COALESCE(
+        excluded.periapsis,
+        barycentres.periapsis
+    ),
+    orbital_period = COALESCE(
+        excluded.orbital_period,
+        barycentres.orbital_period
+    ),
+    ascending_node = COALESCE(
+        excluded.ascending_node,
+        barycentres.ascending_node
+    ),
+    mean_anomaly = COALESCE(
+        excluded.mean_anomaly,
+        barycentres.mean_anomaly
+    )
+"""
+
+
 BODY_PARENTS_UPSERT_SQL = """
 INSERT INTO body_parents (
     database_body_id,
@@ -465,6 +528,13 @@ SELECT *
 FROM bodies
 WHERE database_system_id = ?
 """
+
+GET_SYSTEM_BARYCENTRES = """
+SELECT *
+FROM barycentres
+WHERE database_system_id = ?
+"""
+
 
 GET_SYSTEM_PARENTS = """
 SELECT body_parents.*

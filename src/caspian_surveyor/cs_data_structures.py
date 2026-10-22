@@ -64,6 +64,20 @@ class BodySignalInfo:
 
 
 @dataclass
+class BarycentreInfo:
+    system_address: int
+    body_id: int
+    scan_timestamp: int
+    semi_major_axis: float
+    eccentricity: float
+    orbital_inclination: float
+    periapsis: float
+    orbital_period: float
+    ascending_node: float
+    mean_anomaly: float
+
+
+@dataclass
 class ExoBioScanInfo:
     """
     Represents an exobiology scan record for a planetary body.
@@ -213,6 +227,7 @@ class FullStarSystemPayload:
     system: SystemInfo
     summary: SystemSummaryInfo
     bodies: dict[str, CelestialBody] = field(default_factory=dict)
+    barycentres: dict[str, BarycentreInfo] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """
@@ -234,6 +249,18 @@ class FullStarSystemPayload:
                 )
                 for key, value in self.bodies.items()
             }
+
+        if isinstance(self.barycentres, dict):
+            self.barycentres = {
+                key: (
+                    BarycentreInfo(**value)
+                    if isinstance(value, dict)
+                    else value
+                )
+                for key, value in self.barycentres.items()
+            }
+
+        
 
     @property
     def planetary_bodies(self) -> list[CelestialBody]:

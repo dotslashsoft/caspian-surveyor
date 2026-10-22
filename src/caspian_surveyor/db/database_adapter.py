@@ -99,6 +99,16 @@ class SqliteDataAdapter:
                     self._persist_body_child_records(cursor, body_obj.body_genuses, database_body_id, BODY_DETECTED_GENUSES_UPSERT_SQL)
                     self._persist_body_child_records(cursor, body_obj.exobio_scans, database_body_id, BODY_EXOBIO_SCANS_UPSERT_SQL)
 
+                for barycentre_obj in full_system_data.barycentres.values():
+                    barycentre_dict = asdict(barycentre_obj)
+
+                    barycentre_dict["database_system_id"] = database_system_id
+                    barycentre_dict["elite_body_id"] = barycentre_dict.pop("body_id")
+                    barycentre_dict.pop("system_address")
+
+                    cursor.execute(BARYCENTER_UPSERT_SQL, barycentre_dict)
+
+
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise

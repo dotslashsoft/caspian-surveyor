@@ -4,13 +4,14 @@ import caspian_surveyor.cs_journal_toolbox as Journal
 from caspian_surveyor.cs_data_structures import (
     BodyMaterialInfo,
     BodyParentInfo,
+    BarycentreInfo,
     BodySignalInfo,
     BodyGenusInfo,
     ExoBioScanInfo,
     CelestialBody,
     FullStarSystemPayload,
     SystemInfo,
-    SystemSummaryInfo
+    SystemSummaryInfo,
 )
 from caspian_surveyor.runtime.cs_runtime import system_record_encoder, write_current_system_record
 from typing import Any
@@ -100,6 +101,7 @@ class SurveyDataAggregator:
             "system_body_count": None,
             "fss_complete": False,
             "bodies": {},
+            "barycentres": {},
         }
         logger.info("Survey state initialized for system: %s", self.current_system["system_name"])
 
@@ -207,6 +209,36 @@ class SurveyDataAggregator:
 
         return True
 
+
+    def record_barycentre_scan(self, event) -> bool:
+        current_system = self._get_current_system(event)
+        if current_system is None:
+            return False
+
+        body_id = event.get("BodyID")
+        if body_id is None:
+            logger.warning("ScanBaryCentre event received without BodyID.")
+            return False
+
+        barycentre = current_system["barycentres"].setdefault(body_id, {})
+
+        timestamp = event.get("timestamp")
+        scan_timestamp = self.translate_scan_timestamp(timestamp)
+
+        barycentre["system_address"] = event.get("SystemAddress")
+        barycentre["body_id"] = body_id
+        barycentre["scan_timestamp"] = scan_timestamp
+        barycentre["semi_major_axis"] = event.get("SemiMajorAxis")
+        barycentre["eccentricity"] = event.get("Eccentricity")
+        barycentre["orbital_inclination"] = event.get("OrbitalInclination")
+        barycentre["periapsis"] = event.get("Periapsis")
+        barycentre["orbital_period"] = event.get("OrbitalPeriod")
+        barycentre["ascending_node"] = event.get("AscendingNode")
+        barycentre["mean_anomaly"] = event.get("MeanAnomaly")
+
+        return True
+
+
     def translate_body_parent_fields(self, parent: dict[str, Any]) -> dict[str, Any]:
         parent_type, parent_body_id = next(iter(parent.items()))
         return {
@@ -308,11 +340,7 @@ class SurveyDataAggregator:
         ]
         return True
 
-    def translate_organic_scan_timestamp(self, timestamp) -> int:
-        epoch_format = int(datetime.timestamp(datetime.fromisoformat(timestamp)))
-        return epoch_format
 
-    
     def translate_scan_timestamp(self, timestamp) -> int:
         epoch_format = int(datetime.timestamp(datetime.fromisoformat(timestamp)))
         return epoch_format
@@ -337,7 +365,7 @@ class SurveyDataAggregator:
             )
             return False
 
-        exo_scan_timestamp = self.translate_organic_scan_timestamp(exo_scan_iso_timestamp)
+        exo_scan_timestamp = self.translate_scan_timestamp(exo_scan_iso_timestamp)
 
         body = current_system["bodies"].setdefault(body_id, {})
         body["body_id"] = body_id
@@ -388,6 +416,9 @@ class SurveyDataAggregator:
 
         elif event_type == "Scan":
             return self.record_body_scan(event)
+
+        elif event_type == "ScanBaryCentre":
+            return self.record_barycentre_scan(event)
 
         elif event_type == "FSSBodySignals":
             return self.record_body_signals(event)
@@ -485,12 +516,18 @@ class SurveyDataBuilder:
         for body_id, body in current_system["bodies"].items():
             bodies[body_id] = self.build_body_record(body)
 
+        barycentres = {}
+        for body_id, barycentre in current_system["barycentres"].items():
+            barycentres[body_id] = self.build_barycentre_record(barycentre)
+
         return FullStarSystemPayload(
             schema_version=1,
             system=system_info,
             summary=system_summary,
-            bodies = bodies
+            bodies=bodies,
+            barycentres=barycentres
         )
+
 
     def build_system_info(self, current_system: dict[str, Any]) -> SystemInfo:
         return SystemInfo(
@@ -499,6 +536,7 @@ class SurveyDataBuilder:
             system_position=current_system["system_position"],
             system_body_count=current_system["system_body_count"],
         )
+
 
     def build_system_summary(self, current_system: dict[str, Any]) -> SystemSummaryInfo:
         """
@@ -588,45 +626,46 @@ class SurveyDataBuilder:
         exobio_scans = body.get("exobio_scans")
         
         return CelestialBody(
-            body_id = body["body_id"],
-            body_name = body["body_name"],
-            body_mass = body.get("body_mass"),
-            body_star_type = body.get("body_star_type"),
+            body_id=body["body_id"],
+            body_name=body["body_name"],
+            body_scan_timestamp=body["body_scan_timestamp"],
+            body_mass=body.get("body_mass"),
+            body_star_type=body.get("body_star_type"),
             body_parents=[BodyParentInfo(**parent) for parent in body.get("body_parents", [])],
-            body_planet_class = body.get("body_planet_class"),
-            body_terraform_state = body.get("body_terraform_state"),
+            body_planet_class=body.get("body_planet_class"),
+            body_terraform_state=body.get("body_terraform_state"),
             body_materials=([BodyMaterialInfo(**material)
                             for material in body_materials]
                             if isinstance(body_materials, list)
                             else None
                         ),
-            body_periapsis = body.get("body_periapsis"),
-            body_surface_temperature = body.get("body_surface_temperature"),
-            body_was_discovered = body.get("body_was_discovered", False),
-            body_was_mapped = body.get("body_was_mapped", False),
-            body_was_footfalled = body.get("body_was_footfalled", False),
-            body_tidal_lock = body.get("body_tidal_lock", False),
-            body_atmosphere = body.get("body_atmosphere"),
-            body_atmosphere_type = body.get("body_atmosphere_type"),
-            body_radius = body.get("body_radius"),
-            body_surface_gravity = body.get("body_surface_gravity"),
-            body_surface_pressure = body.get("body_surface_pressure"),
-            body_semi_major_axis = body.get("body_semi_major_axis"),
-            body_eccentricity = body.get("body_eccentricity"),
-            body_orbital_inclination = body.get("body_orbital_inclination"),
-            body_orbital_period = body.get("body_orbital_period"),
-            body_ascending_node = body.get("body_ascending_node"),
-            body_mean_anomaly = body.get("body_mean_anomaly"),
-            body_rotational_period = body.get("body_rotational_period"),
-            body_axial_tilt = body.get("body_axial_tilt"),
-            body_distance_from_arrival = body.get("body_distance_from_arrival"),
+            body_periapsis=body.get("body_periapsis"),
+            body_surface_temperature=body.get("body_surface_temperature"),
+            body_was_discovered=body.get("body_was_discovered", False),
+            body_was_mapped=body.get("body_was_mapped", False),
+            body_was_footfalled=body.get("body_was_footfalled", False),
+            body_tidal_lock=body.get("body_tidal_lock", False),
+            body_atmosphere=body.get("body_atmosphere"),
+            body_atmosphere_type=body.get("body_atmosphere_type"),
+            body_radius=body.get("body_radius"),
+            body_surface_gravity=body.get("body_surface_gravity"),
+            body_surface_pressure=body.get("body_surface_pressure"),
+            body_semi_major_axis=body.get("body_semi_major_axis"),
+            body_eccentricity=body.get("body_eccentricity"),
+            body_orbital_inclination=body.get("body_orbital_inclination"),
+            body_orbital_period=body.get("body_orbital_period"),
+            body_ascending_node=body.get("body_ascending_node"),
+            body_mean_anomaly=body.get("body_mean_anomaly"),
+            body_rotational_period=body.get("body_rotational_period"),
+            body_axial_tilt=body.get("body_axial_tilt"),
+            body_distance_from_arrival=body.get("body_distance_from_arrival"),
             body_signals=([BodySignalInfo(**signal)
                             for signal in body_signals]
                             if isinstance(body_signals, list)
                             else None
                         ),
-            body_dss_scan_complete = body.get("body_dss_scan_complete", False),
-            body_landable = body.get("body_landable", False),
+            body_dss_scan_complete=body.get("body_dss_scan_complete", False),
+            body_landable=body.get("body_landable", False),
             body_genuses=([BodyGenusInfo(**genus)
                             for genus in body_genuses]
                             if isinstance(body_genuses, list)
@@ -636,8 +675,22 @@ class SurveyDataBuilder:
                             for exoscan in exobio_scans]
                             if isinstance(exobio_scans, list)
                             else None
-                        ),
-            body_scan_timestamp=body["body_scan_timestamp"]
+                        )
+        )
+
+
+    def build_barycentre_record(self, barycentre: dict[str, Any]) -> BarycentreInfo:
+        return BarycentreInfo(
+            system_address=barycentre["system_address"],
+            body_id=barycentre["body_id"],
+            scan_timestamp=barycentre["scan_timestamp"],
+            semi_major_axis=barycentre["semi_major_axis"],
+            eccentricity=barycentre["eccentricity"],
+            orbital_inclination=barycentre["orbital_inclination"],
+            periapsis=barycentre["periapsis"],
+            orbital_period=barycentre["orbital_period"],
+            ascending_node=barycentre["ascending_node"],
+            mean_anomaly=barycentre["mean_anomaly"]
         )
 
 

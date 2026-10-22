@@ -35,6 +35,23 @@ CREATE TABLE IF NOT EXISTS bodies (
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
+CREATE TABLE IF NOT EXISTS barycentres (
+    database_barycentre_id INTEGER PRIMARY KEY,
+    database_system_id     INTEGER NOT NULL,
+    elite_body_id          INTEGER NOT NULL,
+    scan_timestamp         INTEGER NOT NULL,
+    semi_major_axis        REAL,
+    eccentricity           REAL,
+    orbital_inclination    REAL,
+    periapsis              REAL,
+    orbital_period         REAL,
+    ascending_node         REAL,
+    mean_anomaly           REAL,
+    UNIQUE (database_system_id, elite_body_id),
+    FOREIGN KEY (database_system_id) REFERENCES systems (database_system_id)
+        ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_bodies_system_elite_id 
 ON bodies (database_system_id, elite_body_id);
 

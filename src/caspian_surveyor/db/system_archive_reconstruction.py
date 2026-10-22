@@ -5,13 +5,13 @@ import json
 from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.cs_data_structures import (
     FullStarSystemPayload, CelestialBody, SystemInfo, BodyParentInfo, BodyMaterialInfo,
-    BodySignalInfo, BodyGenusInfo, ExoBioScanInfo, SystemSummaryInfo
+    BodySignalInfo, BodyGenusInfo, ExoBioScanInfo, SystemSummaryInfo, BarycentreInfo
 )
 from caspian_surveyor.runtime.cs_runtime import load_current_system_record, write_current_system_record
 from caspian_surveyor.db.sql_statements import (
     GET_SYSTEM_INFO, GET_SYSTEM_BODIES, GET_SYSTEM_PARENTS,
     GET_SYSTEM_MATERIALS, GET_SYSTEM_PHYSORB, GET_SYSTEM_SIGNALS,
-    GET_SYSTEM_GENUSES, GET_SYSTEM_EXOBIO
+    GET_SYSTEM_GENUSES, GET_SYSTEM_EXOBIO, GET_SYSTEM_BARYCENTRES
 )
 
 logger = logging.getLogger(__name__)
@@ -293,6 +293,36 @@ class ArchivedSystemQueries:
         return system_summary
 
 
+    def _construct_archived_barycentres(self, barycentres, system_address):
+        barycentres_dict = {}
+
+        barycentres.sort(key=lambda barycentre: barycentre[2])
+
+        for barycentre in barycentres:
+            elite_body_id = barycentre[2]
+
+            barycentre_obj_dict = {
+                "system_address": system_address,
+                "body_id": elite_body_id,
+                "scan_timestamp": barycentre[3],
+                "semi_major_axis": barycentre[4],
+                "eccentricity": barycentre[5],
+                "orbital_inclination": barycentre[6],
+                "periapsis": barycentre[7],
+                "orbital_period": barycentre[8],
+                "ascending_node": barycentre[9],
+                "mean_anomaly": barycentre[10],
+            }
+
+            barycentre_info = BarycentreInfo(
+                **barycentre_obj_dict
+            )
+
+            barycentres_dict[elite_body_id] = barycentre_info
+
+        return barycentres_dict
+
+
     def get_archived_system_info(self, connection: sqlite3.Connection, system_address: int):
         cursor = connection.cursor()
 
@@ -305,6 +335,7 @@ class ArchivedSystemQueries:
 
         system = self._query_archive_fetchone(cursor, GET_SYSTEM_INFO, (database_system_id,))
         bodies = self._query_archive_fetchall(cursor, GET_SYSTEM_BODIES, (database_system_id,))
+        barycentres = self._query_archive_fetchall(cursor, GET_SYSTEM_BARYCENTRES, (database_system_id,))
         parents = self._query_archive_fetchall(cursor, GET_SYSTEM_PARENTS, (database_system_id,))
         materials = self._query_archive_fetchall(cursor, GET_SYSTEM_MATERIALS, (database_system_id,))
         physorb = self._query_archive_fetchall(cursor, GET_SYSTEM_PHYSORB, (database_system_id,))
@@ -312,12 +343,12 @@ class ArchivedSystemQueries:
         genuses = self._query_archive_fetchall(cursor, GET_SYSTEM_GENUSES, (database_system_id,))
         exobio = self._query_archive_fetchall(cursor, GET_SYSTEM_EXOBIO, (database_system_id,))
 
-
         system_info = self._construct_archived_system(system)
         
         bodies_by_database_id, bodies_by_elite_id = (
             self._construct_archived_bodies(bodies)
         )
+
         self._construct_archived_body_parents(parents, bodies_by_database_id)
         self._construct_archived_body_materials(materials, bodies_by_database_id)
         self._construct_archived_body_physorb(physorb, bodies_by_database_id)
@@ -327,6 +358,7 @@ class ArchivedSystemQueries:
 
         system_summary_info = self._construct_system_summary_info(bodies_by_elite_id)
         system_summary_info.system_fss_complete = bool(system["system_fss_complete"])
+        barycentres_info = self._construct_archived_barycentres(barycentres, system_address)
 
         for body in bodies_by_database_id.values():
             if body.exobio_scans:
@@ -338,7 +370,8 @@ class ArchivedSystemQueries:
             schema_version=1,
             system=system_info,
             summary=system_summary_info,
-            bodies=bodies_by_elite_id
+            bodies=bodies_by_elite_id,
+            barycentres=barycentres_info
         )
 
 
