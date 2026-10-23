@@ -58,16 +58,10 @@ class CaspianReboundMappings:
             return payload.bodies
 
 
-    def _return_barycentres_dict(self, payload: FullStarSystemPayload) -> dict[str, BarycentreInfo]:
-        if payload is not None:
-            return payload.barycentres
-
-
-    def construct_rebound_physorb_dict(
+    def construct_rebound_bodies_dict(
             self,
             bodies: dict[str, CelestialBody],
-            barycentres: dict[str, BarycentreInfo]
-    ) -> dict[str, Rebound | ReboundBarycentre]:
+    ) -> dict[str, Rebound]:
         
         rebound_bodies = {}
         for body_obj in bodies.values():
@@ -80,7 +74,7 @@ class CaspianReboundMappings:
             else:
                 rebound_mass = body_obj.body_mass / SOLAR_MASS_CONVERSION
 
-            celestial_physorb_dict = {
+            rebound_bodies_dict = {
                 "body_id": body_obj.body_id,
                 "body_scan_timestamp": body_obj.body_scan_timestamp,
                 "body_name": body_obj.body_name,
@@ -96,34 +90,119 @@ class CaspianReboundMappings:
 
 
             rebound_data = Rebound(
-                **celestial_physorb_dict
+                **rebound_bodies_dict
             )
 
             rebound_body_id = body_obj.body_id
             rebound_bodies[rebound_body_id] = rebound_data
-
-        for barycentre_obj in barycentres.values():
-            barycentre_body_id = barycentre_obj.body_id
-            rebound_bodies[barycentre_body_id] = barycentre_obj
-
-        print(barycentres.values())
-
         
         return rebound_bodies
-    
 
-    def build_rebound_bodies_dict(self) -> dict[str, Rebound | ReboundBarycentre]:
+
+    def _return_barycentres_dict(self, payload: FullStarSystemPayload) -> dict[str, BarycentreInfo]:
+        if payload is not None:
+            return payload.barycentres
+        
+
+    def construct_rebound_barycentres_dict(self, barycentres: dict[str, BarycentreInfo]) -> dict[str, ReboundBarycentre]:
+        rebound_barycentres = {}
+
+        for barycentre_obj in barycentres.values():
+            rebound_barycentres_dict = {
+                "system_address": barycentre_obj.system_address,
+                "body_id": barycentre_obj.body_id,
+                "scan_timestamp": barycentre_obj.scan_timestamp,
+                "semi_major_axis": barycentre_obj.semi_major_axis,
+                "eccentricity": barycentre_obj.eccentricity,
+                "orbital_inclination": barycentre_obj.orbital_inclination,
+                "periapsis": barycentre_obj.periapsis,
+                "orbital_period": barycentre_obj.orbital_period,
+                "ascending_node": barycentre_obj.ascending_node,
+                "mean_anomaly": barycentre_obj.mean_anomaly,
+            }
+
+            rebound_barycentre_data = ReboundBarycentre(
+                **rebound_barycentres_dict
+            )
+
+            rebound_body_id = barycentre_obj.body_id
+            rebound_barycentres[rebound_body_id] = rebound_barycentre_data
+
+        return rebound_barycentres
+
+    def build_rebound_bodies_dict(self) -> dict[str, Rebound]:
         payload = self.get_fullstarsystempayload(38562352187)
         if payload is not None:
             bodies = self._return_bodies_dict(payload)
+
+        self.rebound_bodies_dict = self.construct_rebound_bodies_dict(bodies)
+
+        return self.rebound_bodies_dict
+
+
+    def build_rebound_barycentres_dict(self) -> dict[str, ReboundBarycentre]:
+        payload = self.get_fullstarsystempayload(38562352187)
+        if payload is not None:
             barycentres = self._return_barycentres_dict(payload)
 
-        rebound_bodies_dict = self.construct_rebound_physorb_dict(bodies, barycentres)
+        self.rebound_barycentres_dict = self.construct_rebound_barycentres_dict(barycentres)
 
-        return rebound_bodies_dict
+        return self.rebound_barycentres_dict
+
+
+    def resolve_immediate_parent(self, 
+            body_parents: list[BodyParentInfo],
+            rebound_bodies: dict[int, Rebound], 
+            rebound_barycentres: dict[int, ReboundBarycentre]
+        ):
         
+        if not body_parents:
+            return None
+
+        parent_info = body_parents[0]
+
+        if parent_info.parent_type == "Null":
+            return rebound_barycentres[parent_info.parent_body_id]
+
+        if parent_info.parent_type in ("Star", "Planet"):
+            return rebound_bodies[parent_info.parent_body_id]
+
+        raise ValueError(f"Unknown parent type: {parent_info.parent_type}")
+
+
+    def resolve_rebound_parents(self, rebound_bodies, rebound_barycentres):
+        for rebound_body in rebound_bodies.values():
+
+            parent = self.resolve_immediate_parent(
+                rebound_body.body_parents,
+                rebound_bodies,
+                rebound_barycentres
+            )
+
+            if parent is None:
+                print(f"{rebound_body.body_id} -> None")
+            else:
+                print(
+                    f"{rebound_body.body_id} -> "
+                    f"{type(parent).__name__} {parent.body_id}"
+                )
+
+
+    def resolve_parent(self, body_obj: Rebound, rebound_bodies: dict[int, Rebound], rebound_barycentres: dict[int, ReboundBarycentre]):
+        parent_info = body_obj.body_parents[0]
+
+        if parent_info.parent_type == "Null":
+            return rebound_barycentres[parent_info.parent_body_id]
+
+        if parent_info.parent_type in ("Star", "Planet"):
+            return rebound_bodies[parent_info.parent_body_id]
+
+        raise ValueError(f"Unknown parent type: {parent_info.parent_type}")
 
 
 if __name__ == '__main__':
     mapping = CaspianReboundMappings()
-    pprint(mapping.build_rebound_bodies_dict())
+    rebound_bodies = mapping.build_rebound_bodies_dict()
+    rebound_barycentres = mapping.build_rebound_barycentres_dict()
+
+    mapping.resolve_rebound_parents(rebound_bodies, rebound_barycentres)

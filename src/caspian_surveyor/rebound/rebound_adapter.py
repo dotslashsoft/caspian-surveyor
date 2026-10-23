@@ -45,7 +45,7 @@ class ReboundAdapter:
     def convert_caspian_to_rebound(self):
         caspian_mappings = self.mappings.build_rebound_bodies_dict()
         
-        for body in caspian_mappings.values():
+        for body in caspian_mappings.items():
             if body.body_id == 0:
                 sim.add(
                     name=body.body_name,

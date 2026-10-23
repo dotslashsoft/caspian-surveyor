@@ -241,6 +241,10 @@ class SurveyDataAggregator:
 
     def translate_body_parent_fields(self, parent: dict[str, Any]) -> dict[str, Any]:
         parent_type, parent_body_id = next(iter(parent.items()))
+
+        
+
+
         return {
             "parent_type": parent_type,
             "parent_body_id": parent_body_id,
