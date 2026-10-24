@@ -1,7 +1,42 @@
 import rebound
 import math
 from pprint import pprint
-from caspian_surveyor.rebound.caspian_rebound_mappings import CaspianReboundMappings, Rebound
+from caspian_surveyor.rebound.caspian_rebound_mappings import CaspianReboundMappings, Rebound, ReboundBarycentre
+
+# sim = rebound.Simulation()
+# sim.units = ("AU", "yr", "Msun")
+
+
+class ReboundAdapter:
+
+    def __init__(self) -> None:
+        self.simulation = rebound.Simulation()
+        self.simulation.units = ("AU", "yr", "Msun")
+        self.mapping = CaspianReboundMappings()
+        self.rebound_bodies_dict = self.mapping.build_rebound_bodies_dict()
+        self.rebound_barycentres_dict = self.mapping.build_rebound_barycentres_dict()
+
+
+    def add_primary_star_to_simulation(self, name: str, mass: float):
+        particle = rebound.Particle()
+        particle.name=name
+        # m=mass
+        particle.m=mass
+        self.simulation.add(particle)
+        print(self.simulation.N)
+        print(self.simulation.particles[0])
+
+
+    def add_body_to_simulation(self, name, primary, mass):
+        pass
+
+
+if __name__ == '__main__':
+    adapter = ReboundAdapter()
+
+    adapter.add_primary_star_to_simulation("Sol", 1.4)
+
+
 
 # Elite Dangerous journal     Caspian DB             REBOUND
 # ----------------------------------------------------------------
@@ -26,65 +61,3 @@ from caspian_surveyor.rebound.caspian_rebound_mappings import CaspianReboundMapp
 #   Omega  = longitude of ascending node
 #   omega  = argument of periapsis
 #   M      = mean anomaly
-
-
-
-sim = rebound.Simulation()
-sim.units = ("AU", "yr", "Msun")
-
-
-
-
-
-class ReboundAdapter:
-
-    def __init__(self) -> None:
-        self.mappings = CaspianReboundMappings()
-
-
-    def convert_caspian_to_rebound(self):
-        caspian_mappings = self.mappings.build_rebound_bodies_dict()
-        
-        for body in caspian_mappings.items():
-            if body.body_id == 0:
-                sim.add(
-                    name=body.body_name,
-                    a=body.body_semi_major_axis,
-                    e=body.body_eccentricity,
-                    inc=math.radians(body.body_orbital_inclination),
-                    Omega=math.radians(body.body_ascending_node),
-                    omega=math.radians(body.body_periapsis),
-                    M=math.radians(body.body_mean_anomaly),
-                )
-                continue
-            
-            sim.add(
-                name=body.body_name,
-                a=body.body_semi_major_axis,
-                e=body.body_eccentricity,
-                inc=math.radians(body.body_orbital_inclination),
-                Omega=math.radians(body.body_ascending_node),
-                omega=math.radians(body.body_periapsis),
-                M=math.radians(body.body_mean_anomaly),
-            )           
-
-
-if __name__ == '__main__':
-    adapter = ReboundAdapter()
-    sim = rebound.Simulation()
-
-    sim.units = ("AU", "yr", "Msun")
-
-    adapter.convert_caspian_to_rebound()
-
-    sim.move_to_com()
-
-    # Start browser visualization
-    sim.start_server(port=1234)
-
-    # Value is MICROSECONDS.
-    sim.usleep = 2500
-
-    print("Simulation running indefinitely.")
-    print("Open http://localhost:1234")
-    print("CTRL+C to stop.")

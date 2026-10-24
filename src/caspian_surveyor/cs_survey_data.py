@@ -521,8 +521,12 @@ class SurveyDataBuilder:
             bodies[body_id] = self.build_body_record(body)
 
         barycentres = {}
-        for body_id, barycentre in current_system["barycentres"].items():
-            barycentres[body_id] = self.build_barycentre_record(barycentre)
+
+        current_system_barycentres = current_system.get("barycentres")
+
+        if current_system_barycentres is not None:
+            for body_id, barycentre in current_system_barycentres.items():
+                barycentres[body_id] = self.build_barycentre_record(barycentre)
 
         return FullStarSystemPayload(
             schema_version=1,
@@ -531,7 +535,6 @@ class SurveyDataBuilder:
             bodies=bodies,
             barycentres=barycentres
         )
-
 
     def build_system_info(self, current_system: dict[str, Any]) -> SystemInfo:
         return SystemInfo(

@@ -61,7 +61,7 @@ class CaspianReboundMappings:
     def construct_rebound_bodies_dict(
             self,
             bodies: dict[str, CelestialBody],
-    ) -> dict[str, Rebound]:
+    ) -> dict[int, Rebound]:
         
         rebound_bodies = {}
         for body_obj in bodies.values():
@@ -104,7 +104,7 @@ class CaspianReboundMappings:
             return payload.barycentres
         
 
-    def construct_rebound_barycentres_dict(self, barycentres: dict[str, BarycentreInfo]) -> dict[str, ReboundBarycentre]:
+    def construct_rebound_barycentres_dict(self, barycentres: dict[str, BarycentreInfo]) -> dict[int, ReboundBarycentre]:
         rebound_barycentres = {}
 
         for barycentre_obj in barycentres.values():
@@ -130,7 +130,7 @@ class CaspianReboundMappings:
 
         return rebound_barycentres
 
-    def build_rebound_bodies_dict(self) -> dict[str, Rebound]:
+    def build_rebound_bodies_dict(self) -> dict[int, Rebound]:
         payload = self.get_fullstarsystempayload(38562352187)
         if payload is not None:
             bodies = self._return_bodies_dict(payload)
@@ -140,7 +140,7 @@ class CaspianReboundMappings:
         return self.rebound_bodies_dict
 
 
-    def build_rebound_barycentres_dict(self) -> dict[str, ReboundBarycentre]:
+    def build_rebound_barycentres_dict(self) -> dict[int, ReboundBarycentre]:
         payload = self.get_fullstarsystempayload(38562352187)
         if payload is not None:
             barycentres = self._return_barycentres_dict(payload)
@@ -187,22 +187,68 @@ class CaspianReboundMappings:
                     f"{type(parent).__name__} {parent.body_id}"
                 )
 
+    def infer_barycentre_immediate_parents(
+            self,
+            rebound_bodies: dict[int, Rebound],
+        ) -> dict[int, BodyParentInfo]:
 
-    def resolve_parent(self, body_obj: Rebound, rebound_bodies: dict[int, Rebound], rebound_barycentres: dict[int, ReboundBarycentre]):
-        parent_info = body_obj.body_parents[0]
+        resolved_barycentre_parents = {}
 
-        if parent_info.parent_type == "Null":
-            return rebound_barycentres[parent_info.parent_body_id]
+        for rebound_body in rebound_bodies.values():
 
-        if parent_info.parent_type in ("Star", "Planet"):
-            return rebound_bodies[parent_info.parent_body_id]
+            body_parents = rebound_body.body_parents
 
-        raise ValueError(f"Unknown parent type: {parent_info.parent_type}")
+            if not body_parents:
+                continue
+
+            immediate_parent = body_parents[0]
+
+            if immediate_parent.parent_type != "Null":
+                continue
+
+            barycentre_id = immediate_parent.parent_body_id
+
+            if len(body_parents) > 1:
+                barycentre_parent = body_parents[1]
+                resolved_barycentre_parents[barycentre_id] = barycentre_parent
+
+        return resolved_barycentre_parents
+        
+    def resolve_rebound_barycentre_parents(
+            self,
+            rebound_bodies: dict[int, Rebound],
+            rebound_barycentres: dict[int, ReboundBarycentre]
+        ):
+
+        barycentre_parents = self.infer_barycentre_immediate_parents(rebound_bodies)
+
+        for barycentre_id, parent_info in barycentre_parents.items():
+
+            if parent_info.parent_type == "Null":
+                parent = rebound_barycentres[parent_info.parent_body_id]
+
+            elif parent_info.parent_type in ("Star", "Planet"):
+                parent = rebound_bodies[parent_info.parent_body_id]
+
+            else:
+                raise ValueError(
+                    f"Unknown barycentre parent type: "
+                    f"{parent_info.parent_type}"
+                )
+
+            print(
+                f"{barycentre_id} -> "
+                f"{type(parent).__name__} {parent.body_id}"
+            )
 
 
 if __name__ == '__main__':
     mapping = CaspianReboundMappings()
     rebound_bodies = mapping.build_rebound_bodies_dict()
+    pprint(rebound_bodies, sort_dicts=False)
     rebound_barycentres = mapping.build_rebound_barycentres_dict()
 
     mapping.resolve_rebound_parents(rebound_bodies, rebound_barycentres)
+    resolved_barycentre_parents = mapping.infer_barycentre_immediate_parents(rebound_bodies)
+
+    mapping.resolve_rebound_barycentre_parents(rebound_bodies, rebound_barycentres)
