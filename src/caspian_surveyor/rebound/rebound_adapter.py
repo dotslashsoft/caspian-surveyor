@@ -91,9 +91,7 @@ class ReboundAdapter:
                     inc=math.radians(rebound_obj.body_orbital_inclination),
                     Omega=math.radians(rebound_obj.body_ascending_node),
                     M=math.radians(rebound_obj.body_mean_anomaly)
-                )
-
-            print(f"Simulation Bodies: {self.simulation.N}")
+                )         
 
 
     def add_barycentric_subsystem_to_simulation(
@@ -206,6 +204,9 @@ class ReboundAdapter:
         if binary_secondary.body_semi_major_axis is None:
             raise ValueError("Binary secondary semi-major axis is missing.")
 
+
+        # testing calculations
+
         relative_semi_major_axis = (
             binary_primary.body_semi_major_axis
             + binary_secondary.body_semi_major_axis
@@ -293,6 +294,7 @@ class ReboundAdapter:
             binary_secondary.body_name
         ]
 
+
         combined_mass = particle_one.m + particle_two.m
 
         calculated_com_x = (
@@ -325,6 +327,8 @@ class ReboundAdapter:
             + (particle_two.m * particle_two.vz)
         ) / combined_mass
 
+
+
         print("EXPECTED BARYCENTRE")
         print(
             barycentre_particle.x,
@@ -353,10 +357,146 @@ class ReboundAdapter:
             calculated_com_vz
         )
 
+        particle_primary = self.simulation.particles[
+            binary_primary.body_name
+        ]
+
+        particle_secondary = self.simulation.particles[
+            binary_secondary.body_name
+        ]
+
+        relative_orbit = particle_secondary.orbit(
+            primary=particle_primary
+        )
+
+        expected_relative_a = (
+            binary_primary.body_semi_major_axis
+            + binary_secondary.body_semi_major_axis
+        ) / AU_IN_METERS
+
+        calculated_primary_a = (
+            relative_orbit.a
+            * particle_secondary.m
+            / combined_mass
+        )
+
+        calculated_secondary_a = (
+            relative_orbit.a
+            * particle_primary.m
+            / combined_mass
+        )
+
+        print("RELATIVE SEMI-MAJOR AXIS")
+        print("Elite implied:", expected_relative_a)
+        print("REBOUND:", relative_orbit.a)
+
+        print("ECCENTRICITY")
+        print("Elite:", binary_secondary.body_eccentricity)
+        print("REBOUND:", relative_orbit.e)
+
+        print("INCLINATION")
+        print(
+            "Elite:",
+            math.radians(binary_secondary.body_orbital_inclination)
+        )
+        print("REBOUND:", relative_orbit.inc)
+
+        print("ASCENDING NODE")
+        print(
+            "Elite:",
+            math.radians(binary_secondary.body_ascending_node)
+        )
+        print("REBOUND:", relative_orbit.Omega)
+
+        print("PERIAPSIS")
+        print(
+            "Elite:",
+            math.radians(binary_secondary.body_periapsis)
+        )
+        print("REBOUND:", relative_orbit.omega)
+
+        print("MEAN ANOMALY")
+        print(
+            "Elite:",
+            math.radians(binary_secondary.body_mean_anomaly)
+        )
+        print("REBOUND:", relative_orbit.M)
+
+        print("PRIMARY BARYCENTRIC A")
+        print(
+            "Elite:",
+            binary_primary.body_semi_major_axis / AU_IN_METERS
+        )
+        print(
+            "REBOUND derived:",
+            calculated_primary_a
+        )
+
+        print("SECONDARY BARYCENTRIC A")
+        print(
+            "Elite:",
+            binary_secondary.body_semi_major_axis / AU_IN_METERS
+        )
+        print(
+            "REBOUND derived:",
+            calculated_secondary_a
+        )
+
+
+
+
+
 if __name__ == '__main__':
     adapter = ReboundAdapter()
 
     adapter.process_rebound_data()
+
+    print("=======================================")
+
+    for rebound_body in adapter.rebound_bodies_dict.values():
+
+        if not rebound_body.body_parents:
+            continue
+
+        parent = adapter.mapping.resolve_immediate_parent(
+            rebound_body.body_parents,
+            adapter.rebound_bodies_dict,
+            adapter.rebound_barycentres_dict
+        )
+
+        if isinstance(parent, ReboundBarycentre):
+            continue
+
+        particle = adapter.simulation.particles[
+            rebound_body.body_name
+        ]
+
+        primary_particle = adapter.simulation.particles[
+            parent.body_name
+        ]
+
+        orbit = particle.orbit(
+            primary=primary_particle
+        )
+
+        print(
+            rebound_body.body_name,
+            orbit.a,
+            orbit.e,
+            orbit.inc,
+            orbit.Omega,
+            orbit.omega,
+            orbit.M
+        )
+
+    print("=======================================")
+
+    for each_body in adapter.simulation.particles[1:]:
+        print(each_body.name, each_body.orbit(primary=adapter.simulation.particles[0]))
+
+
+    # adapter.simulation.particles[1].orbit(primary=adapter.simulation.particles[0])
+
     
     # adapter.simulation.start_server(port=1234)
 
