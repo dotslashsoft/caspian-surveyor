@@ -18,6 +18,7 @@ class Rebound:
     body_semi_major_axis: float
     body_eccentricity: float
     body_orbital_inclination: float
+    body_orbital_period: float
     body_ascending_node: float
     body_mean_anomaly: float
 
@@ -27,13 +28,13 @@ class ReboundBarycentre:
     system_address: int
     body_id: int
     scan_timestamp: int
-    periapsis: float | None
-    semi_major_axis: float | None
-    eccentricity: float | None
-    orbital_inclination: float | None
-    orbital_period: float | None
-    ascending_node: float | None
-    mean_anomaly: float | None
+    periapsis: float | None = None
+    semi_major_axis: float | None = None
+    eccentricity: float | None = None
+    orbital_inclination: float | None = None
+    orbital_period: float | None = None
+    ascending_node: float | None = None
+    mean_anomaly: float | None = None
 
 
 
@@ -84,6 +85,7 @@ class CaspianReboundMappings:
                 "body_semi_major_axis": body_obj.body_semi_major_axis,
                 "body_eccentricity": body_obj.body_eccentricity,
                 "body_orbital_inclination": body_obj.body_orbital_inclination,
+                "body_orbital_period": body_obj.body_orbital_period,
                 "body_ascending_node": body_obj.body_ascending_node,
                 "body_mean_anomaly": body_obj.body_mean_anomaly,
             }
@@ -193,21 +195,17 @@ class CaspianReboundMappings:
         ) -> dict[int, BodyParentInfo]:
 
         resolved_barycentre_parents = {}
-
         for rebound_body in rebound_bodies.values():
 
             body_parents = rebound_body.body_parents
-
             if not body_parents:
                 continue
 
             immediate_parent = body_parents[0]
-
             if immediate_parent.parent_type != "Null":
                 continue
 
             barycentre_id = immediate_parent.parent_body_id
-
             if len(body_parents) > 1:
                 barycentre_parent = body_parents[1]
                 resolved_barycentre_parents[barycentre_id] = barycentre_parent
@@ -247,8 +245,9 @@ if __name__ == '__main__':
     rebound_bodies = mapping.build_rebound_bodies_dict()
     pprint(rebound_bodies, sort_dicts=False)
     rebound_barycentres = mapping.build_rebound_barycentres_dict()
+    pprint(rebound_barycentres, sort_dicts=False)
 
-    mapping.resolve_rebound_parents(rebound_bodies, rebound_barycentres)
-    resolved_barycentre_parents = mapping.infer_barycentre_immediate_parents(rebound_bodies)
+    # mapping.resolve_rebound_parents(rebound_bodies, rebound_barycentres)
+    # resolved_barycentre_parents = mapping.infer_barycentre_immediate_parents(rebound_bodies)
 
-    mapping.resolve_rebound_barycentre_parents(rebound_bodies, rebound_barycentres)
+    # mapping.resolve_rebound_barycentre_parents(rebound_bodies, rebound_barycentres)
