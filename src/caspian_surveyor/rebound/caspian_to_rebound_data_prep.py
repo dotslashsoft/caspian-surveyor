@@ -13,9 +13,6 @@ AU_IN_METERS = 149_597_870_700
 
 
 class CaspianDataHandler:
-    def __init__(self) -> None:
-        pass
-
     def _get_fullstarsystempayload(self, system_address) -> FullStarSystemPayload | None:
         system_query = ArchivedSystemQueries()
         connection = ConnectionManager()
@@ -24,8 +21,8 @@ class CaspianDataHandler:
         try:
             connection.initialize_schema(conn)
             payload = system_query.get_archived_system_info(conn, system_address)
-            return payload
 
+            return payload
         finally:
             connection.close_db_connection(conn)
 
@@ -37,6 +34,12 @@ class CaspianDataHandler:
         if system_record is not None:
             return system_record.barycentres
 
+    def _merge_dicts(self, sorted_bodies: dict[int, dict], sorted_barycentres: dict[int, dict]):
+        merged_dicts = sorted_bodies | sorted_barycentres
+        return dict(
+            sorted(merged_dicts.items(), key=lambda item: item[0])
+        )
+
     def _calculate_rebound_mass(self, body_obj: CelestialBody) -> float | None:
             if body_obj.body_star_type is not None:
                 return body_obj.body_mass
@@ -46,11 +49,11 @@ class CaspianDataHandler:
 
             return
 
-    def _to_radians(self, value) -> float | None:
+    def _convert_to_radians(self, value) -> float | None:
         if value is not None:
             return math.radians(value)
 
-    def parent_info_to_list(self, parents: list[BodyParentInfo]):
+    def _parent_info_to_list(self, parents: list[BodyParentInfo]):
         parent_list = []
         if parents is not None:
             for parent in parents:
@@ -62,7 +65,6 @@ class CaspianDataHandler:
         rebound_dict = {}
 
         for body_obj in bodies.values():
-
             if body_obj.body_mass is None:
                 continue
 
@@ -72,15 +74,17 @@ class CaspianDataHandler:
             else:
                 rebound_mass = self._calculate_rebound_mass(body_obj)
 
+            semi_major_axis = None
             if body_obj.body_semi_major_axis is not None:
                 semi_major_axis = body_obj.body_semi_major_axis / AU_IN_METERS
 
-            periapsis = self._to_radians(body_obj.body_periapsis)
-            orbital_inclination = self._to_radians(body_obj.body_orbital_inclination)
-            ascending_node = self._to_radians(body_obj.body_ascending_node)
-            mean_anomaly = self._to_radians(body_obj.body_mean_anomaly)
 
-            parents_list = self.parent_info_to_list(body_obj.body_parents)
+            periapsis = self._convert_to_radians(body_obj.body_periapsis)
+            orbital_inclination = self._convert_to_radians(body_obj.body_orbital_inclination)
+            ascending_node = self._convert_to_radians(body_obj.body_ascending_node)
+            mean_anomaly = self._convert_to_radians(body_obj.body_mean_anomaly)
+
+            parents_list = self._parent_info_to_list(body_obj.body_parents)
 
             rebound_bodies_dict = {
                 "id": body_obj.body_id,
@@ -135,12 +139,6 @@ class CaspianDataHandler:
 
         return rebound_dict
 
-    def _merge_dicts(self, sorted_bodies: dict[int, dict], sorted_barycentres: dict[int, dict]):
-        merged_dicts = sorted_bodies | sorted_barycentres
-        return dict(
-            sorted(merged_dicts.items(), key=lambda item: item[0])
-        )
-
     def _map_body_descendants(self,
             merged_dict: dict[int, dict],
             body: tuple[int, str],
@@ -158,12 +156,61 @@ class CaspianDataHandler:
                         each_parent
                     )
 
-    def _get_immediate_children(self, merged_dicts: dict[int, dict]):
-        for each_entry in merged_dicts.values():
-            if each_entry["descendants"] != []:
-                current_record_id = each_entry["id"]
-                immediate_children = each_entry["descendants"][0]
-                merged_dicts[current_record_id]["immediate_children"] = immediate_children
+    def _get_immediate_children(self, merged_dicts: dict[int, dict]) -> None:
+        for each_body in merged_dicts.values():
+            if each_body["immediate_parent"] != []:
+                immediate_parent = each_body["immediate_parent"]
+                if immediate_parent is not None:
+                    body_record_id = each_body["id"]
+                    # print(f"Body {body_record_id}'s immediate parent is {immediate_parent}")
+                    merged_dicts[immediate_parent]["immediate_children"].append(body_record_id)
+
+    def _get_barycentres_list(self, merged_dicts: dict[int, dict]) -> list[int]:
+        barycentres_list = []
+
+        for each_body in merged_dicts.values():
+            if each_body["type"] == "barycentre":
+                barycentres_list.append(each_body["id"])
+
+        return barycentres_list
+
+    def _get_barycentre_immediate_children(
+            self,
+            merged_dicts: dict[int, dict],
+            barycentre_list: list[int]
+    ) -> None:
+        seen_relationships = set()
+        for barycentre in barycentre_list:
+            for each_body in merged_dicts.values():
+
+                ancestors = each_body["ancestors"]
+
+                if ancestors is not None:
+                    if barycentre in ancestors:
+
+                        barycentre_index = ancestors.index(barycentre)
+                        immediate_parent_index = barycentre_index + 1
+
+                        if immediate_parent_index < len(ancestors):
+                            immediate_parent = ancestors[immediate_parent_index]
+                            relationship = (barycentre, immediate_parent)
+
+                            if relationship not in seen_relationships:
+                                seen_relationships.add(relationship)
+                                merged_dicts[barycentre]["immediate_parent"] = immediate_parent
+
+    def _get_barycentre_parents(self, merged_dicts: dict[int, dict]):
+        for each_body in merged_dicts.values():
+            each_body["immediate_children"] = []
+
+        for each_body in merged_dicts.values():
+
+            immediate_parent = each_body["immediate_parent"]
+
+            if immediate_parent is not None:
+                merged_dicts[immediate_parent]["immediate_children"].append(
+                    each_body["id"]
+                )
 
     def _calculate_com(self, merged_dict, merged_dict_ids=None):
         if merged_dict_ids is None:
@@ -193,15 +240,15 @@ class CaspianDataHandler:
 
         return (com_x / total_mass, com_y / total_mass, com_z / total_mass)
 
-
     def get_system_root(self, merged_dict: dict[int, dict]):
-        try:
-            if merged_dict[0]:
-                print("Found barycentre root.")
 
-        except:
+        if 0 in merged_dict:
+            print("Found barycentre root.")
+
+        else:
             print("need to calculate COM.")
             print("creating barycenter 0")
+
             merged_dict[0] = {
                 "id": 0,
                 "type": "barycentre",
@@ -220,25 +267,23 @@ class CaspianDataHandler:
                 "ascending_node": 0,
                 "mean_anomaly": 0,
             }
-            sorted_rebound = dict(
-                sorted(merged_dict.items(), key=lambda item: item[0])
-            )
+
+        sorted_rebound = dict(
+            sorted(merged_dict.items(), key=lambda item: item[0])
+        )
 
         self._get_body_descendants(sorted_rebound)
         self._get_immediate_children(sorted_rebound)
 
+        barycentre_list = self._get_barycentres_list(sorted_rebound)
+
+        self._get_barycentre_immediate_children(
+            sorted_rebound,
+            barycentre_list
+        )
+        self._get_barycentre_parents(sorted_rebound)
+
         return sorted_rebound
-
-
-    def build_orbital_hierarchy(self, sorted_dict: dict[int, dict[Any, Any]]):
-        for id, subdict in sorted_dict.items():
-            children = subdict.get("descendants")
-            if children is not None:
-                if children[:] != []:
-                    print(
-                        f"Ancestor:      {id}",
-                        f"\nDescendants: {children}\n"
-                    )
 
 if __name__ == '__main__':
     handler = CaspianDataHandler()
@@ -258,5 +303,5 @@ if __name__ == '__main__':
     sorted_rebound = handler.get_system_root(merged_dict)
     pprint(sorted_rebound, sort_dicts=False)
 
-    com = handler._calculate_com(sorted_rebound)
-    print(com)
+    # com = handler._calculate_com(sorted_rebound)
+    # print(com)
