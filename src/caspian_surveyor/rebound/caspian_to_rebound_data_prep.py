@@ -13,6 +13,9 @@ AU_IN_METERS = 149_597_870_700
 
 
 class CaspianDataHandler:
+    def __init__(self) -> None:
+        self.system_data: dict[int, dict[str, Any]] | None = None
+
     def _get_fullstarsystempayload(self, system_address) -> FullStarSystemPayload | None:
         """Query SQLite for a system and reconstruct its FullStarSystemPayload.
 
@@ -238,13 +241,12 @@ class CaspianDataHandler:
                 )
 
     def _prepare_system_hierarchy(self, merged_dict: dict[int, dict]):
-
         if 0 in merged_dict:
             print("Found barycentre root.")
 
         else:
-            print("need to calculate COM.")
-            print("creating barycenter 0")
+            print("System root not found.")
+            print("Creating barycentre 0.")
 
             merged_dict[0] = {
                 "id": 0,
@@ -265,30 +267,46 @@ class CaspianDataHandler:
                 "mean_anomaly": 0,
             }
 
-        sorted_rebound = dict(
+        prepared_system = dict(
             sorted(merged_dict.items(), key=lambda item: item[0])
         )
 
-        self._get_body_descendants(sorted_rebound)
-        self._set_barycentre_immediate_parents(sorted_rebound)
-        self._rebuild_immediate_children(sorted_rebound)
+        self._get_body_descendants(prepared_system)
+        self._set_barycentre_immediate_parents(prepared_system)
+        self._rebuild_immediate_children(prepared_system)
 
-        return sorted_rebound
+        return prepared_system
+
+
+    def prepare_system_data(
+            self,
+            system_address: int,
+    ) -> dict[int, dict[str, Any]] | None:
+        """Prepare and store system data for use by REBOUND."""
+
+        system_record = self._get_fullstarsystempayload(system_address)
+
+        if system_record is None:
+            self.system_data = None
+            return None
+
+        bodies = self._return_celestial_body_dict(system_record)
+        barycentres = self._return_barycentre_dict(system_record)
+
+        rebound_bodies_dict = self._return_filtered_celestial_bodies(bodies)
+        rebound_barycentres_dict = self._create_barycentre_dict(barycentres)
+
+        merged_dict = self._merge_dicts(rebound_bodies_dict, rebound_barycentres_dict)
+
+        prepared_system = self._prepare_system_hierarchy(merged_dict)
+
+        self.system_data = prepared_system
+
+        return self.system_data
+
 
 if __name__ == '__main__':
     handler = CaspianDataHandler()
-    archive = ArchivedSystemQueries()
 
-    system_archive = handler._get_fullstarsystempayload(527609567169)
-
-    if system_archive is not None:
-        bodies = handler._return_celestial_body_dict(system_archive)
-        barycentres = handler._return_barycentre_dict(system_archive)
-
-    rebound_bodies_dict = handler._return_filtered_celestial_bodies(bodies)
-    rebound_barycentres_dict = handler._create_barycentre_dict(barycentres)
-
-    merged_dict = handler._merge_dicts(rebound_bodies_dict, rebound_barycentres_dict)
-
-    sorted_rebound = handler._prepare_system_hierarchy(merged_dict)
+    sorted_rebound = handler.prepare_system_data(527609567169)
     pprint(sorted_rebound, sort_dicts=False)
