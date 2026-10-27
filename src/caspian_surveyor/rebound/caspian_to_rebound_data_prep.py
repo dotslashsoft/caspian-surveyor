@@ -14,6 +14,15 @@ AU_IN_METERS = 149_597_870_700
 
 class CaspianDataHandler:
     def _get_fullstarsystempayload(self, system_address) -> FullStarSystemPayload | None:
+        """Query SQLite for a system and reconstruct its FullStarSystemPayload.
+
+        Args:
+            system_address (int): Address of the system to reconstruct.
+
+        Returns:
+            FullStarSystemPayload | None: Reconstructed system data if successful,
+            otherwise None.
+        """
         system_query = ArchivedSystemQueries()
         connection = ConnectionManager()
         conn = connection.establish_db_connection()
@@ -27,33 +36,60 @@ class CaspianDataHandler:
             connection.close_db_connection(conn)
 
     def _return_celestial_body_dict(self, system_record: FullStarSystemPayload) -> dict[str, CelestialBody]:
+        """Return dictionary containing CelestialBody data for a system.
+
+        Args:
+            system_record (FullStarSystemPayload): All data that Caspian Surveyor
+                has on record. Arg is returned from `_get_fullstarsystempayload`.
+
+        Returns:
+            dict[str, CelestialBody]: Celestial body data for the system.
+        """
         if system_record is not None:
             return system_record.bodies
 
     def _return_barycentre_dict(self, system_record: FullStarSystemPayload) -> dict[str, BarycentreInfo]:
+        """Return dictionary containing BarycentreInfo data for a system.
+
+        Args:
+            system_record (FullStarSystemPayload): All data that Caspian Surveyor
+                has on record. Arg is returned from `_get_fullstarsystempayload`.
+
+        Returns:
+            dict[str, BarycentreInfo]: BarycentreInfo body data for the system.
+        """
         if system_record is not None:
             return system_record.barycentres
 
-    def _merge_dicts(self, sorted_bodies: dict[int, dict], sorted_barycentres: dict[int, dict]):
+    def _merge_dicts(
+            self,
+            sorted_bodies: dict[int, dict[str, Any]],
+            sorted_barycentres: dict[int, dict[str, Any]]
+    ) -> dict[int, dict[str, Any]]:
+        """Merge body and barycentre dictionaries and sort by record ID."""
         merged_dicts = sorted_bodies | sorted_barycentres
+
         return dict(
             sorted(merged_dicts.items(), key=lambda item: item[0])
         )
 
     def _calculate_rebound_mass(self, body_obj: CelestialBody) -> float | None:
-            if body_obj.body_star_type is not None:
-                return body_obj.body_mass
+        """Calculate non-stellar body mass for REBOUND."""
+        if body_obj.body_star_type is not None:
+            return body_obj.body_mass
 
-            if body_obj.body_mass is not None:
-                return body_obj.body_mass / SOLAR_MASS_CONVERSION
+        if body_obj.body_mass is not None:
+            return body_obj.body_mass / SOLAR_MASS_CONVERSION
 
-            return
+        return
 
     def _convert_to_radians(self, value) -> float | None:
+        """Convert value to radians for REBOUND."""
         if value is not None:
             return math.radians(value)
 
     def _parent_info_to_list(self, parents: list[BodyParentInfo]):
+        """Create a list of parent body ID's."""
         parent_list = []
         if parents is not None:
             for parent in parents:
@@ -62,6 +98,7 @@ class CaspianDataHandler:
         return parent_list
 
     def _return_filtered_celestial_bodies(self, bodies: dict[str, CelestialBody]) -> dict[int, Any]:
+        """Filter out non-celestial body objects from CelestialBody data."""
         rebound_dict = {}
 
         for body_obj in bodies.values():
@@ -110,12 +147,16 @@ class CaspianDataHandler:
 
         return rebound_dict
 
-    def _return_barycentres(self, barycentres: dict[str, BarycentreInfo]) -> dict[int, Any]:
-        rebound_dict = {}
+    def _create_barycentre_dict(
+            self,
+            barycentres: dict[str, BarycentreInfo]
+    ) -> dict[int, dict[str, Any]]:
+        """Create dictionary containing system barycentre information."""
+        barycentre_dict = {}
 
         for barycentre_obj in barycentres.values():
 
-            rebound_barycentres_dict = {
+            barycentre_record = {
                 "id": barycentre_obj.body_id,
                 "type": "barycentre",
                 "scan_timestamp": barycentre_obj.scan_timestamp,
@@ -134,72 +175,56 @@ class CaspianDataHandler:
                 "mean_anomaly": math.radians(barycentre_obj.mean_anomaly),
             }
 
-            rebound_id = barycentre_obj.body_id
-            rebound_dict[rebound_id] = rebound_barycentres_dict
+            barycentre_id = barycentre_obj.body_id
+            barycentre_dict[barycentre_id] = barycentre_record
 
-        return rebound_dict
+        return barycentre_dict
 
-    def _map_body_descendants(self,
+    def _append_body_descendant(self,
             merged_dict: dict[int, dict],
             body: tuple[int, str],
             parent: int
-        ) -> None:
+    ) -> None:
         merged_dict[parent]["descendants"].append(body)
 
     def _get_body_descendants(self, merged_dicts: dict[int, dict]):
         for each_entry in merged_dicts.values():
             if each_entry["ancestors"] is not None:
                 for each_parent in each_entry["ancestors"]:
-                    self._map_body_descendants(
+                    self._append_body_descendant(
                         merged_dicts,
                         (each_entry["id"], each_entry["name"]),
                         each_parent
                     )
 
-    def _get_immediate_children(self, merged_dicts: dict[int, dict]) -> None:
-        for each_body in merged_dicts.values():
-            if each_body["immediate_parent"] != []:
-                immediate_parent = each_body["immediate_parent"]
-                if immediate_parent is not None:
-                    body_record_id = each_body["id"]
-                    # print(f"Body {body_record_id}'s immediate parent is {immediate_parent}")
-                    merged_dicts[immediate_parent]["immediate_children"].append(body_record_id)
-
-    def _get_barycentres_list(self, merged_dicts: dict[int, dict]) -> list[int]:
-        barycentres_list = []
-
-        for each_body in merged_dicts.values():
-            if each_body["type"] == "barycentre":
-                barycentres_list.append(each_body["id"])
-
-        return barycentres_list
-
-    def _get_barycentre_immediate_children(
+    def _append_immediate_children(
             self,
-            merged_dicts: dict[int, dict],
-            barycentre_list: list[int]
+            merged_dicts: dict[int, dict]
     ) -> None:
-        seen_relationships = set()
-        for barycentre in barycentre_list:
-            for each_body in merged_dicts.values():
+        for each_body in merged_dicts.values():
+            immediate_parent = each_body["immediate_parent"]
 
-                ancestors = each_body["ancestors"]
+            if immediate_parent is not None:
+                body_record_id = each_body["id"]
+                merged_dicts[immediate_parent]["immediate_children"].append(body_record_id)
 
-                if ancestors is not None:
-                    if barycentre in ancestors:
+    def _set_barycentre_immediate_parents(
+            self,
+            merged_dicts: dict[int, dict[str, Any]]
+    ) -> None:
+        """Set the immediate parent for each barycentre."""
 
-                        barycentre_index = ancestors.index(barycentre)
-                        immediate_parent_index = barycentre_index + 1
+        for body in merged_dicts.values():
+            ancestors = body["ancestors"]
 
-                        if immediate_parent_index < len(ancestors):
-                            immediate_parent = ancestors[immediate_parent_index]
-                            relationship = (barycentre, immediate_parent)
+            if ancestors is None:
+                continue
 
-                            if relationship not in seen_relationships:
-                                seen_relationships.add(relationship)
-                                merged_dicts[barycentre]["immediate_parent"] = immediate_parent
+            for child_id, parent_id in zip(ancestors, ancestors[1:]):
+                if merged_dicts[child_id]["type"] == "barycentre":
+                    merged_dicts[child_id]["immediate_parent"] = parent_id
 
-    def _get_barycentre_parents(self, merged_dicts: dict[int, dict]):
+    def _rebuild_immediate_children(self, merged_dicts: dict[int, dict]):
         for each_body in merged_dicts.values():
             each_body["immediate_children"] = []
 
@@ -212,35 +237,7 @@ class CaspianDataHandler:
                     each_body["id"]
                 )
 
-    def _calculate_com(self, merged_dict, merged_dict_ids=None):
-        if merged_dict_ids is None:
-            merged_dict_ids = merged_dict.keys()
-
-        total_mass = 0.0
-        com_x, com_y, com_z = 0.0, 0.0, 0.0
-
-        for id in merged_dict_ids:
-            object = merged_dict[id]
-
-            if object['type'] == 'barycentre' or object['mass'] <= 0:
-                continue
-
-            x = object.get('x', 0.0)
-            y = object.get('y', 0.0)
-            z = object.get('z', 0.0)
-
-            mass = object['mass']
-            total_mass += mass
-            com_x += x * mass
-            com_y += y * mass
-            com_z += z * mass
-
-        if total_mass == 0:
-            return (0.0, 0.0, 0.0)
-
-        return (com_x / total_mass, com_y / total_mass, com_z / total_mass)
-
-    def get_system_root(self, merged_dict: dict[int, dict]):
+    def _prepare_system_hierarchy(self, merged_dict: dict[int, dict]):
 
         if 0 in merged_dict:
             print("Found barycentre root.")
@@ -273,15 +270,8 @@ class CaspianDataHandler:
         )
 
         self._get_body_descendants(sorted_rebound)
-        self._get_immediate_children(sorted_rebound)
-
-        barycentre_list = self._get_barycentres_list(sorted_rebound)
-
-        self._get_barycentre_immediate_children(
-            sorted_rebound,
-            barycentre_list
-        )
-        self._get_barycentre_parents(sorted_rebound)
+        self._set_barycentre_immediate_parents(sorted_rebound)
+        self._rebuild_immediate_children(sorted_rebound)
 
         return sorted_rebound
 
@@ -296,12 +286,9 @@ if __name__ == '__main__':
         barycentres = handler._return_barycentre_dict(system_archive)
 
     rebound_bodies_dict = handler._return_filtered_celestial_bodies(bodies)
-    rebound_barycentres_dict = handler._return_barycentres(barycentres)
+    rebound_barycentres_dict = handler._create_barycentre_dict(barycentres)
 
     merged_dict = handler._merge_dicts(rebound_bodies_dict, rebound_barycentres_dict)
 
-    sorted_rebound = handler.get_system_root(merged_dict)
+    sorted_rebound = handler._prepare_system_hierarchy(merged_dict)
     pprint(sorted_rebound, sort_dicts=False)
-
-    # com = handler._calculate_com(sorted_rebound)
-    # print(com)
