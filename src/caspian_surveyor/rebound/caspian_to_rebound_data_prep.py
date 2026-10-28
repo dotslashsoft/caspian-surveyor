@@ -129,6 +129,7 @@ class CaspianDataHandler:
             rebound_bodies_dict = {
                 "id": body_obj.body_id,
                 "type": "body",
+                "star_type": body_obj.body_star_type,
                 "scan_timestamp": body_obj.body_scan_timestamp,
                 "name": body_obj.body_name,
                 "ancestors": parents_list,
@@ -162,6 +163,7 @@ class CaspianDataHandler:
             barycentre_record = {
                 "id": barycentre_obj.body_id,
                 "type": "barycentre",
+                "star_type": None,
                 "scan_timestamp": barycentre_obj.scan_timestamp,
                 "name": barycentre_obj.body_id,
                 "ancestors": None,
@@ -251,6 +253,7 @@ class CaspianDataHandler:
             merged_dict[0] = {
                 "id": 0,
                 "type": "barycentre",
+                "star_type": None,
                 "scan_timestamp": 0,
                 "name": "root",
                 "ancestors": None,
@@ -281,14 +284,15 @@ class CaspianDataHandler:
     def prepare_system_data(
             self,
             system_address: int,
-    ) -> dict[int, dict[str, Any]] | None:
-        """Prepare and store system data for use by REBOUND."""
+    ) -> dict[int, dict[str, Any]]:
+        """Prepare and store archived system data for use by REBOUND."""
 
         system_record = self._get_fullstarsystempayload(system_address)
 
         if system_record is None:
-            self.system_data = None
-            return None
+            raise LookupError(
+                f"Archived system {system_address} could not be reconstructed."
+            )
 
         bodies = self._return_celestial_body_dict(system_record)
         barycentres = self._return_barycentre_dict(system_record)
@@ -296,7 +300,10 @@ class CaspianDataHandler:
         rebound_bodies_dict = self._return_filtered_celestial_bodies(bodies)
         rebound_barycentres_dict = self._create_barycentre_dict(barycentres)
 
-        merged_dict = self._merge_dicts(rebound_bodies_dict, rebound_barycentres_dict)
+        merged_dict = self._merge_dicts(
+            rebound_bodies_dict,
+            rebound_barycentres_dict,
+        )
 
         prepared_system = self._prepare_system_hierarchy(merged_dict)
 
