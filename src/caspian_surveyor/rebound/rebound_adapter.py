@@ -85,15 +85,34 @@ class ReboundAdapter:
     def _construct_leaf_barycentre_subsystems(
             self,
             system_data: dict[int, dict[str, Any]],
-            leaf_barycentres: list[int]
-    ):
+            leaf_barycentres: list[int],
+    ) -> dict[int, dict]:
+
+        resolved_subsystems = {}
+
         for barycentre_id in leaf_barycentres:
             child_ids = system_data[barycentre_id]["immediate_children"]
+
+            resolved_subsystem = {
+                "barycentre_id": barycentre_id,
+                "particles": {},
+            }
 
             temp_sim = self._construct_two_body_subsystem(
                 system_data,
                 child_ids,
             )
+
+            self._store_temp_sim_data(
+                system_data,
+                child_ids,
+                resolved_subsystem,
+                temp_sim,
+            )
+
+            resolved_subsystems[barycentre_id] = resolved_subsystem
+
+        return resolved_subsystems
 
     def _construct_two_body_subsystem(
             self,
@@ -133,6 +152,29 @@ class ReboundAdapter:
 
         return temp_sim
 
+    def _store_temp_sim_data(
+            self,
+            system_data,
+            child_ids,
+            resolved_subsystem: dict,
+            temp_sim
+    ):
+
+        for child_id in child_ids:
+            child_name = system_data[child_id]["name"]
+            particle = temp_sim.particles[child_name]
+
+            resolved_subsystem["particles"][child_id] = {
+                "id": child_id,
+                "name": child_name,
+                "mass": particle.m,
+                "x": particle.x,
+                "y": particle.y,
+                "z": particle.z,
+                "vx": particle.vx,
+                "vy": particle.vy,
+                "vz": particle.vz,
+            }
 
     def _return_root_stellar_body(
             self,
@@ -150,8 +192,8 @@ class ReboundAdapter:
         )
 
     def _proof_of_concept(self, system_data):
-        self.temp_sim = rebound.Simulation()
-        self.temp_sim.units = ("AU", "yr", "Msun")
+        temp_sim = rebound.Simulation()
+        temp_sim.units = ("AU", "yr", "Msun")
 
         body_nine = system_data[9]
         body_ten = system_data[10]
@@ -161,14 +203,14 @@ class ReboundAdapter:
             + body_ten["semi_major_axis"]
         )
 
-        self.temp_sim.add(
+        temp_sim.add(
             m=body_nine["mass"],
             name=body_nine["name"],
         )
 
-        primary = self.temp_sim.particles[0]
+        primary = temp_sim.particles[0]
 
-        self.temp_sim.add(
+        temp_sim.add(
             m=body_ten["mass"],
             a=relative_semi_major_axis,
             e=body_ten["eccentricity"],
@@ -179,7 +221,7 @@ class ReboundAdapter:
             primary=primary,
         )
 
-        self.temp_sim.move_to_com()
+        temp_sim.move_to_com()
 
     def _get_non_stellar_bodies(
             self,
@@ -247,7 +289,11 @@ if __name__ == '__main__':
 
     leaf_barycentres = adapter._get_leaf_barycentres(system_data)
 
-    adapter._construct_leaf_barycentre_subsystems(system_data, leaf_barycentres)
+    print(leaf_barycentres)
+
+    subsystem_dict = adapter._construct_leaf_barycentre_subsystems(system_data, leaf_barycentres)
+
+    pprint(subsystem_dict, sort_dicts=False)
 
 
     # if system_data is not None:
