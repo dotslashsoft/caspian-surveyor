@@ -13,9 +13,6 @@ class ReboundAdapter:
         self.sim = rebound.Simulation()
         self.sim.units = ("AU", "yr", "Msun")
 
-        self.temp_sim = rebound.Simulation()
-        self.temp_sim.units = ("AU", "yr", "Msun")
-
     def get_system_data(
             self,
             system_address: int
@@ -176,6 +173,90 @@ class ReboundAdapter:
                 "vz": particle.vz,
             }
 
+    def _construct_parent_subsystems(
+            self,
+            system_data: dict[int, dict[str, Any]],
+            resolved_subsystems: dict[int, dict],
+    ):
+        resolved_body_subsystems = {}
+        for barycentre_id in resolved_subsystems:
+            physical_body_subsystem = []
+
+
+            parent_id = system_data[barycentre_id]["immediate_parent"]
+            print(parent_id)
+
+            resolved_body_subsystem = {
+                "parent_body": parent_id,
+                "particles": {},
+            }
+
+            physical_body_subsystem.append(parent_id)
+
+            for child in system_data[parent_id]["immediate_children"]:
+                if system_data[child]["type"] == 'barycentre':
+                    continue
+
+                physical_body_subsystem.append(system_data[child]["id"])
+
+            if system_data[parent_id]["type"] == 'barycentre':
+                # TODO: _construct_barycentre_subsystem
+                continue
+
+            temp_sim = self._construct_physical_body_subsystem(
+                system_data,
+                physical_body_subsystem
+            )
+
+            self._store_temp_sim_data(
+                system_data,
+                physical_body_subsystem,
+                resolved_body_subsystem,
+                temp_sim,
+            )
+
+            resolved_body_subsystems[parent_id] = resolved_body_subsystem
+
+        return resolved_body_subsystems
+
+    def _construct_physical_body_subsystem(
+            self,
+            system_data,
+            physical_body_subsystem: list[int]
+    ):
+        temp_sim = rebound.Simulation()
+        temp_sim.units = ("AU", "yr", "Msun")
+
+        physical_parent_body = system_data[physical_body_subsystem[0]]
+
+        child_ids = physical_body_subsystem[1:]
+
+        temp_sim.add(
+            m=physical_parent_body["mass"],
+            name=physical_parent_body["name"],
+        )
+        primary = temp_sim.particles[0]
+
+        for each_child in child_ids:
+            child_body_record = system_data[each_child]
+
+            temp_sim.add(
+                m=child_body_record["mass"],
+                a=child_body_record["semi_major_axis"],
+                e=child_body_record["eccentricity"],
+                inc=child_body_record["orbital_inclination"],
+                Omega=child_body_record["ascending_node"],
+                omega=child_body_record["periapsis"],
+                M=child_body_record["mean_anomaly"],
+                name=child_body_record["name"],
+                primary=primary,
+            )
+
+        temp_sim.move_to_com()
+
+        return temp_sim
+
+
     def _return_root_stellar_body(
             self,
             system_data: dict[int, dict[str, Any]]
@@ -243,7 +324,6 @@ class ReboundAdapter:
 
         return non_stellar_bodies
 
-
     def _add_non_stellar_bodies(self, non_stellar_bodies: dict[int, dict[str, Any]]):
         for body_record in non_stellar_bodies.values():
             self._add_non_stellar_body(
@@ -265,21 +345,21 @@ class ReboundAdapter:
         )
 
     def start_rebound_visualization(self):
-        self.temp_sim.start_server(port=1234)
-        self.temp_sim.usleep = 100000
+        self.sim.start_server(port=1234)
+        self.sim.usleep = 100000
 
         print("Simulation running indefinitely.")
         print("Open http://localhost:1234")
         print("CTRL+C to stop.")
 
         try:
-            self.temp_sim.integrate(float("inf"))
+            self.sim.integrate(float("inf"))
 
         except KeyboardInterrupt:
             print("\nSimulation stopped.")
 
         finally:
-            self.temp_sim.stop_server()
+            self.sim.stop_server()
 
 
 if __name__ == '__main__':
@@ -289,12 +369,7 @@ if __name__ == '__main__':
 
     leaf_barycentres = adapter._get_leaf_barycentres(system_data)
 
-    print(leaf_barycentres)
+    adapter._walk_system_hierarchy(system_data)
+    subsystem_barycentre_dict = adapter._construct_leaf_barycentre_subsystems(system_data, leaf_barycentres)
 
-    subsystem_dict = adapter._construct_leaf_barycentre_subsystems(system_data, leaf_barycentres)
-
-    pprint(subsystem_dict, sort_dicts=False)
-
-
-    # if system_data is not None:
-    #     body_data = adapter._get_non_stellar_bodies(system_data)
+    subsystem_body_dict = adapter._construct_parent_subsystems(system_data, subsystem_barycentre_dict)
