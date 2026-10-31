@@ -84,13 +84,12 @@ class ReboundAdapter:
             system_data: dict[int, dict[str, Any]],
             leaf_barycentres: list[int],
     ) -> dict[int, dict]:
-
-        resolved_subsystems = {}
+        resolved_barycentre_subsystems = {}
 
         for barycentre_id in leaf_barycentres:
             child_ids = system_data[barycentre_id]["immediate_children"]
 
-            resolved_subsystem = {
+            resolved_barycentre_subsystem = {
                 "barycentre_id": barycentre_id,
                 "particles": {},
             }
@@ -103,13 +102,13 @@ class ReboundAdapter:
             self._store_temp_sim_data(
                 system_data,
                 child_ids,
-                resolved_subsystem,
+                resolved_barycentre_subsystem,
                 temp_sim,
             )
 
-            resolved_subsystems[barycentre_id] = resolved_subsystem
+            resolved_barycentre_subsystems[barycentre_id] = resolved_barycentre_subsystem
 
-        return resolved_subsystems
+        return resolved_barycentre_subsystems
 
     def _construct_two_body_subsystem(
             self,
@@ -153,15 +152,14 @@ class ReboundAdapter:
             self,
             system_data,
             child_ids,
-            resolved_subsystem: dict,
+            resolved_barycentre_subsystem: dict,
             temp_sim
     ):
-
         for child_id in child_ids:
             child_name = system_data[child_id]["name"]
             particle = temp_sim.particles[child_name]
 
-            resolved_subsystem["particles"][child_id] = {
+            resolved_barycentre_subsystem["particles"][child_id] = {
                 "id": child_id,
                 "name": child_name,
                 "mass": particle.m,
@@ -173,15 +171,32 @@ class ReboundAdapter:
                 "vz": particle.vz,
             }
 
+    def _group_system_subsystems(self, system_data):
+        physical_body_subsystems = {}
+        barycentre_subsystems = {}
+
+        for parent_id, parent_record in system_data.items():
+            child_ids = parent_record["immediate_children"]
+
+            if not child_ids:
+                continue
+
+            if parent_record["type"] == "body":
+                physical_body_subsystems[parent_id] = child_ids
+
+            elif parent_record["type"] == "barycentre":
+                barycentre_subsystems[parent_id] = child_ids
+
+        return physical_body_subsystems, barycentre_subsystems
+
     def _construct_parent_subsystems(
             self,
             system_data: dict[int, dict[str, Any]],
-            resolved_subsystems: dict[int, dict],
+            resolved_barycentre_subsystems: dict[int, dict],
     ):
         resolved_body_subsystems = {}
-        for barycentre_id in resolved_subsystems:
+        for barycentre_id in resolved_barycentre_subsystems:
             physical_body_subsystem = []
-
 
             parent_id = system_data[barycentre_id]["immediate_parent"]
             print(parent_id)
@@ -200,7 +215,6 @@ class ReboundAdapter:
                 physical_body_subsystem.append(system_data[child]["id"])
 
             if system_data[parent_id]["type"] == 'barycentre':
-                # TODO: _construct_barycentre_subsystem
                 continue
 
             temp_sim = self._construct_physical_body_subsystem(
@@ -366,10 +380,16 @@ if __name__ == '__main__':
     adapter = ReboundAdapter()
 
     system_data = adapter.get_system_data(527609567169)
+    physical_body_subsystems, barycentre_subsystems = adapter._group_system_subsystems(system_data)
 
-    leaf_barycentres = adapter._get_leaf_barycentres(system_data)
+    print(physical_body_subsystems)
+    print(barycentre_subsystems)
 
-    adapter._walk_system_hierarchy(system_data)
-    subsystem_barycentre_dict = adapter._construct_leaf_barycentre_subsystems(system_data, leaf_barycentres)
+    # leaf_barycentres = adapter._get_leaf_barycentres(system_data)
 
-    subsystem_body_dict = adapter._construct_parent_subsystems(system_data, subsystem_barycentre_dict)
+    # # adapter._walk_system_hierarchy(system_data)
+    # subsystem_barycentre_dict = adapter._construct_leaf_barycentre_subsystems(system_data, leaf_barycentres)
+
+    # subsystem_body_dict = adapter._construct_parent_subsystems(system_data, subsystem_barycentre_dict)
+
+
