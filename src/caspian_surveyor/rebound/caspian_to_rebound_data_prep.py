@@ -126,6 +126,11 @@ class CaspianDataHandler:
 
             parents_list = self._parent_info_to_list(body_obj.body_parents)
 
+            if parents_list == []:
+                immediate_parent = None
+            else:
+                immediate_parent = parents_list[0]
+
             rebound_bodies_dict = {
                 "id": body_obj.body_id,
                 "type": "body",
@@ -134,7 +139,7 @@ class CaspianDataHandler:
                 "name": body_obj.body_name,
                 "ancestors": parents_list,
                 "descendants": [],
-                "immediate_parent": parents_list[0],
+                "immediate_parent": immediate_parent,
                 "immediate_children": [],
                 "mass": rebound_mass,
                 "periapsis": periapsis,
