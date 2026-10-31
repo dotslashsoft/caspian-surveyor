@@ -125,6 +125,7 @@ class ReboundAdapter:
                             physical_body_id,
                             physical_body_children,
                             resolved_physical_subsystems,
+                            resolved_barycentre_subsystems,
                         )
                     )
 
@@ -152,26 +153,32 @@ class ReboundAdapter:
             system_data: dict,
             parent_id,
             child_ids: list,
-            resolved_physical_subsystems: dict
+            resolved_physical_subsystems: dict,
+            resolved_barycentre_subsystems: dict
     ):
         temp_sim = rebound.Simulation()
         temp_sim.units = ("AU", "yr", "Msun")
 
         primary_body = system_data[parent_id]
-        physical_child_list = []
+
+        physical_child_ids = []
+        barycentre_child_ids = []
         incorporated_body_ids = []
 
+        # Separate direct physical children from barycentric children.
         for child_id in child_ids:
-            if system_data[child_id]["type"] == "body":
-                physical_child_list.append(child_id)
-            else:
-                print(f"Skipping resolved barycentre {child_id} for now.")
 
+            if system_data[child_id]["type"] == "body":
+                physical_child_ids.append(child_id)
+            else:
+                barycentre_child_ids.append(child_id)
+
+        # Construct the physical parent.
         self._add_primary_physical_body(primary_body, temp_sim)
 
-        primary = temp_sim.particles[0]
+        # Construct directly orbiting physical bodies.
+        for child_id in physical_child_ids:
 
-        for child_id in physical_child_list:
             child_body = system_data[child_id]
 
             temp_sim.add(
@@ -183,11 +190,12 @@ class ReboundAdapter:
                 omega=child_body["periapsis"],
                 M=child_body["mean_anomaly"],
                 name=child_body["name"],
-                primary=primary,
+                primary=temp_sim.particles[0],
             )
 
-        # Incorporate previously constructed physical subsystems.
-        for child_id in physical_child_list:
+        # Incorporate previously resolved physical subsystems.
+        for child_id in physical_child_ids:
+
             if child_id in resolved_physical_subsystems:
 
                 added_body_ids = self._incorporate_physical_subsystem(
@@ -197,6 +205,19 @@ class ReboundAdapter:
                 )
 
                 incorporated_body_ids.extend(added_body_ids)
+
+        # Incorporate previously resolved barycentric subsystems.
+        for barycentre_id in barycentre_child_ids:
+
+            added_body_ids = self._incorporate_barycentric_subsystem(
+                system_data,
+                barycentre_id,
+                parent_id,
+                resolved_barycentre_subsystems,
+                temp_sim,
+            )
+
+            incorporated_body_ids.extend(added_body_ids)
 
         return temp_sim, incorporated_body_ids
 
@@ -213,7 +234,7 @@ class ReboundAdapter:
 
         physical_child_ids = []
         incorporated_body_ids = []
-        # Identify physical children.
+
         for child_id in child_ids:
 
             if system_data[child_id]["type"] == "body":
@@ -342,6 +363,90 @@ class ReboundAdapter:
 
         return incorporated_body_ids
 
+    def _incorporate_barycentric_subsystem(
+            self,
+            system_data: dict,
+            barycentre_id: int,
+            physical_parent_id: int,
+            resolved_barycentre_subsystems: dict,
+            temp_sim
+    ) -> list[int]:
+
+        barycentre_data = system_data[barycentre_id]
+
+        resolved_subsystem = resolved_barycentre_subsystems[barycentre_id]
+        subsystem_particles = resolved_subsystem["particles"]
+
+        coordinates = ("x", "y", "z", "vx", "vy", "vz")
+
+        # Calculate the total physical mass of the subsystem.
+        total_mass = sum(
+            particle["mass"]
+            for particle in subsystem_particles.values()
+        )
+
+        if total_mass <= 0:
+            raise ValueError(
+                f"Barycentre {barycentre_id} has no positive physical mass."
+            )
+
+        # Calculate the source subsystem's center of mass.
+        local_com = {
+            coordinate: sum(
+                particle["mass"] * particle[coordinate]
+                for particle in subsystem_particles.values()
+            ) / total_mass
+            for coordinate in coordinates
+        }
+
+        # Locate the physical parent in the destination simulation.
+        parent_name = system_data[physical_parent_id]["name"]
+        parent_particle = temp_sim.particles[parent_name]
+
+        # Calculate the barycentre's orbital state around its parent.
+        # This particle is NOT added to the simulation.
+        barycentre_com = rebound.Particle(
+            simulation=temp_sim,
+            primary=parent_particle,
+            m=total_mass,
+            a=barycentre_data["semi_major_axis"],
+            e=barycentre_data["eccentricity"],
+            inc=barycentre_data["orbital_inclination"],
+            Omega=barycentre_data["ascending_node"],
+            omega=barycentre_data["periapsis"],
+            M=barycentre_data["mean_anomaly"],
+        )
+
+        target_com = {
+            coordinate: getattr(barycentre_com, coordinate)
+            for coordinate in coordinates
+        }
+
+        incorporated_body_ids = []
+
+        # Translate every physical particle into the destination frame.
+        for body_id, body_data in subsystem_particles.items():
+
+            translated_state = {
+                coordinate: (
+                    target_com[coordinate]
+                    + body_data[coordinate]
+                    - local_com[coordinate]
+                )
+                for coordinate in coordinates
+            }
+
+            temp_sim.add(
+                m=body_data["mass"],
+                name=body_data["name"],
+                **translated_state,
+            )
+
+            incorporated_body_ids.append(body_id)
+
+        return incorporated_body_ids
+
+
     def _add_primary_physical_body(self, primary_physical_body, temp_sim):
         temp_sim.add(
             m=primary_physical_body["mass"],
@@ -384,5 +489,8 @@ if __name__ == '__main__':
     construction_order = adapter._get_subsystem_construction_order(physical_body_subsystems, barycentre_subsystems)
     resolved_barycentre_subsystems, resolved_physical_subsystems = adapter._process_construction_order(system_data, construction_order)
 
-    pprint(resolved_barycentre_subsystems, sort_dicts=False)
-    pprint(resolved_physical_subsystems, sort_dicts=False)
+    # pprint(resolved_barycentre_subsystems, sort_dicts=False)
+    # pprint(resolved_physical_subsystems, sort_dicts=False)
+
+    print(sorted(resolved_physical_subsystems[16]["particles"]))
+    print(sorted(resolved_physical_subsystems[0]["particles"]))
