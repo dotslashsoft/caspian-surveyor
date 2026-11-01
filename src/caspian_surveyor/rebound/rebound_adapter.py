@@ -13,6 +13,12 @@ class ReboundAdapter:
         self.handler = CaspianDataHandler()
         self.sim = rebound.Simulation()
         self.sim.units = ("AU", "yr", "Msun")
+        self.orbital_match_tolerances = {
+            "eccentricity": 1e-6,
+            "orbital_inclination": 1e-6,
+            "ascending_node": 1e-6,
+            "mean_anomaly": 1e-4,
+        }
 
     def get_system_data(
             self,
@@ -20,9 +26,17 @@ class ReboundAdapter:
     ) -> dict[int, dict[str, Any]]:
         return self.handler.prepare_system_data(system_address)
 
-    def _group_system_subsystems(self, system_data):
+    def _group_system_subsystems(self, system_data: dict):
         physical_body_subsystems = {}
         barycentre_subsystems = {}
+
+        # handle single body systems
+        # unsure why anyone would want to stare
+        #   at a single dot, but, they can now
+        #   do it
+        if len(system_data) == 1:
+            physical_body_subsystems = system_data
+            return physical_body_subsystems, barycentre_subsystems
 
         for parent_id, parent_record in system_data.items():
             child_ids = parent_record["immediate_children"]
@@ -334,16 +348,12 @@ class ReboundAdapter:
 
             for physical_id in physical_child_ids:
                 physical_data = system_data[physical_id]
+
                 if all(
-                    abs(barycentre_data[field] - physical_data[field]) < 1e-6
-                    for field in orbital_match_fields
+                    abs(barycentre_data[field] - physical_data[field]) < tolerance
+                    for field, tolerance in self.orbital_match_tolerances.items()
                 ):
                     matching_physical_ids.append(physical_id)
-
-            print(
-                f"Barycentre {barycentre_id} under parent {parent_id}: "
-                f"matching physical siblings = {matching_physical_ids}"
-            )
 
             incorporated = False
 
@@ -357,15 +367,10 @@ class ReboundAdapter:
                     physical_id
                 )
 
-                print(
-                    f"Orbital pair {barycentre_id} and {physical_id}: "
-                    f"mass-axis difference = {mass_axis_difference:.6%}"
-                )
-
                 if (
                     abs(periapsis_difference - math.pi)
                     > math.radians(0.001)
-                    or mass_axis_difference > 0.001
+                    or mass_axis_difference > 0.002
                 ):
                     continue
 
@@ -512,16 +517,24 @@ class ReboundAdapter:
 
         coordinates = ("x", "y", "z", "vx", "vy", "vz")
 
+        weighted_coordinates = {
+            coordinate: sum(
+                particle.m * getattr(particle, coordinate)
+                for particle in component_particles
+            ) / total_mass
+            for coordinate in coordinates
+        }
+
         combined_com = rebound.Particle(
-                    m=total_mass,
-                    **{
-                        coordinate: sum(
-                            particle.m * getattr(particle, coordinate)
-                            for particle in component_particles
-                        ) / total_mass
-                        for coordinate in coordinates
-                    },
-                )
+            m=total_mass,
+            x=weighted_coordinates["x"],
+            y=weighted_coordinates["y"],
+            z=weighted_coordinates["z"],
+            vx=weighted_coordinates["vx"],
+            vy=weighted_coordinates["vy"],
+            vz=weighted_coordinates["vz"],
+        )
+
         return coordinates, combined_com
 
     def _get_physical_binary_com(
@@ -611,9 +624,9 @@ class ReboundAdapter:
             second_body = system_data[second_id]
 
             if not all(
-                    abs(first_body[field] - second_body[field]) < 1e-6
-                    for field in orbital_match_fields
-                ):
+                abs(first_body[field] - second_body[field]) < tolerance
+                for field, tolerance in self.orbital_match_tolerances.items()
+            ):
                 continue
 
             periapsis_difference = (
@@ -672,9 +685,9 @@ class ReboundAdapter:
         child_body = system_data[body_id]
         semi_major_axis = child_body["semi_major_axis"]
         matching_orbital_elements = all(
-                    abs(primary_body[field] - child_body[field]) < 1e-6
-                    for field in orbital_match_fields
-                )
+            abs(primary_body[field] - child_body[field]) < tolerance
+            for field, tolerance in self.orbital_match_tolerances.items()
+        )
 
         periapsis_difference = (
                     primary_body["periapsis"]
@@ -963,8 +976,7 @@ class ReboundAdapter:
 
 if __name__ == '__main__':
     adapter = ReboundAdapter()
-    # system_data = adapter.get_system_data(527609567169)
-    system_data = adapter.get_system_data(38562352187)
+    system_data = adapter.get_system_data(527609567169)
 
     physical_subsystems, barycentre_subsystems = (
         adapter._group_system_subsystems(system_data)
@@ -988,6 +1000,7 @@ if __name__ == '__main__':
         resolved_physical_subsystems
     )
 
+    # very very minimal setup and sim, configuration wise.
     simulation.start_server(port=1234)
 
     # Value is MICROSECONDS.
