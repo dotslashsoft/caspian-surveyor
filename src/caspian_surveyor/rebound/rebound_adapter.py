@@ -951,24 +951,72 @@ if __name__ == '__main__':
     construction_order = adapter._get_subsystem_construction_order(physical_body_subsystems, barycentre_subsystems)
     resolved_barycentre_subsystems, resolved_physical_subsystems = adapter._process_construction_order(system_data, construction_order)
 
-    source = resolved_physical_subsystems[33]["particles"]
-    destination = resolved_barycentre_subsystems[2]["particles"]
+    root_particles = resolved_barycentre_subsystems[0]["particles"]
 
-    coordinates = ("x", "y", "z", "vx", "vy", "vz")
+    print(sorted(root_particles))
+    print(f"Total physical particles: {len(root_particles)}")
 
-    for coordinate in coordinates:
+    # EXPERIMENT: Run the reconstructed star system.
+    import time
+    import webbrowser
 
-        original = (
-            source[34][coordinate]
-            - source[33][coordinate]
+    sim = adapter.sim
+    sim.integrator = "ias15"
+
+    # Load the reconstructed Cartesian states.
+    for body_id, body_data in sorted(root_particles.items()):
+
+        sim.add(
+            m=body_data["mass"],
+            name=body_data["name"],
+            x=body_data["x"],
+            y=body_data["y"],
+            z=body_data["z"],
+            vx=body_data["vx"],
+            vy=body_data["vy"],
+            vz=body_data["vz"],
         )
 
-        translated = (
-            destination[34][coordinate]
-            - destination[33][coordinate]
-        )
+    sim.move_to_com()
 
-        print(
-            f"{coordinate}: "
-            f"difference = {abs(original - translated):.12e}"
-        )
+    assert sim.N == len(root_particles) == 25
+
+    initial_energy = sim.energy()
+
+    print(f"Simulation ready: {sim.N} particles")
+    print(f"Initial energy: {initial_energy:.12e}")
+
+    # Launch REBOUND's interactive 3D visualization.
+    sim.start_server(port=1234)
+
+    try:
+        webbrowser.open("http://127.0.0.1:1234/")
+
+        input("Press Enter to begin gravitational integration...")
+
+        # Simulate 0.1 years in small output increments.
+        for frame in range(1, 2001):
+
+            sim.integrate(frame * 0.0005)
+
+            if frame % 20 == 0:
+                relative_energy_error = (
+                    abs(sim.energy() - initial_energy) / abs(initial_energy)
+                    if initial_energy != 0
+                    else float("nan")
+                )
+
+                print(
+                    f"t = {sim.t:.4f} years | "
+                    f"Energy drift = {relative_energy_error:.3e}"
+                )
+
+            # Give the visualization time to display updates.
+            time.sleep(0.05)
+
+        print("Simulation complete.")
+
+        input("Press Enter to close the visualization...")
+
+    finally:
+        sim.stop_server()
