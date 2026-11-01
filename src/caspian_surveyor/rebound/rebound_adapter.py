@@ -294,7 +294,6 @@ class ReboundAdapter:
 
                 child_body, semi_major_axis, is_binary_companion = self._resolve_binary_candidate(
                     system_data,
-                    orbital_match_fields,
                     primary_body,
                     body_id
                 )
@@ -335,7 +334,6 @@ class ReboundAdapter:
                 system_data,
                 parent_id,
                 physical_child_ids,
-                orbital_match_fields,
                 first_id,
                 candidate_binary_pairs,
                 index
@@ -614,7 +612,6 @@ class ReboundAdapter:
             system_data,
             parent_id,
             physical_child_ids,
-            orbital_match_fields,
             first_id,
             candidate_binary_pairs,
             index
@@ -668,7 +665,6 @@ class ReboundAdapter:
     def _resolve_binary_candidate(
             self,
             system_data,
-            orbital_match_fields,
             primary_body,
             body_id
     ):
