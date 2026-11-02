@@ -48,7 +48,7 @@ class DataOrchestrator:
                 self.current_system_data = json.load(file)
 
             return self.current_system_data
-        
+
         except OSError:
             logger.exception("Unable to load current system data.")
             raise

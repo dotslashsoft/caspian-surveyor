@@ -6,10 +6,8 @@ import queue
 import configparser
 from caspian_surveyor.bootstrap.cs_baseline_config import HISTORICAL_EVENT_INGESTION
 
-
-
-### ### ### ### ### ### ### ### ### ### ### ###
 logger = logging.getLogger(__name__)
+
 
 class JournalReader:
     """
@@ -22,7 +20,6 @@ class JournalReader:
     Coordinates journal-directory monitoring, queue-based journal swaps,
     and recovery from temporary journal-directory access failures.
     """
-
     def __init__(self, journal_path: str | Path, poll_interval: float = 1.0) -> None:
         """
         Initializes journal-reading and monitoring state.
@@ -31,7 +28,7 @@ class JournalReader:
             journal_path: Path to the Elite Dangerous journal file to begin following.
             poll_interval: Delay, in seconds, between journal and directory checks.
                 Defaults to 1.0.
-        """     
+        """
         self.journal_path = Path(journal_path)
         self.poll_interval = poll_interval
         self.new_journal_queue = queue.Queue()
@@ -53,7 +50,7 @@ class JournalReader:
 
         Returns:
             False if journal monitoring fails three consecutive times.
-        """  
+        """
         logger.debug("heal_monitor_journal_directory called")
         while not shutdown_event.is_set():
             monitor_active = self.monitor_journal_directory(directory_path, shutdown_event)
@@ -110,13 +107,11 @@ class JournalReader:
         Returns:
             False if monitoring terminates due to a recoverable filesystem error.
         """
-
         target_dir = Path(directory_path)
-
         try:
             if not target_dir.is_dir():
                 raise FileNotFoundError(f"Journal directory unavailable: {target_dir}")
-            
+
             existing_files = set(target_dir.glob("Journal.*.log"))
 
             if self.consecutive_monitor_failures != 0:
@@ -129,21 +124,21 @@ class JournalReader:
 
                 if not target_dir.is_dir():
                     raise FileNotFoundError(f"Journal directory unavailable: {target_dir}")
-                
+
                 current_files = set(target_dir.glob("Journal.*.log"))
                 new_files = current_files - existing_files
-                
+
                 # process new Journal.*.file found
                 for file_path in new_files:
                     if file_path.is_file():
                         self.new_journal_queue.put(file_path)
 
                 existing_files = current_files
-                
+
         except FileNotFoundError:
             logger.exception("The directory '%s' disappeared or is unavailable.", target_dir)
             return False
-            
+
         except PermissionError:
             logger.error("\nError: Lost read permissions for '%s'.", target_dir)
             return False
@@ -174,7 +169,7 @@ class JournalReader:
 
         Raises:
             OSError: If the active journal file cannot be opened or read.
-        """  
+        """
         logger.info("Beginning journal monitoring: %s", self.journal_path)
 
         current_path = self.journal_path
@@ -255,6 +250,7 @@ class JournalReader:
                 logger.exception(
                     "Unable to open or read journal file: %s", current_path)
                 raise
+
 
 def get_latest_journal_file() -> Path | None:
     """
@@ -353,7 +349,6 @@ def get_journal_file_by_index(index) -> Path | None:
 
 
 class HistoricalJournalIngestion:
-
     def find_odyssey_journal_files(self) -> list[Path]:
         odyssey_journals = []
         journal_files = sorted(JOURNAL_DIRECTORY.glob("Journal.*.log"))
@@ -382,13 +377,11 @@ class HistoricalJournalIngestion:
 
         return odyssey_journals
 
-
     def read_raw_journal_event_lines(self, journal_path):
         with open(journal_path, "r", encoding='utf-8') as file:
             lines = [line.rstrip("\r\n") for line in file]
-            
-        return lines
 
+        return lines
 
     def group_historical_events_by_system_address(self, odyssey_journals):
         system_events = {}
@@ -414,11 +407,9 @@ class HistoricalJournalIngestion:
                 ).append(event)
         return system_events
 
-
     def iterate_historical_system_event_groups(self, system_events: dict):
         for system_address, events in system_events.items():
             yield system_address, events
-
 
     def reconstruct_historical_system_from_events(self, system_address, system_events, aggregator):
 
@@ -453,7 +444,6 @@ class HistoricalJournalIngestion:
         current_system = aggregator.current_system
 
         return current_system
-
 
     def process_and_persist_historical_journal_events(self, progress_callback=None):
         from caspian_surveyor.cs_survey_data import SurveyDataAggregator, SurveyDataBuilder
@@ -516,7 +506,6 @@ class HistoricalJournalIngestion:
 
         self.set_historical_event_ingestion_flag_false()
 
-
     def check_historical_event_ingestion_flag(self, historical_flag_file=HISTORICAL_EVENT_INGESTION) -> bool:
         history_config = configparser.ConfigParser()
         history_config.read(historical_flag_file)
@@ -552,7 +541,8 @@ DEBUG_LOG_PAYLOAD_EVENTS = {
 """
 Elite Dangerous journal events whose full payloads are logged when
 DEBUG logging is enabled.
-""" 
+"""
+
 
 if __name__ == "__main__":
     history = HistoricalJournalIngestion()

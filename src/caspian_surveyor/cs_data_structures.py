@@ -101,6 +101,7 @@ class BodyGenusInfo:
     body_genus: str
     body_genus_localised: str
 
+
 @dataclass
 class BodyParentInfo:
     """
@@ -108,6 +109,7 @@ class BodyParentInfo:
     """
     parent_type: str
     parent_body_id: int
+
 
 @dataclass
 class CelestialBody:
@@ -152,7 +154,6 @@ class CelestialBody:
     body_genuses: list[BodyGenusInfo] | None = None
     exobio_scans: list[ExoBioScanInfo] | None = None
 
-
     def __post_init__(self) -> None:
         """
         Converts raw material and signal dictionaries into their corresponding
@@ -160,7 +161,7 @@ class CelestialBody:
         """
         if isinstance(self.body_materials, list):
             self.body_materials = [
-                BodyMaterialInfo(**m) if isinstance(m, dict) else m 
+                BodyMaterialInfo(**m) if isinstance(m, dict) else m
                 for m in self.body_materials
             ]
 
@@ -259,8 +260,6 @@ class FullStarSystemPayload:
                 )
                 for key, value in self.barycentres.items()
             }
-
-        
 
     @property
     def planetary_bodies(self) -> list[CelestialBody]:

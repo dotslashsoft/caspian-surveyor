@@ -15,7 +15,7 @@ from caspian_surveyor.cs_data_structures import (
 )
 from caspian_surveyor.runtime.cs_runtime import system_record_encoder, write_current_system_record
 from typing import Any
-### ### ### ### ### ### ### ### ### ### ### ### 
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,11 +30,10 @@ class SurveyDataAggregator:
     Journal events are routed through process_journal_event() and applied to
     the appropriate survey-state method.
     """
-
     def __init__(self):
         self.current_system = None
         notable_stellar_phenomena = []
-    
+
     def _get_current_system(self, event):
         """
         It's in the name, my dude.
@@ -53,7 +52,6 @@ class SurveyDataAggregator:
             The current system survey-state dictionary if the event belongs to the
             active system; otherwise None.
         """
-
         current_system = self.current_system
         if current_system is None:
             return None
@@ -77,7 +75,6 @@ class SurveyDataAggregator:
                 for body_id, body in encoded_payload["bodies"].items()
             }
         }
-        
 
     def begin_system(self, event) -> None:
         """
@@ -93,7 +90,6 @@ class SurveyDataAggregator:
         Returns:
             None.
         """
-
         self.current_system = {
             "system_name": event.get("StarSystem"),
             "system_address": event.get("SystemAddress"),
@@ -119,7 +115,6 @@ class SurveyDataAggregator:
         Returns:
             True if the current survey state was updated; otherwise False.
         """
-
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
@@ -167,7 +162,6 @@ class SurveyDataAggregator:
             True if the body scan was applied to the current survey state;
             otherwise False.
         """
-        
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
@@ -209,7 +203,6 @@ class SurveyDataAggregator:
 
         return True
 
-
     def record_barycentre_scan(self, event) -> bool:
         current_system = self._get_current_system(event)
         if current_system is None:
@@ -241,9 +234,6 @@ class SurveyDataAggregator:
 
     def translate_body_parent_fields(self, parent: dict[str, Any]) -> dict[str, Any]:
         parent_type, parent_body_id = next(iter(parent.items()))
-
-        
-
 
         return {
             "parent_type": parent_type,
@@ -283,7 +273,6 @@ class SurveyDataAggregator:
             True if the DSS scan was applied to the current survey state;
             otherwise False.
         """
-
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
@@ -319,7 +308,6 @@ class SurveyDataAggregator:
             True if the SAASignalsFound was applied to the current survey state;
             otherwise False.
         """
-
         current_system = self._get_current_system(event)
         if current_system is None:
             return False
@@ -344,11 +332,9 @@ class SurveyDataAggregator:
         ]
         return True
 
-
     def translate_scan_timestamp(self, timestamp) -> int:
         epoch_format = int(datetime.timestamp(datetime.fromisoformat(timestamp)))
         return epoch_format
-
 
     def record_organic_scans(self, event) -> bool:
         current_system = self._get_current_system(event)
@@ -413,7 +399,6 @@ class SurveyDataAggregator:
         Returns:
             bool: True if the event updated survey state; otherwise False.
         """
-
         event_type = event.get("event")
         if event_type == "FSSDiscoveryScan":
             return self.record_discovery_scan(event)
@@ -491,7 +476,6 @@ class SurveyDataBuilder:
     directly. Journal events are first applied to SurveyDataAggregator, which this
     class then uses as the source for building output records.
     """
-
     def __init__(self, survey_data_aggregator):
         self.survey_data_aggregator = survey_data_aggregator
 
@@ -508,14 +492,13 @@ class SurveyDataBuilder:
             survey state exists.
 
         """
-        
         current_system = self.survey_data_aggregator.current_system
         if current_system is None:
             return None
-        
+
         system_info = self.build_system_info(current_system)
         system_summary = self.build_system_summary(current_system)
-        
+
         bodies = {}
         for body_id, body in current_system["bodies"].items():
             bodies[body_id] = self.build_body_record(body)
@@ -543,7 +526,6 @@ class SurveyDataBuilder:
             system_position=current_system["system_position"],
             system_body_count=current_system["system_body_count"],
         )
-
 
     def build_system_summary(self, current_system: dict[str, Any]) -> SystemSummaryInfo:
         """
@@ -613,7 +595,6 @@ class SurveyDataBuilder:
 
         return system_summary
 
-
     def build_body_record(self, body: dict[str, Any]) -> CelestialBody:
         """
         Builds an output record for a single body in the current survey state.
@@ -631,7 +612,7 @@ class SurveyDataBuilder:
         body_signals = body.get("body_signals")
         body_genuses = body.get("body_genuses")
         exobio_scans = body.get("exobio_scans")
-        
+
         return CelestialBody(
             body_id=body["body_id"],
             body_name=body["body_name"],
@@ -685,7 +666,6 @@ class SurveyDataBuilder:
                         )
         )
 
-
     def build_barycentre_record(self, barycentre: dict[str, Any]) -> BarycentreInfo:
         return BarycentreInfo(
             system_address=barycentre["system_address"],
@@ -711,7 +691,6 @@ class StateRecovery:
     journal events forward chronologically through subsequent matching
     journals.
     """
-
     def __init__(self):
         self.survey_data_aggregator = SurveyDataAggregator()
 
@@ -738,9 +717,13 @@ class StateRecovery:
             journal_index += 1
         return oldest_matching_index
 
-    def recover_current_system_state(self, latest_journal_events, archived_payload: FullStarSystemPayload | None = None) -> dict[str, Any] | None:
+    def recover_current_system_state(
+            self,
+            latest_journal_events,
+            archived_payload: FullStarSystemPayload | None = None
+    ) -> dict[str, Any] | None:
         """
-        Loops from the returned value of find_oldest_matching_journal_index(), 
+        Loops from the returned value of find_oldest_matching_journal_index(),
         if the value is not None, and reconstructs system data from events within
         journal[index] -> latest journal.
 
@@ -751,19 +734,18 @@ class StateRecovery:
         Returns:
             reconstructed current system state as dict
         """
-
         if not latest_journal_events:
             return None
 
         oldest_matching_index = self.find_oldest_matching_journal_index(latest_journal_events)
         if oldest_matching_index is None:
             return None
-        
+
         for journal_index in range(oldest_matching_index, -1, -1):
             journal_file = Journal.get_journal_file_by_index(journal_index)
             if journal_file is None:
                 return None
-            
+
             journal_events = Journal.get_reconstruction_start_events(journal_file)
             if not journal_events:
                 continue
@@ -779,7 +761,6 @@ class StateRecovery:
             self.replay_system_events(self.survey_data_aggregator, journal_events[1:])
 
         return self.survey_data_aggregator.current_system
-    
 
     def replay_system_events(self, survey_data_aggregator, events) -> None:
         """
@@ -796,7 +777,6 @@ class StateRecovery:
         Returns:
             None.
         """
-
         for event in events:
             survey_data_aggregator.process_journal_event(event)
 
