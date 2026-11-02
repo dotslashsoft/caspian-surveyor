@@ -1,13 +1,11 @@
 import logging
 import sys
-
 import caspian_surveyor
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
 from caspian_surveyor.ui.hotkey_manager import HotkeyManager
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
 from caspian_surveyor.ui.body_builder import BodyDisplayController
 from caspian_surveyor.ui.data_adapter import OverlayAdapter
-
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
@@ -18,6 +16,7 @@ from PySide6.QtGui import QFont, QFontDatabase
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
 
 class SystemInfoOverlay(QWidget):
     """
