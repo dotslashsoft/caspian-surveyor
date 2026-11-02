@@ -3,7 +3,6 @@ from PySide6.QtCore import Qt
 import caspian_surveyor.bootstrap.cs_baseline_config as cs_baseline_config
 import json
 import shutil
-import sys
 
 
 class DualColorDialog(QDialog):
@@ -151,8 +150,3 @@ class Workflow:
         else:
             print("User cancelled out of picking primary and secondary colors. Exiting...")
             return False
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    workflow = Workflow()

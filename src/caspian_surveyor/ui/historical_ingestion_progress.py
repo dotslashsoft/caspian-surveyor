@@ -1,7 +1,8 @@
-import sys
-
 from PySide6.QtCore import QObject, Signal, Slot, Qt
-from PySide6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QProgressBar, QFrame, QSizePolicy, QLabel, QHBoxLayout
+from PySide6.QtWidgets import (
+    QLabel, QWidget, QVBoxLayout, QProgressBar,
+    QFrame, QLabel, QHBoxLayout
+)
 from PySide6.QtGui import QColor
 from caspian_surveyor.ui.hud_widgets import HudFactory
 
@@ -151,10 +152,3 @@ class HistoryProgressbar(QWidget):
             f"{total_system_count} "
             f"({progress_percent}%)"
         )
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    progress_window = HistoryProgressbar()
-    progress_window.show()
-    sys.exit(app.exec())

@@ -7,7 +7,6 @@ from caspian_surveyor.cs_data_structures import (
     FullStarSystemPayload, CelestialBody, SystemInfo, BodyParentInfo, BodyMaterialInfo,
     BodySignalInfo, BodyGenusInfo, ExoBioScanInfo, SystemSummaryInfo, BarycentreInfo
 )
-from caspian_surveyor.runtime.cs_runtime import load_current_system_record, write_current_system_record
 from caspian_surveyor.db.sql_statements import (
     GET_SYSTEM_INFO, GET_SYSTEM_BODIES, GET_SYSTEM_PARENTS,
     GET_SYSTEM_MATERIALS, GET_SYSTEM_PHYSORB, GET_SYSTEM_SIGNALS,
@@ -393,27 +392,3 @@ def execute_query_statement(connection: sqlite3.Connection, query_statement: str
     except sqlite3.Error as e:
         print(f"Database query failed: {e}")
         raise
-
-
-if __name__ == '__main__':
-    connection = Connection()
-    adapter = ArchivedSystemQueries()
-    conn = connection.manager.establish_db_connection()
-    connection.manager.initialize_schema(conn)
-
-    original_payload = load_current_system_record()
-
-    if original_payload is None:
-        raise ValueError(
-            "Original system returned no payload."
-        )
-    system_address = original_payload.system.system_address
-    reconstructed_payload = adapter.get_archived_system_info(conn, system_address=38562352187)
-    if reconstructed_payload is None:
-        raise ValueError("Archived system reconstruction returned no payload.")
-
-    adapter._compare_fullstarsystem_payloads(original_payload, reconstructed_payload)
-    print("FullStarSystemPayload round-trip validation passed.")
-    write_current_system_record(reconstructed_payload)
-
-    connection.manager.close_db_connection(conn)

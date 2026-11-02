@@ -13,7 +13,7 @@ from caspian_surveyor.cs_data_structures import (
     SystemInfo,
     SystemSummaryInfo,
 )
-from caspian_surveyor.runtime.cs_runtime import system_record_encoder, write_current_system_record
+from caspian_surveyor.runtime.cs_runtime import system_record_encoder
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -779,9 +779,3 @@ class StateRecovery:
         """
         for event in events:
             survey_data_aggregator.process_journal_event(event)
-
-
-if __name__ == "__main__":
-    aggregator = SurveyDataAggregator()
-
-    print(aggregator.translate_scan_timestamp("2026-07-28T22:26:30Z"))

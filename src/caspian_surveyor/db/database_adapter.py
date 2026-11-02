@@ -105,11 +105,3 @@ class SqliteDataAdapter:
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
-
-
-if __name__ == "__main__":
-    # local testing only
-    adapter = SqliteDataAdapter()
-    conn = adapter.establish_db_connection()
-    adapter.initialize_schema(conn)
-    adapter.close_db_connection(conn)
