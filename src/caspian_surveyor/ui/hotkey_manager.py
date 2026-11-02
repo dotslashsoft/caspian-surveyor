@@ -1,5 +1,6 @@
 import keyboard
 
+
 class HotkeyManager:
     def __init__(self, bindings):
         self.bindings = bindings

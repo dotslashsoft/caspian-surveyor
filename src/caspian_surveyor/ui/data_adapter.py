@@ -1,7 +1,7 @@
 from caspian_surveyor.runtime.cs_runtime import load_current_system_record
 
-class OverlayAdapter:
 
+class OverlayAdapter:
     def __init__(self) -> None:
         self.full_system_data = load_current_system_record()
 

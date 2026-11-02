@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (
-    QFrame, QHBoxLayout, QWidget, QLabel, QVBoxLayout, 
-    QStackedWidget, QSizePolicy, 
-    QGraphicsDropShadowEffect, 
+    QFrame, QHBoxLayout, QWidget, QLabel, QVBoxLayout,
+    QStackedWidget, QSizePolicy,
+    QGraphicsDropShadowEffect,
 )
 from PySide6.QtGui import QColor
 from caspian_surveyor.ui.custom_color_picker import ConfigFileHandler
@@ -48,7 +48,7 @@ class MetricWidget(QWidget):
             default_value: The starting value to display. Defaults to "--".
             key_font_size: Font size in pixels for the key label. Defaults to 10.
             TODO: I wonder why I haven't implemented value_font_size
-        """    
+        """
         super().__init__()
         self.key_font_size = key_font_size
         self.key_label_font_color = key_label_font_color
@@ -96,14 +96,12 @@ class MetricWidget(QWidget):
 
     def set_label_shadow(self, label: QLabel) -> None:
         shadow = QGraphicsDropShadowEffect(label)
-
         shadow.setBlurRadius(2)
         shadow.setColor(QColor(0, 0, 0, 255))
         shadow.setXOffset(1)
         shadow.setYOffset(1)
 
         label.setGraphicsEffect(shadow)
-
 
     def set_value(self, value: str | int | float | None):
         """
@@ -112,7 +110,6 @@ class MetricWidget(QWidget):
         Args:
             value: The data to display. If None, displays default "--".
         """
-
         if value is None:
             self.val_label.setText("--")
         else:
@@ -125,7 +122,6 @@ class MetricWidget(QWidget):
         Args:
             value: The data to display. If None, displays default "--".
         """
-
         if value is None:
             self.key_label.setText("--")
         else:
@@ -133,11 +129,9 @@ class MetricWidget(QWidget):
 
 
 class HudFactory:
-
     def __init__(self) -> None:
         self.hud_panels = []
         self.panel_glow_effects = []
-
         self.overlay_config_path = ConfigFileHandler().OVERLAY_CONFIG
         self.load_overlay_config()
 
@@ -157,12 +151,10 @@ class HudFactory:
 
     def create_hud_page(self) -> tuple[QWidget, QHBoxLayout]:
         page = QWidget()
-
         page_layout = QVBoxLayout(page)
         page_layout.setContentsMargins(12, 6, 12, 6)
 
         panel = self._create_hud_panel()
-
         hud_layout = QHBoxLayout(panel)
         hud_layout.setContentsMargins(12, 6, 12, 6)
         hud_layout.setSpacing(6)
@@ -198,7 +190,7 @@ class HudFactory:
                 border-radius: 8px;
             }}
         """
-    
+
     def _create_hud_panel(self) -> QFrame:
         """
         Creates and styles a reusable HUD panel QFrame.
@@ -224,7 +216,6 @@ class HudFactory:
         panel.setGraphicsEffect(border_glow_effect)
 
         self.hud_panels.append(panel)
-
         self.panel_glow_effects.append(border_glow_effect)
 
         return panel

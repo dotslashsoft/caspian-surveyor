@@ -5,10 +5,12 @@ from PySide6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout, QProgr
 from PySide6.QtGui import QColor
 from caspian_surveyor.ui.hud_widgets import HudFactory
 
+
 class HistoryIngestionSignals(QObject):
     progress = Signal(int, int, int)
     finished = Signal()
     failed = Signal(str)
+
 
 class HistoryProgressbar(QWidget):
     def __init__(self):

@@ -8,10 +8,7 @@ from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidg
 logger = logging.getLogger(__name__)
 
 
-
-
 class BodyDisplayController:
-
     def __init__(self, hud_factory):
         self.hud_factory = hud_factory
 
@@ -20,7 +17,6 @@ class BodyDisplayController:
 
         self.body_page = self._build_body_page()
         self.legend_page = self._build_legend_page()
-
 
     def _build_body_summary_page(self):
         """
@@ -219,7 +215,7 @@ class BodyDisplayController:
 
         self.metric_body_class.set_value(body.body_planet_class)
         self.metric_body_landable.set_value(body.body_landable)
-        #  body = self.planetary_bodies[self.current_body_index]
+
         if body.body_signals:
             signal_text = "\n".join(f"{signal.body_signal_type_localised}: {signal.body_signal_count}" for signal in body.body_signals)
             self.metric_body_signals.set_value(signal_text)
@@ -261,7 +257,6 @@ class BodyDisplayController:
         Converts stored body values into user-friendly display units and updates
         the corresponding HUD metrics.
         """
-        # used for orbital body calculations
         EARTH_RADIUS_M = 6_371_000
         AU_M = 149_597_870_700
         SECONDS_PER_DAY = 86_400
@@ -312,7 +307,6 @@ class BodyDisplayController:
         else:
             self.metric_physorb_semi_major_axis.set_value("--")
 
-
     def _update_body_exobio_metrics(self, body):
         variant_statuses = {}
         self.metric_exobio_body_name.set_value(body.body_name)
@@ -330,7 +324,6 @@ class BodyDisplayController:
                 variant_statuses[variant_name] = scan_status
 
         self._update_exobio_metrics(variant_statuses)
-
 
     def update_body_display_metrics(self, body) -> None:
         """
