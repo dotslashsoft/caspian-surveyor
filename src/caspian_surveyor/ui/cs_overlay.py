@@ -1,6 +1,7 @@
 import logging
 import sys
 import caspian_surveyor
+from caspian_surveyor.ui.rebound_system_data import ReboundDataDisplay
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
 from caspian_surveyor.ui.hotkey_manager import HotkeyManager
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
@@ -35,6 +36,7 @@ class SystemInfoOverlay(QWidget):
     cycle_down = QtCore.Signal()
     toggle_legend = QtCore.Signal()
     color_picker = QtCore.Signal()
+    rebound_display = QtCore.Signal()
 
     def __init__(self):
         """
@@ -51,6 +53,7 @@ class SystemInfoOverlay(QWidget):
         self.hud_factory = HudFactory()
         self.body_display = BodyDisplayController(self.hud_factory)
         self.overlay_adapter = OverlayAdapter()
+        self.rebound_data = ReboundDataDisplay()
         super().__init__()
 
         self._connect_signals()
@@ -340,6 +343,7 @@ class SystemInfoOverlay(QWidget):
         self.cycle_up.connect(self.cycle_display_up)
         self.toggle_legend.connect(self.toggle_physical_orbital_legend)
         self.color_picker.connect(self.toggle_color_picker)
+        self.rebound_display.connect(self.toggle_rebound_display)
 
 
     def _register_hotkeys(self):
@@ -359,6 +363,7 @@ class SystemInfoOverlay(QWidget):
             "ctrl+alt+up": self.cycle_up.emit,
             "ctrl+alt+]": self.toggle_legend.emit,
             "ctrl+shift+*": self.color_picker.emit,
+            "ctrl+shift+r": self.rebound_display.emit
         })
 
         self.hotkey_manager.register_hotkeys()
@@ -404,6 +409,12 @@ class SystemInfoOverlay(QWidget):
     def toggle_color_picker(self) -> None:
         if self.custom_color_picker.run_config_workflow():
             self.refresh_overlay_colors()
+
+    def toggle_rebound_display(self) -> None:
+        if self.rebound_data.isVisible():
+            self.rebound_data.hide()
+        else:
+            self.rebound_data.show()
 
     def refresh_overlay_colors(self) -> None:
         self.hud_factory.load_overlay_config()
