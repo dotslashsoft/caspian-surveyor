@@ -1,8 +1,8 @@
 import json
 import caspian_surveyor.cs_data_structures as cs_data_structures
 from caspian_surveyor.bootstrap.cs_baseline_config import (
-    RUNTIME_DIRECTORY, 
-    CURRENT_SYSTEM_FILE, 
+    RUNTIME_DIRECTORY,
+    CURRENT_SYSTEM_FILE,
     TEMP_SYSTEM_FILE
 )
 import logging
@@ -10,15 +10,12 @@ from dataclasses import asdict
 
 logger = logging.getLogger(__name__)
 
-##############################
 
 def system_record_encoder(system_record: cs_data_structures.FullStarSystemPayload) -> dict:
     return asdict(system_record)
 
-
 def system_record_decoder(raw_data: dict) -> cs_data_structures.FullStarSystemPayload:
     return cs_data_structures.FullStarSystemPayload(**raw_data)
-
 
 def load_current_system_record() -> cs_data_structures.FullStarSystemPayload | None:
     """
@@ -47,7 +44,6 @@ def load_current_system_record() -> cs_data_structures.FullStarSystemPayload | N
         )
         return None
 
-
 def write_current_system_record(system_record: cs_data_structures.FullStarSystemPayload | None) -> bool:
     """
     Writes the current system record to the runtime directory.
@@ -64,8 +60,7 @@ def write_current_system_record(system_record: cs_data_structures.FullStarSystem
 
     Raises:
         OSError: If writing or replacing the runtime file fails.
-    """ 
-
+    """
     if system_record is None:
         return False
 

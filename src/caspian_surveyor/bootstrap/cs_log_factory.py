@@ -6,6 +6,7 @@ import sys
 
 logger = logging.getLogger(__name__)
 
+
 class LogManager:
     """
     Configures application logging for Caspian Surveyor.
@@ -13,14 +14,7 @@ class LogManager:
     Creates the logging directory, generates a timestamped log filename,
     and applies the default logging configuration.
     """
-
-    ###
     DEFAULT_LOG_LEVEL = logging.DEBUG
-    """
-    default log level.
-
-    TODO: change from static to user facing setting. Even though DEBUG is BEST LOGGING.
-    """
 
     def __init__(self, log_dir=LOG_DIRECTORY) -> None:
         """
@@ -32,7 +26,7 @@ class LogManager:
         Args:
             log_dir: Directory in which Caspian Surveyor log files are stored.
                 Defaults to DEFAULT_LOG_DIR.
-        """     
+        """
         self.log_dir = Path(log_dir)
         self.program_name = Path(sys.argv[0]).stem
         self.datetimestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -45,7 +39,7 @@ class LogManager:
         Applies Caspian Surveyor's default file-logging configuration.
 
         Configures the log file path, log level, file mode, and message format.
-        """        
+        """
         logging.basicConfig(
             filename=self.full_log_path,
             filemode="a",
