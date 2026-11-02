@@ -13,28 +13,23 @@ logger = logging.getLogger(__name__)
 
 
 class SqliteDataAdapter:
-
     def __init__(self) -> None:
         self.database_schema = DATABASE_SCHEMA
         self.database_file = DATABASE_FILE
         self.archived_system_queries = ArchivedSystemQueries()
-
 
     def establish_db_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.database_file)
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
-
     def initialize_schema(self, connection: sqlite3.Connection) -> None:
         with self.database_schema.open("r", encoding="utf-8") as file:
             schema = file.read()
         connection.executescript(schema)
 
-
     def close_db_connection(self, connection) -> None:
         connection.close()
-
 
     def _persist_body_child_records(self, cursor, records, database_body_id, sql_statement) -> None:
         if records is None:
@@ -45,7 +40,6 @@ class SqliteDataAdapter:
             record_dict["database_body_id"] = database_body_id
 
             cursor.execute(sql_statement, record_dict)
-
 
     def persist_current_system_record(self, connection, full_system_data: FullStarSystemPayload) -> None:
         cursor = connection.cursor()
@@ -63,7 +57,7 @@ class SqliteDataAdapter:
                 system_dict["position_x"] = position[0]
                 system_dict["position_y"] = position[1]
                 system_dict["position_z"] = position[2]
-                
+
                 system_dict["system_fss_complete"] = int(
                     full_system_data.summary.system_fss_complete
                 )
@@ -108,11 +102,9 @@ class SqliteDataAdapter:
 
                     cursor.execute(BARYCENTER_UPSERT_SQL, barycentre_dict)
 
-
         except sqlite3.Error as e:
             print(f"Transaction failed! Database changes rolled back automatically: {e}")
             raise
-
 
 
 if __name__ == "__main__":

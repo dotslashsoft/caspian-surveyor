@@ -28,7 +28,6 @@ class ArchivedSystemQueries:
     """
     Class containing methods to retrieve previously archived Caspian system state.
     """
-
     def get_system_id(self, cursor: sqlite3.Cursor, system_address: int) -> int | None:
         cursor.execute(
             """
@@ -43,7 +42,6 @@ class ArchivedSystemQueries:
         if result is None:
             return None
         return result[0]
-
 
     def _query_system_body_counts(self, connection: sqlite3.Connection, database_system_id: int) -> sqlite3.Row | None:
         cursor = connection.cursor()
@@ -72,7 +70,6 @@ class ArchivedSystemQueries:
 
         return results
 
-
     def _construct_archived_system(self, system_row: sqlite3.Row) -> SystemInfo:
         return SystemInfo(
             system_name=system_row["system_name"],
@@ -84,7 +81,6 @@ class ArchivedSystemQueries:
             ],
             system_body_count=system_row["system_body_count"],
         )
-
 
     def _construct_archived_bodies(self, bodies):
         bodies.sort(key=lambda body: body["database_body_id"])
@@ -122,7 +118,6 @@ class ArchivedSystemQueries:
 
         return bodies_by_database_id, bodies_by_elite_id
 
-
     def _construct_archived_body_parents(self, parents, bodies_by_database_id):
         parents.sort(key=lambda parent: (parent[0], parent[1]))
         for parent in parents:
@@ -131,7 +126,6 @@ class ArchivedSystemQueries:
             parent_obj = BodyParentInfo(parent_type=parent[3], parent_body_id=parent[2])
 
             bodies_by_database_id[database_body_id].body_parents.append(parent_obj)
-
 
     def _construct_archived_body_materials(self, materials, bodies_by_database_id):
         materials.sort(key=lambda material: material[0])
@@ -146,7 +140,6 @@ class ArchivedSystemQueries:
                 body.body_materials = []
 
             body.body_materials.append(material_obj)
-
 
     def _construct_archived_body_physorb(self, body_physorb, bodies_by_database_id):
 
@@ -175,7 +168,6 @@ class ArchivedSystemQueries:
             for field_name, value in physorb_obj_dict.items():
                 setattr(body, field_name, value)
 
-
     def _construct_archived_body_signals(self, signals, bodies_by_database_id):
         signals.sort(key=lambda signal: signal[0])
         for signal in signals:
@@ -190,7 +182,6 @@ class ArchivedSystemQueries:
 
             body.body_signals.append(signal_obj)
 
-
     def _construct_archived_body_genuses(self, genuses, bodies_by_database_id):
         genuses.sort(key=lambda genus: genus[0])
         for genus in genuses:
@@ -204,7 +195,6 @@ class ArchivedSystemQueries:
                 body.body_genuses = []
 
             body.body_genuses.append(genus_obj)
-
 
     def _construct_archived_body_exobio(self, exobio_scans, bodies_by_database_id):
         exobio_scans.sort(key=lambda exobio: exobio[1])
@@ -231,7 +221,6 @@ class ArchivedSystemQueries:
 
             body.exobio_scans.append(exobio_obj)
 
-
     def _construct_system_summary_info(self, bodies_by_elite_id) -> SystemSummaryInfo:
         system_summary = SystemSummaryInfo(
             system_scan_record_count=len(bodies_by_elite_id),
@@ -247,7 +236,6 @@ class ArchivedSystemQueries:
             system_earthlike_world_count=0,
             system_ammonia_world_count=0,
         )
-
 
         for body in bodies_by_elite_id.values():
             if body.body_materials:
@@ -292,7 +280,6 @@ class ArchivedSystemQueries:
 
         return system_summary
 
-
     def _construct_archived_barycentres(self, barycentres, system_address):
         barycentres_dict = {}
 
@@ -322,7 +309,6 @@ class ArchivedSystemQueries:
 
         return barycentres_dict
 
-
     def get_archived_system_info(self, connection: sqlite3.Connection, system_address: int):
         cursor = connection.cursor()
 
@@ -344,7 +330,7 @@ class ArchivedSystemQueries:
         exobio = self._query_archive_fetchall(cursor, GET_SYSTEM_EXOBIO, (database_system_id,))
 
         system_info = self._construct_archived_system(system)
-        
+
         bodies_by_database_id, bodies_by_elite_id = (
             self._construct_archived_bodies(bodies)
         )
@@ -374,7 +360,6 @@ class ArchivedSystemQueries:
             barycentres=barycentres_info
         )
 
-
     def _compare_fullstarsystem_payloads(self, original: FullStarSystemPayload, reconstructed: FullStarSystemPayload):
         original_normalized = json.loads(json.dumps(asdict(original)))
         reconstructed_normalized = json.loads(json.dumps(asdict(reconstructed)))
@@ -390,16 +375,13 @@ class ArchivedSystemQueries:
                 "FullStarSystemPayload round-trip validation failed."
             )
 
-
     def _query_archive_fetchone(self, cursor: sqlite3.Cursor, sql_statement: str, parameters: tuple = ()) -> sqlite3.Row:
         cursor.execute(sql_statement, parameters)
         return cursor.fetchone()
 
-
     def _query_archive_fetchall(self, cursor: sqlite3.Cursor, sql_statement: str, parameters: tuple = ()) -> list[sqlite3.Row]:
         cursor.execute(sql_statement, parameters)
         return cursor.fetchall()
-
 
 
 def execute_query_statement(connection: sqlite3.Connection, query_statement: str) -> list[sqlite3.Row]:
@@ -413,7 +395,6 @@ def execute_query_statement(connection: sqlite3.Connection, query_statement: str
         raise
 
 
-
 if __name__ == '__main__':
     connection = Connection()
     adapter = ArchivedSystemQueries()
@@ -421,7 +402,6 @@ if __name__ == '__main__':
     connection.manager.initialize_schema(conn)
 
     original_payload = load_current_system_record()
-    
 
     if original_payload is None:
         raise ValueError(

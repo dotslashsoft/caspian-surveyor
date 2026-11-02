@@ -1,9 +1,4 @@
-# ------------------------------------
-#
-#       SQL INSERTS/UPSERTS
-#
-# ------------------------------------
-
+# SQL INSERTS/UPSERTS
 SYSTEM_INSERT_SQL = """
 INSERT INTO systems (
     system_name,
@@ -170,7 +165,6 @@ DO UPDATE SET
 RETURNING database_body_id;
 """
 
-
 BARYCENTER_UPSERT_SQL = """
 INSERT INTO barycentres (
     database_system_id,
@@ -232,7 +226,6 @@ DO UPDATE SET
     )
 """
 
-
 BODY_PARENTS_UPSERT_SQL = """
 INSERT INTO body_parents (
     database_body_id,
@@ -247,7 +240,7 @@ VALUES (
     :parent_type
 )
 ON CONFLICT (
-    database_body_id, 
+    database_body_id,
     parent_order
 )
 DO UPDATE SET
@@ -445,21 +438,14 @@ ON CONFLICT (
 DO NOTHING
 """
 
-
-
-# ------------------------------------
-#
-#       SQL Query Templates
-#
-# ------------------------------------
-
+# SQL Query Templates
 GET_MOST_RECENT_BODY = """
 SELECT max(database_body_id)
 FROM bodies
 """
 
 GET_NEXT_BODY_ID = """
-SELECT max(database_body_id) + 1 
+SELECT max(database_body_id) + 1
 FROM bodies
 """
 
@@ -510,13 +496,7 @@ SELECT *
 FROM systems
 """
 
-
-# ------------------------------------
-#
-#    System Reconstruction Queries
-#
-# ------------------------------------
-
+# System Reconstruction Queries
 GET_SYSTEM_INFO = """
 SELECT *
 FROM systems
@@ -535,11 +515,10 @@ FROM barycentres
 WHERE database_system_id = ?
 """
 
-
 GET_SYSTEM_PARENTS = """
 SELECT body_parents.*
 FROM body_parents
-JOIN bodies 
+JOIN bodies
     ON body_parents.database_body_id = bodies.database_body_id
 WHERE bodies.database_system_id = ?
 """
@@ -547,7 +526,7 @@ WHERE bodies.database_system_id = ?
 GET_SYSTEM_MATERIALS = """
 SELECT body_materials.*
 FROM body_materials
-JOIN bodies 
+JOIN bodies
     ON body_materials.database_body_id = bodies.database_body_id
 WHERE bodies.database_system_id = ?
 """
@@ -555,7 +534,7 @@ WHERE bodies.database_system_id = ?
 GET_SYSTEM_PHYSORB = """
 SELECT body_physical_orbital_properties.*
 FROM body_physical_orbital_properties
-JOIN bodies 
+JOIN bodies
     ON body_physical_orbital_properties.database_body_id = bodies.database_body_id
 WHERE bodies.database_system_id = ?
 """
@@ -563,14 +542,14 @@ WHERE bodies.database_system_id = ?
 GET_SYSTEM_SIGNALS = """
 SELECT body_signals.*
 FROM body_signals
-JOIN bodies 
+JOIN bodies
     ON body_signals.database_body_id = bodies.database_body_id
 WHERE bodies.database_system_id = ?
 """
 
 GET_SYSTEM_GENUSES = """SELECT body_detected_genuses.*
 FROM body_detected_genuses
-JOIN bodies 
+JOIN bodies
     ON body_detected_genuses.database_body_id = bodies.database_body_id
 WHERE bodies.database_system_id = ?
 """
@@ -578,7 +557,7 @@ WHERE bodies.database_system_id = ?
 GET_SYSTEM_EXOBIO = """
 SELECT body_exobio_scans.*
 FROM body_exobio_scans
-JOIN bodies 
+JOIN bodies
     ON body_exobio_scans.database_body_id = bodies.database_body_id
 WHERE bodies.database_system_id = ?
 """
