@@ -46,7 +46,7 @@ class SystemInfoOverlay(QWidget):
         """
         self.caspian_panel = []
         self.surveyor_panel = []
-        
+
         self.custom_color_picker = custom_color_picker.Workflow()
         self.overlay_config_path = custom_color_picker.ConfigFileHandler().OVERLAY_CONFIG
         self.hud_factory = HudFactory()
@@ -72,7 +72,7 @@ class SystemInfoOverlay(QWidget):
         When the layout requests additional or reduced space, resizes the
         overlay to its current size hint. The resulting resize is handled by
         resizeEvent(), which repositions the overlay.
-        """    
+        """
         result = super().event(event)
 
         if event.type() == QEvent.Type.LayoutRequest:
@@ -131,7 +131,7 @@ class SystemInfoOverlay(QWidget):
         self.metric_system_hmc_count.set_value(ui_data.summary.system_hmc_count)
         self.metric_system_landable_count.set_value(ui_data.summary.system_landable_body_count)
 
-        
+
     def _load_initial_data(self):
         """
         Loads the initial survey data used to populate the overlay.
@@ -158,7 +158,7 @@ class SystemInfoOverlay(QWidget):
         and visually translucent.
 
         Called once during SystemInfoOverlay initialization.
-        """    
+        """
         self.setWindowFlags(
             Qt.WindowType.WindowStaysOnTopHint
             | Qt.WindowType.FramelessWindowHint
@@ -219,7 +219,7 @@ class SystemInfoOverlay(QWidget):
         Returns:
             The completed system-page QWidget, or None if no initial
             system data is available.
-        """   
+        """
         page, hud_layout = self.hud_factory.create_hud_page()
 
         title_widget = self._create_title_widget()
@@ -270,7 +270,7 @@ class SystemInfoOverlay(QWidget):
                 letter-spacing: 2px;
             }}
         """
-    
+
     def get_surveyor_title_style(self) -> str:
         surveyor_color = self.hud_factory.key_label_color
         return f"""
@@ -299,7 +299,7 @@ class SystemInfoOverlay(QWidget):
 
         Returns:
             The completed title QWidget.
-        """    
+        """
         title_widget = QWidget()
 
         title_widget.setSizePolicy(
@@ -320,7 +320,7 @@ class SystemInfoOverlay(QWidget):
         app_sub.setObjectName("SurveyorPanel")
         app_sub.setStyleSheet(self.get_surveyor_title_style())
         self.surveyor_panel.append(app_sub)
-        
+
         layout.addWidget(app_title)
         layout.addWidget(app_sub)
         return title_widget
@@ -381,7 +381,7 @@ class SystemInfoOverlay(QWidget):
         Toggles the visibility of the Caspian Surveyor overlay.
 
         Hides the overlay if it is currently visible; otherwise shows it.
-        """   
+        """
         if self.isVisible():
             self.hide()
         else:
@@ -418,7 +418,7 @@ class SystemInfoOverlay(QWidget):
         self.hud_factory.refresh_panel_colors()
         self.hud_factory.refresh_panel_glow_colors()
         self.refresh_title_label_style()
-        
+
 
     def exit_overlay(self) -> None:
         """
@@ -457,7 +457,7 @@ class SystemInfoOverlay(QWidget):
         display stack to the body page, and refreshes the displayed body data.
 
         Does nothing if no planetary bodies are available.
-        """ 
+        """
         if not self.planetary_bodies:
             return
 
@@ -483,7 +483,7 @@ class SystemInfoOverlay(QWidget):
         the resulting page.
 
         Does nothing if no planetary bodies are available.
-        """      
+        """
         if not self.planetary_bodies:
             return
 
@@ -502,7 +502,7 @@ class SystemInfoOverlay(QWidget):
         the resulting page.
 
         Does nothing if no planetary bodies are available.
-        """   
+        """
         if not self.planetary_bodies:
             return
 
@@ -517,7 +517,7 @@ class SystemInfoOverlay(QWidget):
     def display_system_summary(self) -> None:
         """
         Changes the primary display to the system-summary page.
-        """ 
+        """
         self.display_stack.setCurrentIndex(0)
         self.resize_overlay_to_current_page()
 
@@ -578,6 +578,6 @@ if __name__ == "__main__":
     font_family = load_application_font()
     app.setFont(QFont(font_family))
     overlay = SystemInfoOverlay()
-    overlay.show()  
+    overlay.show()
     overlay.position_top_center()
     sys.exit(app.exec())
