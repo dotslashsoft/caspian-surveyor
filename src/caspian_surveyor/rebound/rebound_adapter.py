@@ -206,9 +206,7 @@ class ReboundAdapter:
             )
 
         for child_id in physical_child_ids:
-
             if child_id in resolved_physical_subsystems:
-
                 added_body_ids = self._incorporate_physical_subsystem(
                     child_id,
                     resolved_physical_subsystems,
@@ -218,7 +216,6 @@ class ReboundAdapter:
                 incorporated_body_ids.extend(added_body_ids)
 
         for barycentre_id in barycentre_child_ids:
-
             added_body_ids = self._incorporate_barycentric_subsystem(
                 system_data,
                 barycentre_id,
@@ -259,7 +256,6 @@ class ReboundAdapter:
 
         # construct the direct physical children
         if len(child_ids) == 2 and len(physical_child_ids) == 2:
-
             first_id, second_id = physical_child_ids
 
             first_body = system_data[first_id]
@@ -313,11 +309,11 @@ class ReboundAdapter:
                         else temp_sim.particles[0]
                     ),
                 )
-                # establish the binary COM for subsequent bodies
-                if is_binary_companion:
+
+                if is_binary_companion: # establish the binary COM for subsequent bodies
                     binary_primary = self._get_binary_primary(temp_sim, primary_body, child_body)
-        # incorporate previously constructed physical subsystems
-        for child_id in physical_child_ids:
+
+        for child_id in physical_child_ids: # incorporate previously constructed physical subsystems
             if child_id in resolved_physical_subsystems:
                 added_body_ids = self._incorporate_physical_subsystem(
                     child_id,
@@ -326,8 +322,8 @@ class ReboundAdapter:
                 )
 
                 incorporated_body_ids.extend(added_body_ids)
-        # detect candidate physical binary pairs
-        candidate_binary_pairs = []
+
+        candidate_binary_pairs = [] # detect candidate physical binary pairs
 
         for index, first_id in enumerate(physical_child_ids):
             self._detect_candidate_physical_binaries(
@@ -339,8 +335,7 @@ class ReboundAdapter:
                 index
             )
 
-        # incorporate previously constructed barycentric subsystems
-        for barycentre_id in barycentre_child_ids:
+        for barycentre_id in barycentre_child_ids: # incorporate previously constructed barycentric subsystems
             barycentre_data = system_data[barycentre_id]
             matching_physical_ids = []
 
@@ -893,7 +888,6 @@ class ReboundAdapter:
             incorporated_body_ids.append(body_id)
 
         return incorporated_body_ids
-
 
     def _add_primary_physical_body(self, primary_physical_body, temp_sim):
         temp_sim.add(

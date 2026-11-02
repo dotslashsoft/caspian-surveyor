@@ -285,7 +285,6 @@ class CaspianDataHandler:
 
         return prepared_system
 
-
     def prepare_system_data(
             self,
             system_address: int,
