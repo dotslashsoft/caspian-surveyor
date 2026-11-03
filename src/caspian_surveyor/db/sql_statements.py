@@ -561,3 +561,11 @@ JOIN bodies
     ON body_exobio_scans.database_body_id = bodies.database_body_id
 WHERE bodies.database_system_id = ?
 """
+
+# rebound specific queries
+FIND_SYSTEM_ADDRESS = """
+SELECT system_address
+FROM systems
+WHERE system_name = ? COLLATE NOCASE
+LIMIT 1;
+"""

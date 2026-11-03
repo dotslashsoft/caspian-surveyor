@@ -1,4 +1,7 @@
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
+import logging
+
+logger = logging.getLogger(__name__)
 
 class WorkerSignals(QObject):
     finished = Signal(object)

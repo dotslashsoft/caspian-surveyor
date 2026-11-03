@@ -118,6 +118,11 @@ class CaspianDataHandler:
             if body_obj.body_semi_major_axis is not None:
                 semi_major_axis = body_obj.body_semi_major_axis / AU_IN_METERS
 
+            radius = None
+
+            if body_obj.body_radius is not None:
+                radius = body_obj.body_radius / AU_IN_METERS
+
 
             periapsis = self._convert_to_radians(body_obj.body_periapsis)
             orbital_inclination = self._convert_to_radians(body_obj.body_orbital_inclination)
@@ -137,6 +142,7 @@ class CaspianDataHandler:
                 "star_type": body_obj.body_star_type,
                 "scan_timestamp": body_obj.body_scan_timestamp,
                 "name": body_obj.body_name,
+                "radius": radius,
                 "ancestors": parents_list,
                 "descendants": [],
                 "immediate_parent": immediate_parent,

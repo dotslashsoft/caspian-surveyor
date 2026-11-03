@@ -1,6 +1,7 @@
 import logging
 import sys
 import caspian_surveyor
+from caspian_surveyor.bootstrap.cs_log_factory import LogManager
 from caspian_surveyor.ui.rebound_system_data import ReboundDataDisplay
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
 from caspian_surveyor.ui.hotkey_manager import HotkeyManager
@@ -27,6 +28,7 @@ class SystemInfoOverlay(QWidget):
     handles overlay navigation and hotkeys, and manages visibility and
     positioning.
     """
+
     toggle_requested = QtCore.Signal()
     exit_requested = QtCore.Signal()
     cycle_next = QtCore.Signal()
@@ -582,7 +584,12 @@ def load_application_font() -> str:
     return font_families[0]
 
 if __name__ == "__main__":
-    logger.debug("Launching caspian surveyor HUD.")
+    log_manager = LogManager()
+    log_manager.set_log_config()
+
+    print("Log file:", log_manager.full_log_path)
+    print("Root handlers:", logging.getLogger().handlers)
+
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     font_family = load_application_font()

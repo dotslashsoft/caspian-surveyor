@@ -1,10 +1,9 @@
 import rebound
 import logging
-from pprint import pprint
 from caspian_surveyor.rebound.caspian_to_rebound_data_prep import CaspianDataHandler
+from caspian_surveyor.rebound.rebound_simulation_result import ReboundSimulationResult
 from typing import Any
 import math
-import webbrowser
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,6 @@ class ReboundAdapter:
             "eccentricity": 1e-6,
             "orbital_inclination": 1e-6,
             "ascending_node": 1e-6,
-            "mean_anomaly": 1e-4,
         }
 
     def get_system_data(
@@ -948,8 +946,18 @@ class ReboundAdapter:
 
         for body_data in root_particles.values():
 
+            body_id = body_data["id"]
+            radius = system_data[body_id]["radius"]
+
+            if radius is None or radius <= 0:
+                raise ValueError(
+                    f"Missing or invalid physical radius for "
+                    f"body {body_id}: {body_data['name']}"
+                )
+
             self.sim.add(
                 m=body_data["mass"],
+                r=radius,
                 name=body_data["name"],
                 x=body_data["x"],
                 y=body_data["y"],
@@ -960,11 +968,13 @@ class ReboundAdapter:
             )
 
         self.sim.move_to_com()
-        self.sim.integrator = "whfast"
+        self.sim.integrator = "ias15"
+        self.sim.collision = "direct"
+        self.sim.collision_resolve = "halt"
 
         return self.sim
 
-    def prepare_system_simulation(self, system_address, sim_years):
+    def prepare_system_simulation(self, system_address, sim_years) -> ReboundSimulationResult:
         system_data = self.get_system_data(system_address)
 
         physical_subsystems, barycentre_subsystems = (
@@ -989,21 +999,35 @@ class ReboundAdapter:
             resolved_physical_subsystems
         )
 
-        sim_url = "http://127.0.0.1:1234"
-
-        simulation.start_server(port=1234)
+        initial_energy = simulation.energy()
 
         try:
-            webbrowser.open(sim_url)
-            simulation.integrate(sim_years)
+            simulation.integrate(float(sim_years))
 
+        except rebound.Collision:
+            logger.warning(
+                "Collision detected in system %s at T=%.9f years",
+                system_address,
+                simulation.t
+            )
+            raise
 
-        except KeyboardInterrupt:
-            print("\nSimulation stopped.")
+        final_energy = simulation.energy()
 
-        finally:
-            simulation.stop_server()
+        relative_energy_drift = (
+            abs(final_energy - initial_energy) / abs(initial_energy)
+            if initial_energy != 0
+            else None
+        )
 
+        return ReboundSimulationResult(
+            system_address=system_address,
+            simulation_years=simulation.t,
+            physical_body_count=simulation.N,
+            initial_energy=initial_energy,
+            final_energy=final_energy,
+            relative_energy_drift=relative_energy_drift
+        )
 
 if __name__ == '__main__':
     adapter = ReboundAdapter()
@@ -1030,25 +1054,29 @@ if __name__ == '__main__':
         resolved_barycentre_subsystems,
         resolved_physical_subsystems
     )
+    print("Logger name:", logger.name)
+    print("Logger level:", logger.getEffectiveLevel())
+    print("Logger handlers:", logger.handlers)
+    print("Root handlers:", logging.getLogger().handlers)
+    print("Logger propagation:", logger.propagate)
 
+    # target_time = 10
 
-    target_time = 1000
+    # # very very minimal setup and sim, configuration wise.
+    # simulation.start_server(port=1234)
 
-    # very very minimal setup and sim, configuration wise.
-    simulation.start_server(port=1234)
+    # # Value is MICROSECONDS.
+    # # simulation.usleep = 1
 
-    # Value is MICROSECONDS.
-    # simulation.usleep = 1
+    # print("Simulation running for 1000 years.")
+    # print("Open http://127.0.0.1:1234")
+    # print("CTRL+C to stop.")
 
-    print("Simulation running for 1000 years.")
-    print("Open http://127.0.0.1:1234")
-    print("CTRL+C to stop.")
+    # try:
+    #     simulation.integrate(float("inf"))
 
-    try:
-        simulation.integrate(float("inf"))
+    # except KeyboardInterrupt:
+    #     print("\nSimulation stopped.")
 
-    except KeyboardInterrupt:
-        print("\nSimulation stopped.")
-
-    finally:
-        simulation.stop_server()
+    # finally:
+    #     simulation.stop_server()

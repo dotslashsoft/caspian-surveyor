@@ -1,6 +1,6 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import (
-    QLabel, QWidget, QVBoxLayout, QApplication,
+    QLabel, QLayout, QWidget, QVBoxLayout, QApplication,
     QFrame, QLabel, QHBoxLayout, QPushButton,
     QLineEdit, QGridLayout
 )
@@ -9,9 +9,14 @@ from caspian_surveyor.ui.caspian_theme import load_application_font
 from caspian_surveyor.ui.hud_widgets import HudFactory
 from caspian_surveyor.rebound.caspian_to_rebound_data_prep import CaspianDataHandler
 from caspian_surveyor.rebound.rebound_adapter import ReboundAdapter
+from caspian_surveyor.rebound.rebound_simulation_result import ReboundSimulationResult
 from caspian_surveyor.utils.qtthreads import run_in_background
 import time
 import sys
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ReboundDataDisplay(QWidget):
@@ -42,6 +47,22 @@ class ReboundDataDisplay(QWidget):
         return title_area
 
     def create_layout(self):
+        self.simulation_results_widget = QWidget()
+
+        results_layout = QVBoxLayout(self.simulation_results_widget)
+
+        results_layout.addWidget(QLabel("SIMULATION RESULTS"))
+        results_layout.addLayout(self.create_simulation_results_layout())
+
+        self.simulation_results_widget.hide()
+
+        # Add results INSIDE the existing HUD panel
+        panel_layout = self.panel.layout()
+        assert panel_layout is not None
+
+        panel_layout.addWidget(self.simulation_results_widget)
+
+        # Outer layout contains ONLY the HUD panel
         window_layout = QVBoxLayout()
         window_layout.setContentsMargins(5, 5, 5, 5)
         window_layout.addWidget(self.panel)
@@ -147,6 +168,36 @@ class ReboundDataDisplay(QWidget):
         metrics_layout.setColumnStretch(2, 1)
         return metrics_layout
 
+    def create_simulation_results_layout(self):
+        vertical_separator = self.create_vertical_separator()
+
+        results_layout = QGridLayout()
+        results_layout.setContentsMargins(5, 10, 10, 5)
+        results_layout.setVerticalSpacing(12)
+        results_layout.setHorizontalSpacing(15)
+
+        results_layout.addWidget(QLabel("Duration:"), 0, 0)
+        results_layout.addWidget(self.sim_duration_value, 0, 2)
+
+        results_layout.addWidget(QLabel("Physical Bodies:"), 1, 0)
+        results_layout.addWidget(self.sim_body_count_value, 1, 2)
+
+        results_layout.addWidget(QLabel("Initial Energy:"), 2, 0)
+        results_layout.addWidget(self.sim_initial_energy_value, 2, 2)
+
+        results_layout.addWidget(QLabel("Final Energy:"), 3, 0)
+        results_layout.addWidget(self.sim_final_energy_value, 3, 2)
+
+        results_layout.addWidget(QLabel("Relative Energy Drift:"), 4, 0)
+        results_layout.addWidget(self.sim_energy_drift_value, 4, 2)
+
+        results_layout.addWidget(vertical_separator, 0, 1, 5, 1)
+
+        results_layout.setColumnStretch(0, 1)
+        results_layout.setColumnStretch(2, 1)
+
+        return results_layout
+
     def create_labels(self):
         self.title_label = QLabel("Caspian Surveyor // REBOUND")
         self.title_label.setStyleSheet(f"""
@@ -251,6 +302,12 @@ class ReboundDataDisplay(QWidget):
             font-weight: bold;
         """)
 
+        self.sim_duration_value = QLabel("--")
+        self.sim_body_count_value = QLabel("--")
+        self.sim_initial_energy_value = QLabel("--")
+        self.sim_final_energy_value = QLabel("--")
+        self.sim_energy_drift_value = QLabel("--")
+
     def connect_system_lookup_signals(self) -> None:
         self.submit_address.clicked.connect(self.fetch_system_info)
         self.system_address.textChanged.connect(
@@ -300,9 +357,36 @@ class ReboundDataDisplay(QWidget):
             on_complete=self.simulation_finished
         )
 
+    @Slot(object)
     def simulation_finished(self, result) -> None:
-        print("REBOUND simulation completed.")
-        print(f"Result: {result}")
+        if isinstance(result, Exception):
+            logger.info(f"REBOUND simulation failed: {result}")
+            return
+
+        self.sim_duration_value.setText(
+            f"{result.simulation_years:,.0f} years"
+        )
+
+        self.sim_body_count_value.setText(
+            str(result.physical_body_count)
+        )
+
+        self.sim_initial_energy_value.setText(
+            f"{result.initial_energy:.6f}"
+        )
+
+        self.sim_final_energy_value.setText(
+            f"{result.final_energy:.6f}"
+        )
+
+        if result.relative_energy_drift is not None:
+            self.sim_energy_drift_value.setText(
+                f"{result.relative_energy_drift:.6e}"
+            )
+        else:
+            self.sim_energy_drift_value.setText("N/A")
+
+        self.simulation_results_widget.show()
 
     def fetch_system_info(self) -> None:
         user_value = self.system_address.text().strip()
