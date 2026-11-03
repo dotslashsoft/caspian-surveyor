@@ -4,6 +4,7 @@ from pprint import pprint
 from caspian_surveyor.rebound.caspian_to_rebound_data_prep import CaspianDataHandler
 from typing import Any
 import math
+import webbrowser
 
 logger = logging.getLogger(__name__)
 
@@ -959,9 +960,49 @@ class ReboundAdapter:
             )
 
         self.sim.move_to_com()
-        self.sim.integrator = "ias15"
+        self.sim.integrator = "whfast"
 
         return self.sim
+
+    def prepare_system_simulation(self, system_address, sim_years):
+        system_data = self.get_system_data(system_address)
+
+        physical_subsystems, barycentre_subsystems = (
+            self._group_system_subsystems(system_data)
+        )
+
+        construction_order = self._get_subsystem_construction_order(
+            physical_subsystems,
+            barycentre_subsystems
+        )
+
+        resolved_barycentre_subsystems, resolved_physical_subsystems = (
+            self._process_construction_order(
+                system_data,
+                construction_order
+            )
+        )
+
+        simulation = self.initialize_simulation(
+            system_data,
+            resolved_barycentre_subsystems,
+            resolved_physical_subsystems
+        )
+
+        sim_url = "http://127.0.0.1:1234"
+
+        simulation.start_server(port=1234)
+
+        try:
+            webbrowser.open(sim_url)
+            simulation.integrate(sim_years)
+
+
+        except KeyboardInterrupt:
+            print("\nSimulation stopped.")
+
+        finally:
+            simulation.stop_server()
 
 
 if __name__ == '__main__':
@@ -990,14 +1031,17 @@ if __name__ == '__main__':
         resolved_physical_subsystems
     )
 
+
+    target_time = 1000
+
     # very very minimal setup and sim, configuration wise.
     simulation.start_server(port=1234)
 
     # Value is MICROSECONDS.
-    simulation.usleep = 2500
+    # simulation.usleep = 1
 
-    print("Simulation running indefinitely.")
-    print("Open http://localhost:1234")
+    print("Simulation running for 1000 years.")
+    print("Open http://127.0.0.1:1234")
     print("CTRL+C to stop.")
 
     try:

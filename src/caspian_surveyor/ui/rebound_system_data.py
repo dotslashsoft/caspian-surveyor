@@ -8,6 +8,7 @@ from PySide6.QtGui import QColor, QFont
 from caspian_surveyor.ui.caspian_theme import load_application_font
 from caspian_surveyor.ui.hud_widgets import HudFactory
 from caspian_surveyor.rebound.caspian_to_rebound_data_prep import CaspianDataHandler
+from caspian_surveyor.rebound.rebound_adapter import ReboundAdapter
 import sys
 
 
@@ -17,16 +18,16 @@ class ReboundDataDisplay(QWidget):
 
         self.hud_factory = HudFactory()
         self.data_handler = CaspianDataHandler()
+        self.adapter = ReboundAdapter()
         self.selected_system_payload = None
 
         self.panel = QFrame(self)
         self.panel.setObjectName("REBOUND")
 
-        self.mouseDoubleClickEvent
-
         self.configure_window()
         self.create_labels()
-        self.connect_signals()
+        self.connect_system_lookup_signals()
+        self.connect_rebound_simulation_signal()
         self.set_panel_layout()
         self.set_border_color()
 
@@ -49,6 +50,7 @@ class ReboundDataDisplay(QWidget):
         horizontal_separator = self.create_horizontal_separator()
         title_area = self.create_title_area()
         metrics_layout = self.create_metrics_layout()
+        run_simulation = self.create_run_sim_separator()
         enter_system_address = self.create_system_address_textbox()
 
         panel_layout = QVBoxLayout()
@@ -58,6 +60,7 @@ class ReboundDataDisplay(QWidget):
         panel_layout.addWidget(horizontal_separator)
         panel_layout.addStretch()
         panel_layout.addLayout(metrics_layout) # key value layout
+        panel_layout.addLayout(run_simulation)
         panel_layout.addLayout(enter_system_address) # enter system address
 
         self.panel.setLayout(panel_layout)
@@ -68,6 +71,23 @@ class ReboundDataDisplay(QWidget):
         enter_system_address.addWidget(self.system_address)
         enter_system_address.addWidget(self.submit_address)
         return enter_system_address
+
+    def create_run_sim_separator(self):
+        horizontal_separator = self.create_horizontal_separator()
+        run_sim_layout = self.create_run_simulation_layout()
+        run_sim_separator = QVBoxLayout()
+        run_sim_separator.addWidget(horizontal_separator)
+        run_sim_separator.addLayout(run_sim_layout)
+        return run_sim_separator
+
+    def create_run_simulation_layout(self):
+        run_sim_layout = QHBoxLayout()
+        run_sim_layout.setContentsMargins(0, 10, 0, 10)
+        run_sim_layout.addWidget(self.run_simulation_label)
+        run_sim_layout.addWidget(self.run_simulation_years)
+        run_sim_layout.addWidget(self.run_simulation_button)
+
+        return run_sim_layout
 
     def set_border_color(self):
         value_color = QColor(self.hud_factory.value_label_color)
@@ -208,8 +228,37 @@ class ReboundDataDisplay(QWidget):
             font-weight: bold;
         """)
 
-    def connect_signals(self) -> None:
+        self.run_simulation_label = QLabel("Specify years to simulate:")
+        self.run_simulation_label.setStyleSheet(f"""
+            color: {self.hud_factory.key_label_color};
+            font-size: 12px;
+            font-weight: bold;
+        """)
+
+        self.run_simulation_years = QLineEdit("100000")
+        self.run_simulation_years.setStyleSheet(f"""
+            color: {self.hud_factory.key_label_color};
+            font-size: 12px;
+            font-weight: bold;
+        """)
+
+        self.run_simulation_button = QPushButton("Run Simulation")
+        self.run_simulation_button.setStyleSheet(f"""
+            color: {self.hud_factory.value_label_color};
+            font-size: 10px;
+            font-weight: bold;
+        """)
+
+    def connect_system_lookup_signals(self) -> None:
         self.submit_address.clicked.connect(self.fetch_system_info)
+        self.system_address.textChanged.connect(
+            self.invalidate_selected_system
+        )
+
+    def connect_rebound_simulation_signal(self) -> None:
+        self.run_simulation_button.clicked.connect(
+            self.run_rebound_simulation
+        )
         self.system_address.textChanged.connect(
             self.invalidate_selected_system
         )
@@ -219,9 +268,33 @@ class ReboundDataDisplay(QWidget):
 
     def configure_window(self):
         self.setWindowTitle("Caspian Surveyor // REBOUND")
-        # self.setFixedWidth(750)
+        self.setFixedWidth(750)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+    def run_rebound_simulation(self) -> None:
+        sim_years = self.run_simulation_years.text().strip()
+
+        if not sim_years:
+            return
+
+        if not sim_years.isdecimal():
+            return
+
+        if int(sim_years) <= 0:
+            return
+
+        if self.selected_system_payload is None:
+            return
+
+        system_address = (
+            self.selected_system_payload.system.system_address
+        )
+
+        self.adapter.prepare_system_simulation(
+            system_address,
+            int(sim_years)
+        )
 
     def fetch_system_info(self) -> None:
         user_value = self.system_address.text().strip()
@@ -256,7 +329,6 @@ class ReboundDataDisplay(QWidget):
         else:
             super().mouseDoubleClickEvent(event)
 
-
     def toggle_window_mode(self) -> None:
         is_frameless = bool(
             self.windowFlags() & Qt.WindowType.FramelessWindowHint
@@ -266,8 +338,8 @@ class ReboundDataDisplay(QWidget):
             Qt.WindowType.FramelessWindowHint,
             not is_frameless
         )
-
         self.show()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
@@ -275,5 +347,4 @@ if __name__ == '__main__':
     app.setFont(QFont(font_family))
     rebound_widget = ReboundDataDisplay()
     rebound_widget.show()
-
     sys.exit(app.exec())
