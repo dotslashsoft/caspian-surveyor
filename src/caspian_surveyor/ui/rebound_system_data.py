@@ -9,6 +9,8 @@ from caspian_surveyor.ui.caspian_theme import load_application_font
 from caspian_surveyor.ui.hud_widgets import HudFactory
 from caspian_surveyor.rebound.caspian_to_rebound_data_prep import CaspianDataHandler
 from caspian_surveyor.rebound.rebound_adapter import ReboundAdapter
+from caspian_surveyor.utils.qtthreads import run_in_background
+import time
 import sys
 
 
@@ -291,10 +293,16 @@ class ReboundDataDisplay(QWidget):
             self.selected_system_payload.system.system_address
         )
 
-        self.adapter.prepare_system_simulation(
+        run_in_background(
+            self.adapter.prepare_system_simulation,
             system_address,
-            int(sim_years)
+            int(sim_years),
+            on_complete=self.simulation_finished
         )
+
+    def simulation_finished(self, result) -> None:
+        print("REBOUND simulation completed.")
+        print(f"Result: {result}")
 
     def fetch_system_info(self) -> None:
         user_value = self.system_address.text().strip()
