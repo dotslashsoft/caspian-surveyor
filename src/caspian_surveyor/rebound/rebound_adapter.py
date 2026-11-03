@@ -968,7 +968,7 @@ class ReboundAdapter:
             )
 
         self.sim.move_to_com()
-        self.sim.integrator = "ias15"
+        self.sim.integrator = "whfast"
         self.sim.collision = "direct"
         self.sim.collision_resolve = "halt"
 
