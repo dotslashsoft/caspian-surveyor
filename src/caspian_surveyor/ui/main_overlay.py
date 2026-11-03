@@ -5,8 +5,8 @@ from caspian_surveyor.ui.rebound_system_data import ReboundDataDisplay
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
 from caspian_surveyor.ui.hotkey_manager import HotkeyManager
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
-from caspian_surveyor.ui.body_builder import BodyDisplayController
-from caspian_surveyor.ui.data_adapter import OverlayAdapter
+from caspian_surveyor.ui.body_display_controller import BodyDisplayController
+from caspian_surveyor.ui.overlay_adapter import OverlayAdapter
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (

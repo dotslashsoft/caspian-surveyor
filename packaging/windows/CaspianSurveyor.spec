@@ -21,7 +21,7 @@ core_analysis = Analysis(
             "caspian_surveyor/assets",
         ),
     ],
-    hiddenimports=[],
+    hiddenimports=["librebound"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -32,7 +32,7 @@ core_analysis = Analysis(
 
 
 overlay_analysis = Analysis(
-    [str(SOURCE_DIRECTORY / "caspian_surveyor" / "ui" / "cs_overlay.py")],
+    [str(SOURCE_DIRECTORY / "caspian_surveyor" / "ui" / "main_overlay.py")],
     pathex=[str(SOURCE_DIRECTORY)],
     binaries=[],
     datas=[

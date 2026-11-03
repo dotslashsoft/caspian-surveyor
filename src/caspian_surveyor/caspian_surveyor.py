@@ -184,8 +184,8 @@ def main() -> None:
             overlay_path = Path(sys.executable).with_name("CaspianOverlay.exe")
             return subprocess.Popen([str(overlay_path)])
 
-        overlay_path = Path(__file__).parent / "ui" / "cs_overlay.py"
-        return subprocess.Popen([sys.executable, "-m", "caspian_surveyor.ui.cs_overlay"])
+        overlay_path = Path(__file__).parent / "ui" / "main_overlay.py"
+        return subprocess.Popen([sys.executable, "-m", "caspian_surveyor.ui.main_overlay"])
     overlay_process = launch_overlay()
 
     journal_reader = Journal.JournalReader(latest_journal, poll_interval=1.0)
