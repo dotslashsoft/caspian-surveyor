@@ -1,4 +1,4 @@
-## New Alpha Release Available: [Version 0.9.8.2](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.8.2)
+## New Alpha Release Available: [Version 0.9.9.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.9.0)
 
 Jump to: [Keyboard Shortcuts](#keyboard-shortcuts)
 
@@ -6,7 +6,7 @@ Jump to: [Keyboard Shortcuts](#keyboard-shortcuts)
 
 **An exploration companion for Elite Dangerous.**
 
-# IMPORTANT - FIRST TIME RUN INFO 
+# IMPORTANT - FIRST TIME RUN INFO
 As of version 0.9.8.0, Caspian Surveyor will read your available Elite Dangerous: Odyssey journal files on first launch to reconstruct your historical exploration data.
 
 For explorers with more than 2,000 systems visited since Odyssey, this process may take some time. During testing, approximately 2,000 systems were reconstructed in 8–10 seconds. For an explorer with 50,000 systems, the estimated processing time could reach 3.5 minutes, depending on system performance.
@@ -24,7 +24,7 @@ The project aims to improve the exploration experience for the Elite Dangerous c
 
 Development of Caspian Surveyor is active and ongoing.
 
-**Current Version:** 0.9.8.2
+**Current Version:** 0.9.9.0
 
 ## Screenshots
 
@@ -35,7 +35,7 @@ Development of Caspian Surveyor is active and ongoing.
 ### Planetary Body Information
 ![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-01.png)
 
-***BIOSIG panel cycling*** 
+***BIOSIG panel cycling***
 ![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-02.png)
 ![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-cycle-03.png)
 
@@ -51,7 +51,7 @@ Development of Caspian Surveyor is active and ongoing.
 ![Caspian Surveyor exobiology information panel](docs/images/0981_exobio-complete-scan.png)
 
 ### Color Picker Dialog
-***Dialog pop up*** 
+***Dialog pop up***
 ![Color picker dialog](docs/images/0981_colorpicker.png)
 
 ***After selecting new colors and clicking OK***
@@ -71,7 +71,7 @@ Development of Caspian Surveyor is active and ongoing.
 
 ## Installation
 
-1. Download `CaspianSurveyor-0.9.8.2-Setup.exe` from the GitHub Releases page.
+1. Download `CaspianSurveyor-0.9.9.0-Setup.exe` from the GitHub Releases page.
 
 2. Because the installer is currently unsigned, Microsoft Edge or another browser may warn that the file is not commonly downloaded. Keep the file **only if you downloaded it from the official Caspian Surveyor GitHub release page**.
 
@@ -100,6 +100,7 @@ Development of Caspian Surveyor is active and ongoing.
 
 - `Ctrl + Shift + M` - Toggle HUD visibility.
 - `Ctrl + Shift + E` - Exit Caspian Surveyor.
+- `Ctrl + Shift + R` - Toggle REBOUND panel.
 - `Ctrl + Alt + Right` - Navigate to the next planetary body.
 - `Ctrl + Alt + Left` - Navigate to the previous planetary body.
 - `Ctrl + Alt + Down` / `Ctrl + Alt + Up` - Toggle between planetary body orbital and physical data.
@@ -233,5 +234,5 @@ Caspian Surveyor is free software: you can redistribute it and/or modify it unde
 
 > **Note:** The roadmap is tentative and subject to change as development continues and feedback is received. Changes to the roadmap will be reflected on GitHub.
 
-1. **REBOUND integration** - Orbital simulations for analyzing system stability and long-term orbital evolution. 
+1. **REBOUND integration** - Orbital simulations for analyzing system stability and long-term orbital evolution.
 2. **System priority calculations**
