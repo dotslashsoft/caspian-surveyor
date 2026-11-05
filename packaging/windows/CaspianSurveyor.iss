@@ -58,6 +58,8 @@ procedure reset_caspian_database_state();
 var
   db_file_path   : String;
   db_backup_path : String;
+  jsonl_file_path   : String;
+  jsonl_backup_path : String;
 begin
   if not Needs0990Migration() then
   begin
@@ -67,6 +69,8 @@ begin
 
   db_file_path := ExpandConstant('{localappdata}\CaspianSurveyor\data\db\caspian_surveyor.db');
   db_backup_path := ExpandConstant('{localappdata}\CaspianSurveyor\data\db\caspian_surveyor_PRE-0990.bak');
+  jsonl_file_path := ExpandConstant('{localappdata}\CaspianSurveyor\data\exploration_history.jsonl');
+  jsonl_backup_path := ExpandConstant('{localappdata}\CaspianSurveyor\data\exploration_history_PRE-0990.jsonl');
 
   if FileExists(db_file_path) then
   begin
@@ -82,6 +86,20 @@ begin
   end
   else
     Log('No existing database found. Skipping rename.');
+
+  // Preserve existing JSONL archive before historical reingestion.
+  if FileExists(jsonl_file_path) then
+  begin
+    if not FileExists(jsonl_backup_path) then
+    begin
+      if RenameFile(jsonl_file_path, jsonl_backup_path) then
+        Log('Success: Historical JSONL archive preserved.')
+      else
+        RaiseException('Failed to rename historical JSONL archive.');
+    end
+    else
+      Log('Pre-0.9.9.0 JSONL backup exists. Skipping rename.');
+  end;
 
   // Record that the 0.9.9.0 setup migration has run.
   if not SaveStringToFile(MigrationMarkerPath(), '0.9.9.0', False) then
