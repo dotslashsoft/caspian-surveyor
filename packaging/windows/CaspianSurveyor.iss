@@ -1,5 +1,5 @@
 #define MyAppName "Caspian Surveyor"
-#define MyAppVersion "0.9.8.2"
+#define MyAppVersion "0.9.9.0"
 #define MyAppExeName "CaspianSurveyor.exe"
 
 [Setup]
@@ -33,7 +33,7 @@ Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "THIRD_PARTY_NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "licenses\*"; DestDir: "{app}\licenses"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "src\caspian_surveyor\assets\historical_event_ingestion.ini"; DestDir: "{localappdata}\CaspianSurveyor\data"; Flags: onlyifdoesntexist uninsneveruninstall
+Source: "src\caspian_surveyor\assets\historical_event_ingestion.ini"; DestDir: "{localappdata}\CaspianSurveyor\data"; Flags: ignoreversion uninsneveruninstall; Check: Needs0990Migration
 Source: "src\caspian_surveyor\assets\overlay_config.json"; DestDir: "{localappdata}\CaspianSurveyor\config"; Flags: onlyifdoesntexist uninsneveruninstall
 
 [Icons]
@@ -42,3 +42,55 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilen
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+
+[Code]
+function MigrationMarkerPath(): String;
+begin
+  Result := ExpandConstant('{localappdata}\CaspianSurveyor\data\migration_0990.done');
+end;
+
+function Needs0990Migration(): Boolean;
+begin
+  Result := not FileExists(MigrationMarkerPath());
+end;
+
+procedure reset_caspian_database_state();
+var
+  db_file_path   : String;
+  db_backup_path : String;
+begin
+  if not Needs0990Migration() then
+  begin
+    Log('0.9.9.0 migration already completed. Skipping.');
+    Exit;
+  end;
+
+  db_file_path := ExpandConstant('{localappdata}\CaspianSurveyor\data\db\caspian_surveyor.db');
+  db_backup_path := ExpandConstant('{localappdata}\CaspianSurveyor\data\db\caspian_surveyor_PRE-0990.bak');
+
+  if FileExists(db_file_path) then
+  begin
+    if not FileExists(db_backup_path) then
+    begin
+      if RenameFile(db_file_path, db_backup_path) then
+        Log('Success: Original database preserved as .bak')
+      else
+        RaiseException('Failed to rename existing Caspian database.');
+    end
+    else
+      Log('Pre-0.9.9.0 database backup exists. Skipping rename.');
+  end
+  else
+    Log('No existing database found. Skipping rename.');
+
+  // Record that the 0.9.9.0 setup migration has run.
+  if not SaveStringToFile(MigrationMarkerPath(), '0.9.9.0', False) then
+    RaiseException('Failed to record migration completion.');
+end;
+
+// Inno Setup hook
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    reset_caspian_database_state();
+end;
