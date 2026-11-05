@@ -1,8 +1,15 @@
+from pprint import pprint
+
 import rebound
 import logging
 from caspian_surveyor.rebound.caspian_to_rebound_data_prep import CaspianDataHandler
 from caspian_surveyor.rebound.rebound_simulation_result import ReboundSimulationResult
-from typing import Any
+from caspian_surveyor.rebound.rebound_archive import (
+    ReboundArchiveManager,
+)
+from datetime import datetime, timezone
+from uuid import uuid4
+from typing import Any, cast
 import math
 
 logger = logging.getLogger(__name__)
@@ -13,6 +20,9 @@ class ReboundAdapter:
         self.handler = CaspianDataHandler()
         self.sim = rebound.Simulation()
         self.sim.units = ("AU", "yr", "Msun")
+        self.last_archive_path = None
+        self.last_archive_metadata_path = None
+
         self.orbital_match_tolerances = {
             "eccentricity": 1e-6,
             "orbital_inclination": 1e-6,
@@ -968,13 +978,26 @@ class ReboundAdapter:
             )
 
         self.sim.move_to_com()
-        self.sim.integrator = "whfast"
+        self.sim.integrator = "trace"
+
+        trace_config = cast(Any, self.sim.integrator)
+
+        trace_config.peri_mode = "FULL_BS"
+        trace_config.r_crit_hill = 5.0
+        trace_config.peri_crit_eta = 0.2
+
         self.sim.collision = "direct"
         self.sim.collision_resolve = "halt"
 
         return self.sim
 
-    def prepare_system_simulation(self, system_address, sim_years) -> ReboundSimulationResult:
+    def prepare_system_simulation(
+        self,
+        system_address,
+        sim_years,
+        save_archive=False,
+        snapshot_count=1000,
+    ) -> ReboundSimulationResult:
         system_data = self.get_system_data(system_address)
 
         physical_subsystems, barycentre_subsystems = (
@@ -999,18 +1022,95 @@ class ReboundAdapter:
             resolved_physical_subsystems
         )
 
+        self.last_archive_path = None
+        self.last_archive_metadata_path = None
+
+        archive_manager = None
+        archive_path = None
+        interval_years = None
+
+        if save_archive:
+            if float(sim_years) <= 0:
+                raise ValueError(
+                    "Archived simulations require a positive duration."
+                )
+
+            if snapshot_count < 1:
+                raise ValueError(
+                    "Snapshot count must be positive."
+                )
+
+            archive_manager = ReboundArchiveManager()
+
+            interval_years = float(sim_years) / snapshot_count
+
+            run_id = (
+                datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+                + "_"
+                + uuid4().hex[:8]
+            )
+
+            filename = f"{system_address}_{run_id}.bin"
+
+            archive_path = archive_manager.start_recording(
+                sim=simulation,
+                filename=filename,
+                interval_years=interval_years,
+            )
+
         initial_energy = simulation.energy()
+        status = "interrupted"
 
         try:
             simulation.integrate(float(sim_years))
 
         except rebound.Collision:
+            status = "collision"
+
             logger.warning(
                 "Collision detected in system %s at T=%.9f years",
                 system_address,
-                simulation.t
+                simulation.t,
             )
+
             raise
+
+        except Exception:
+            status = "failed"
+            raise
+
+        else:
+            status = "completed"
+
+        finally:
+            if archive_manager is not None and archive_path is not None:
+                try:
+                    metadata_path = archive_manager.finalize_recording(
+                        sim=simulation,
+                        archive_path=archive_path,
+                        system_address=system_address,
+                        system_data=system_data,
+                        interval_years=interval_years,
+                        status=status,
+                    )
+
+                    self.last_archive_path = archive_path
+                    self.last_archive_metadata_path = metadata_path
+
+                    logger.info(
+                        "REBOUND archive saved: %s (status=%s)",
+                        archive_path,
+                        status,
+                    )
+
+                except Exception:
+                    logger.exception(
+                        "Failed to finalize REBOUND archive for system %s",
+                        system_address,
+                    )
+
+                    if status == "completed":
+                        raise
 
         final_energy = simulation.energy()
 
@@ -1030,8 +1130,11 @@ class ReboundAdapter:
         )
 
 if __name__ == '__main__':
+    import rebound
+    import matplotlib.pyplot as plt
     adapter = ReboundAdapter()
-    system_data = adapter.get_system_data(527609567169)
+    system_data = adapter.get_system_data(3238296097059)
+    pprint(system_data, sort_dicts=False)
 
     physical_subsystems, barycentre_subsystems = (
         adapter._group_system_subsystems(system_data)

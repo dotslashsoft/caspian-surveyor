@@ -1,20 +1,18 @@
 from PySide6.QtCore import Qt, Slot
-from PySide6.QtWidgets import (
-    QLabel, QLayout, QWidget, QVBoxLayout, QApplication,
-    QFrame, QLabel, QHBoxLayout, QPushButton,
-    QLineEdit, QGridLayout
-)
 from PySide6.QtGui import QColor, QFont
+from PySide6.QtWidgets import (
+    QLabel, QWidget, QVBoxLayout, QApplication,
+    QFrame, QHBoxLayout, QPushButton,
+    QLineEdit, QGridLayout, QCheckBox, QSpinBox,
+)
 from caspian_surveyor.ui.caspian_theme import load_application_font
 from caspian_surveyor.ui.hud_widgets import HudFactory
 from caspian_surveyor.rebound.caspian_to_rebound_data_prep import CaspianDataHandler
 from caspian_surveyor.rebound.rebound_adapter import ReboundAdapter
 from caspian_surveyor.rebound.rebound_simulation_result import ReboundSimulationResult
 from caspian_surveyor.utils.qtthreads import run_in_background
-import time
 import sys
 import logging
-
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +108,22 @@ class ReboundDataDisplay(QWidget):
         run_sim_layout.addWidget(self.run_simulation_years)
         run_sim_layout.addWidget(self.run_simulation_button)
 
-        return run_sim_layout
+        snapshot_layout = QHBoxLayout()
+        snapshot_layout.addWidget(self.save_archive_checkbox)
+        snapshot_layout.addStretch()
+        snapshot_layout.addWidget(self.archive_snapshot_count_label)
+        snapshot_layout.addWidget(self.archive_snapshot_count)
+
+        status_layout = QHBoxLayout()
+        status_layout.addWidget(self.archive_status_label)
+        status_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        sim_layout = QVBoxLayout()
+        sim_layout.addLayout(run_sim_layout)
+        sim_layout.addLayout(snapshot_layout)
+        sim_layout.addLayout(status_layout)
+
+        return sim_layout
 
     def set_border_color(self):
         value_color = QColor(self.hud_factory.value_label_color)
@@ -302,6 +315,48 @@ class ReboundDataDisplay(QWidget):
             font-weight: bold;
         """)
 
+        self.save_archive_checkbox = QCheckBox(
+            "Save simulation archive (.bin)"
+        )
+        self.save_archive_checkbox.setChecked(False)
+
+        self.archive_snapshot_count_label = QLabel("Snapshot Count")
+        self.archive_snapshot_count_label.setStyleSheet(f"""
+            color: {self.hud_factory.key_label_color};
+            font-size: 12px;
+            font-weight: bold;
+        """)
+
+        self.archive_snapshot_count = QSpinBox()
+        self.archive_snapshot_count.setRange(10, 10000)
+        self.archive_snapshot_count.setValue(1000)
+        self.archive_snapshot_count.setEnabled(False)
+        self.archive_snapshot_count.setToolTip(
+            "Approximate number of snapshots to preserve."
+        )
+        self.archive_snapshot_count.setStyleSheet(f"""
+            color: {self.hud_factory.value_label_color};
+            font-size: 12px;
+            font-weight: bold;
+        """)
+
+        self.save_archive_checkbox.toggled.connect(
+            self.archive_snapshot_count.setEnabled
+        )
+        self.save_archive_checkbox.setStyleSheet(f"""
+            color: {self.hud_factory.value_label_color};
+            font-size: 12px;
+            font-weight: bold;
+        """)
+
+        self.archive_status_label = QLabel("")
+        self.archive_status_label.setWordWrap(False)
+        self.archive_status_label.setStyleSheet(f"""
+            color: {self.hud_factory.value_label_color};
+            font-size: 12px;
+            font-weight: bold;
+        """)
+
         self.sim_duration_value = QLabel("--")
         self.sim_body_count_value = QLabel("--")
         self.sim_initial_energy_value = QLabel("--")
@@ -352,10 +407,26 @@ class ReboundDataDisplay(QWidget):
 
         run_in_background(
             self.adapter.prepare_system_simulation,
-            system_address,
-            int(sim_years),
-            on_complete=self.simulation_finished
+            system_address=system_address,
+            sim_years=int(sim_years),
+            save_archive=self.save_archive_checkbox.isChecked(),
+            snapshot_count=self.archive_snapshot_count.value(),
+            on_complete=self.simulation_finished,
         )
+
+        if self.adapter.last_archive_path is not None:
+            archive_path = self.adapter.last_archive_path
+
+            self.archive_status_label.setText(
+                f"Archive saved: {archive_path.name}"
+            )
+
+            self.archive_status_label.setToolTip(
+                str(archive_path)
+            )
+
+        else:
+            self.archive_status_label.clear()
 
     @Slot(object)
     def simulation_finished(self, result) -> None:
@@ -387,6 +458,22 @@ class ReboundDataDisplay(QWidget):
             self.sim_energy_drift_value.setText("N/A")
 
         self.simulation_results_widget.show()
+
+        archive_path = self.adapter.last_archive_path
+
+        if archive_path is not None:
+            self.archive_status_label.setText(
+                f"Archive saved: {archive_path.name}"
+            )
+
+            self.archive_status_label.setToolTip(
+                str(archive_path)
+            )
+
+        else:
+            self.archive_status_label.clear()
+            self.archive_status_label.setToolTip("")
+
 
     def fetch_system_info(self) -> None:
         user_value = self.system_address.text().strip()

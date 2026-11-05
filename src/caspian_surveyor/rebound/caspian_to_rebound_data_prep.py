@@ -204,9 +204,30 @@ class CaspianDataHandler:
         merged_dict[parent]["descendants"].append(body)
 
     def _get_body_descendants(self, merged_dicts: dict[int, dict]):
+
         for each_entry in merged_dicts.values():
             if each_entry["ancestors"] is not None:
+
                 for each_parent in each_entry["ancestors"]:
+
+                    if each_parent not in merged_dicts:
+                        logger.error(
+                            "Unresolved celestial hierarchy reference | "
+                            "Child ID: %s | "
+                            "Child Name: %s | "
+                            "Missing Parent ID: %s | "
+                            "Ancestors: %s",
+                            each_entry["id"],
+                            each_entry["name"],
+                            each_parent,
+                            each_entry["ancestors"]
+                        )
+
+                        raise ValueError(
+                            f"Body {each_entry['id']} references "
+                            f"missing parent {each_parent}"
+                        )
+
                     self._append_body_descendant(
                         merged_dicts,
                         (each_entry["id"], each_entry["name"]),
@@ -255,11 +276,14 @@ class CaspianDataHandler:
 
     def _prepare_system_hierarchy(self, merged_dict: dict[int, dict]):
         if 0 in merged_dict:
-            print("Found barycentre root.")
-
+            logger.debug(
+                "Hierarchy root found | ID: 0 | Type: %s",
+                merged_dict[0]["type"]
+            )
         else:
-            print("System root not found.")
-            print("Creating barycentre 0.")
+            logger.debug(
+                "Hierarchy root absent | Creating synthetic barycentre ID 0"
+            )
 
             merged_dict[0] = {
                 "id": 0,
@@ -315,6 +339,20 @@ class CaspianDataHandler:
             rebound_barycentres_dict,
         )
 
+        root = merged_dict.get(0)
+
+        logger.debug(
+            "REBOUND root inspection | "
+            "System: %s | "
+            "Root Exists: %s | "
+            "Root Type: %s | "
+            "Root Mass: %s",
+            system_address,
+            root is not None,
+            root["type"] if root else None,
+            root["mass"] if root else None
+        )
+
         prepared_system = self._prepare_system_hierarchy(merged_dict)
 
         self.system_data = prepared_system
@@ -325,5 +363,5 @@ class CaspianDataHandler:
 if __name__ == '__main__':
     handler = CaspianDataHandler()
 
-    sorted_rebound = handler.prepare_system_data(527609567169)
+    sorted_rebound = handler.prepare_system_data(3238296097059)
     pprint(sorted_rebound, sort_dicts=False)
