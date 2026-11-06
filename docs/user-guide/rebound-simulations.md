@@ -21,14 +21,14 @@ To utilize the REBOUND simulation, you first must get the system address from El
   - NOTE: Please begin at a low number such as `1` or `5`. REBOUND simulations can be resource-intensive.
 6. Click `Run Simulation`.
   - If you wish to save the simulation, check the `Save simulation archive (.bin)` check box.
-  - You can adjust the number of snapshots the simulation takes, allowing more *states* to be access when replaying the simulation.
+  - You can adjust the number of snapshots the simulation takes, allowing more *states* to be accessed when replaying the simulation.
 7. When the REBOUND simulation completes, the panel will expand, displaying the following:
   - Duration
   - Physical bodies
   - Initial energy
   - Final energy
   - Relative energy drift
-8. To exit the REBOUND panel, simple use the toggle hotkey (`Ctrl + Shift + R`) once more
+8. To exit the REBOUND panel, simply use the toggle hotkey (`Ctrl + Shift + R`) once more
 
 NOTE: If you wish to move the REBOUND window, double-clicking *within* the panel will bring up the title bar, allowing you to drag and move, resize, minimize or simply exiting the REBOUND panel.
 
