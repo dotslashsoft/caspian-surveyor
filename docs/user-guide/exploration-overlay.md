@@ -107,7 +107,7 @@ The physical/orbital legend contains:
 - **P** - Orbital period
 - **T** - Rotational period
 - **ω** - Argument of periapsis
-- **a** - emi-major axis
+- **a** - Semi-major axis
 
 ---
 ---
