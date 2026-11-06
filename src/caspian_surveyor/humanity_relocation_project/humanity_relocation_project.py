@@ -4,6 +4,9 @@ from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQuer
 from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.runtime.cs_runtime import *
 from typing import Any
+import logging
+
+logger = logging.getLogger(__name__)
 
 """_summary_
 The priority system is for role-playing strictly and
@@ -113,10 +116,20 @@ class HumanityRelocationProject:
         finally:
             connection.close_db_connection(conn)
 
+    def _verify_current_system(self) -> FullStarSystemPayload:
+        current_system = load_current_system_record()
+        if not isinstance(current_system, FullStarSystemPayload):
+            raise TypeError("current_system must be a FullStarSystemPayload")
 
+        return current_system
 
+    def _score_complete_system_discovery(self, current_system: FullStarSystemPayload) -> int:
+        if current_system.summary.system_fss_complete:
+            return 100
 
-    def evaluate_final_system_score(self):
+        return 50
+
+    def _evaluate_final_system_score(self):
         pass
 
 

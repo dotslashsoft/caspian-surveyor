@@ -1,6 +1,7 @@
 import pytest
 import sqlite3
 
+from caspian_surveyor.db.sql_statements import QUERY_ALL_BODIES, QUERY_ALL_SYSTEMS
 from caspian_surveyor.db.system_archive_reconstruction import *
 
 
