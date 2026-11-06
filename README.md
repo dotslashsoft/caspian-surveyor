@@ -101,6 +101,7 @@ Development of Caspian Surveyor is active and ongoing.
 - `Ctrl + Shift + M` - Toggle HUD visibility.
 - `Ctrl + Shift + E` - Exit Caspian Surveyor.
 - `Ctrl + Shift + R` - Toggle REBOUND panel.
+- `Ctrl + Shift + U` - Open Caspian Surveyor's GitHub Releases
 - `Ctrl + Alt + Right` - Navigate to the next planetary body.
 - `Ctrl + Alt + Left` - Navigate to the previous planetary body.
 - `Ctrl + Alt + Down` / `Ctrl + Alt + Up` - Toggle between planetary body orbital and physical data.

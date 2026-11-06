@@ -8,6 +8,7 @@ from caspian_surveyor.ui.hotkey_manager import HotkeyManager
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
 from caspian_surveyor.ui.body_display_controller import BodyDisplayController
 from caspian_surveyor.ui.overlay_adapter import OverlayAdapter
+import caspian_surveyor.ui.check_for_updates as cfu
 from PySide6 import QtCore
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
@@ -39,6 +40,7 @@ class SystemInfoOverlay(QWidget):
     toggle_legend = QtCore.Signal()
     color_picker = QtCore.Signal()
     rebound_display = QtCore.Signal()
+    check_updates = QtCore.Signal()
 
     def __init__(self):
         """
@@ -346,6 +348,8 @@ class SystemInfoOverlay(QWidget):
         self.toggle_legend.connect(self.toggle_physical_orbital_legend)
         self.color_picker.connect(self.toggle_color_picker)
         self.rebound_display.connect(self.toggle_rebound_display)
+        self.check_updates.connect(self.call_check_for_updates)
+
 
 
     def _register_hotkeys(self):
@@ -365,7 +369,8 @@ class SystemInfoOverlay(QWidget):
             "ctrl+alt+up": self.cycle_up.emit,
             "ctrl+alt+]": self.toggle_legend.emit,
             "ctrl+shift+*": self.color_picker.emit,
-            "ctrl+shift+r": self.rebound_display.emit
+            "ctrl+shift+r": self.rebound_display.emit,
+            "ctrl+shift+u": self.check_updates.emit
         })
 
         self.hotkey_manager.register_hotkeys()
@@ -381,6 +386,10 @@ class SystemInfoOverlay(QWidget):
             self.refresh_system_data
         )
         self.update_timer.start(5000)
+
+    def call_check_for_updates(self):
+        cfu.check_for_updates()
+
 
     def toggle_overlay_visibility(self) -> None:
         """
