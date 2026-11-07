@@ -66,14 +66,17 @@ class SurveyDataAggregator:
 
     def restore_archived_system(self, archived_payload: FullStarSystemPayload) -> None:
         encoded_payload = system_record_encoder(archived_payload)
-
         self.current_system = {
             **encoded_payload["system"],
             "fss_complete": encoded_payload["summary"]["system_fss_complete"],
             "bodies": {
                 int(body_id): body
                 for body_id, body in encoded_payload["bodies"].items()
-            }
+            },
+            "barycentres": {
+                int(body_id): barycentre
+                for body_id, barycentre in encoded_payload["barycentres"].items()
+            },
         }
 
     def begin_system(self, event) -> None:
