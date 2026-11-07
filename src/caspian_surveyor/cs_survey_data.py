@@ -611,7 +611,6 @@ class SurveyDataBuilder:
         Returns:
             The completed body-record dictionary.
         """
-        logger.info("CASPIAN DEBUG BUILD - BODY TIMESTAMP INVESTIGATION")
         if "body_scan_timestamp" not in body:
             logger.error(
                 "Missing body_scan_timestamp: "
