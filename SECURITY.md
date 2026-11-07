@@ -6,7 +6,8 @@ Caspian Surveyor is currently in public alpha. Security updates are provided for
 
 | Version   | Supported          |
 | --------- | ------------------ |
-| 0.9.9.1   | :white_check_mark: |
+| 0.9.9.2   | :white_check_mark: |
+| 0.9.9.1   |   :x:              |
 | 0.9.9.0   |   :x:              |
 | 0.9.8.2   |   :x:              |
 | 0.9.8.1   |   :x:              |
