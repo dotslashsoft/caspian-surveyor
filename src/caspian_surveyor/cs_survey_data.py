@@ -138,6 +138,14 @@ class SurveyDataAggregator:
         body = current_system["bodies"].setdefault(body_id, {})
         body["body_id"] = body_id
         body["body_name"] = event.get("BodyName")
+
+        if "body_scan_timestamp" not in body:
+            iso_timestamp = event.get("timestamp")
+            if iso_timestamp:
+                body["body_scan_timestamp"] = self.translate_scan_timestamp(
+                    iso_timestamp
+                )
+
         body["body_signals"] = [
             self.translate_body_signal_fields(signal)
             for signal in event.get("Signals", [])

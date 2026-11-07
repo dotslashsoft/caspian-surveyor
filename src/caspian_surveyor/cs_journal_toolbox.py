@@ -1,10 +1,10 @@
+from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
+from caspian_surveyor.bootstrap.cs_baseline_config import HISTORICAL_EVENT_INGESTION
+from pathlib import Path
+import configparser
 import json
 import logging
-from caspian_surveyor.bootstrap.cs_baseline_config import JOURNAL_DIRECTORY
-from pathlib import Path
 import queue
-import configparser
-from caspian_surveyor.bootstrap.cs_baseline_config import HISTORICAL_EVENT_INGESTION
 
 logger = logging.getLogger(__name__)
 
@@ -144,112 +144,88 @@ class JournalReader:
             return False
 
     def follow(self, fatal_error_event, shutdown_event):
-        """
-        Follows the active Elite Dangerous journal and yields parsed journal events.
-
-        Begins reading the initial journal from the end of the file because
-        historical events have already been handled during state reconstruction.
-
-        While following the active journal, checks the new-journal queue for
-        journal rotation. When a new journal path is received, closes the current
-        journal, opens the new journal, and begins reading it from the beginning.
-
-        Incomplete journal lines are retried after the polling interval, allowing
-        Elite Dangerous to finish writing the event before it is parsed.
-
-        Stops following journals when fatal_error_event is set.
-
-        Args:
-            fatal_error_event: Shared event used to signal that journal monitoring
-                can no longer continue reliably.
-            shutdown_event: Shared event used to request cooperative monitor shutdown
-
-        Yields:
-            Parsed Elite Dangerous journal events as dictionaries.
-
-        Raises:
-            OSError: If the active journal file cannot be opened or read.
-        """
+        """Follow active journals and yield parsed events."""
         logger.info("Beginning journal monitoring: %s", self.journal_path)
-
         current_path = self.journal_path
-        new_journal_file = None
+        first_journal = True
 
-        # Outer loop: handles opening and swapping files.
         while not (fatal_error_event.is_set() or shutdown_event.is_set()):
-
             try:
-                logger.info("Opening journal file: %s",current_path)
+                logger.info("Opening journal file: %s", current_path)
 
                 with current_path.open("r", encoding="utf-8") as journal_file:
+                    self._journal_seek_position(journal_file, first_journal)
+                    first_journal = False
+                    next_path = yield from self._read_events(journal_file, fatal_error_event, shutdown_event)
 
-                    if new_journal_file:
-                        journal_file.seek(0, 0)
-                        logger.debug("Journal reader starting at beginning of file.")
-                        new_journal_file = None
+                if next_path is None:
+                    return
 
-                    else:
-                        journal_file.seek(0, 2)
-                        logger.debug("Journal reader positioned at end of file.")
-
-                    # Inner loop: reads the current journal.
-                    while not (fatal_error_event.is_set() or shutdown_event.is_set()):
-
-                        try:
-                            new_journal_file = (self.new_journal_queue.get_nowait())
-
-                            if new_journal_file:
-                                logger.info(
-                                    "Swap requested! Switching to: %s",
-                                    new_journal_file
-                                )
-
-                                current_path = new_journal_file
-                                self.new_journal_queue.task_done()
-
-                                break
-
-                        except queue.Empty:
-                            pass
-
-                        current_position = journal_file.tell()
-                        line = journal_file.readline()
-
-                        if not line:
-                            if shutdown_event.wait(self.poll_interval):
-                                return
-                            continue
-
-                        if not line.endswith("\n"):
-                            logger.debug("Incomplete journal line encountered; waiting for remaining data.")
-
-                            journal_file.seek(current_position)
-
-                            if shutdown_event.wait(self.poll_interval):
-                                return
-
-                            continue
-
-                        try:
-                            event = json.loads(line)
-
-                        except json.JSONDecodeError:
-                            logger.exception("Unable to parse journal line.")
-                            continue
-
-                        event_name = event.get("event","Unknown")
-
-                        logger.debug("Journal event received: %s", event_name)
-
-                        if (logger.isEnabledFor(logging.DEBUG) and event_name in DEBUG_LOG_PAYLOAD_EVENTS):
-                            logger.debug("Event payload: %s", json.dumps(event))
-
-                        yield event
+                logger.info("Swap requested! Switching to: %s", next_path)
+                current_path = next_path
 
             except OSError:
-                logger.exception(
-                    "Unable to open or read journal file: %s", current_path)
+                logger.exception("Unable to open or read journal file: %s", current_path)
                 raise
+
+    def _read_events(self, journal_file, fatal_error_event, shutdown_event):
+        """Read complete journal lines and yield parsed events."""
+        while not (fatal_error_event.is_set() or shutdown_event.is_set()):
+            next_path = self._get_next_journal_path()
+            if next_path is not None:
+                return next_path
+
+            current_position = journal_file.tell()
+            line = journal_file.readline()
+            if not line:
+                if shutdown_event.wait(self.poll_interval):
+                    return
+                continue
+
+            if not line.endswith("\n"):
+                logger.debug("Incomplete journal line encountered. Waiting for remaining data.")
+
+                journal_file.seek(current_position)
+                if shutdown_event.wait(self.poll_interval):
+                    return
+
+                continue
+
+            event = self._parse_journal_event(line)
+            if event is not None:
+                yield event
+
+    def _journal_seek_position(self, journal_file, first_journal: bool) -> None:
+        if first_journal:
+            journal_file.seek(0, 2)
+            logger.debug("Journal reader positioned at end of file.")
+        else:
+            journal_file.seek(0, 0)
+            logger.debug("Journal reader starting at beginning of file.")
+
+    def _parse_journal_event(self, line: str) -> dict | None:
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            logger.exception("Unable to parse journal line.")
+            return None
+
+        event_name = event.get("event", "Unknown")
+        logger.debug("Journal event received: %s", event_name)
+
+        if (logger.isEnabledFor(logging.DEBUG) and event_name in DEBUG_LOG_PAYLOAD_EVENTS):
+            logger.debug("Event payload: %s", json.dumps(event))
+
+        return event
+
+    def _get_next_journal_path(self):
+        try:
+            new_path = self.new_journal_queue.get_nowait()
+        except queue.Empty:
+            return None
+
+        self.new_journal_queue.task_done()
+        return new_path
 
 
 def get_latest_journal_file() -> Path | None:
@@ -525,7 +501,6 @@ class HistoricalJournalIngestion:
         with open(historical_flag_file, "w") as config_file:
             history_config.write(config_file)
 
-
 DEBUG_LOG_PAYLOAD_EVENTS = {
     "Location",
     "FSDJump",
@@ -542,7 +517,6 @@ DEBUG_LOG_PAYLOAD_EVENTS = {
 Elite Dangerous journal events whose full payloads are logged when
 DEBUG logging is enabled.
 """
-
 
 if __name__ == "__main__":
     history = HistoricalJournalIngestion()
