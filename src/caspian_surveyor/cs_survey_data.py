@@ -611,6 +611,15 @@ class SurveyDataBuilder:
         Returns:
             The completed body-record dictionary.
         """
+        logger.info("CASPIAN DEBUG BUILD - BODY TIMESTAMP INVESTIGATION")
+        if "body_scan_timestamp" not in body:
+            logger.error(
+                "Missing body_scan_timestamp: "
+                "BodyID=%s, BodyName=%s, AvailableKeys=%s",
+                body.get("body_id"),
+                body.get("body_name"),
+                sorted(body.keys()),
+            )
         body_materials = body.get("body_materials")
         body_signals = body.get("body_signals")
         body_genuses = body.get("body_genuses")
@@ -619,7 +628,7 @@ class SurveyDataBuilder:
         return CelestialBody(
             body_id=body["body_id"],
             body_name=body["body_name"],
-            body_scan_timestamp=body["body_scan_timestamp"],
+            body_scan_timestamp=body.get("body_scan_timestamp", 0),
             body_mass=body.get("body_mass"),
             body_star_type=body.get("body_star_type"),
             body_parents=[BodyParentInfo(**parent) for parent in body.get("body_parents", [])],
