@@ -5,6 +5,7 @@ from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.runtime.cs_runtime import *
 from typing import Any
 import logging
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
@@ -91,9 +92,6 @@ Things to note and/or look for:
 
 class HumanityRelocationProject:
     """Temporary class for Humanity Relocation Project"""
-    def __init__(self) -> None:
-        self.current_system = load_current_system_record()
-
     def _get_fullstarsystempayload(self, system_address) -> FullStarSystemPayload | None:
         """Query SQLite for a system and reconstruct its FullStarSystemPayload.
 
@@ -123,33 +121,53 @@ class HumanityRelocationProject:
 
         return current_system
 
-    def _score_complete_system_discovery(self, current_system: FullStarSystemPayload) -> int:
+    def _score_complete_system_discovery(self, current_system: FullStarSystemPayload) -> float:
         if current_system.summary.system_fss_complete:
-            return 100
+            return 100.0
 
-        return 50
+        return 50.0
 
     def _evaluate_final_system_score(self):
         pass
 
 
+@dataclass
 class SystemScore:
-    """Class containing all scoring criteria"""
-    def __init__(self) -> None:
-        pass
+    system_address: int
 
-    def _initialize_scoring_dictionary(self) -> dict[str, Any]:
-        scoring_dict = {}
-        return scoring_dict
+    habitability_score: float = 0.0
+    resource_score: float = 0.0
+    research_score: float = 0.0
+    security_score: float = 0.0
+    economic_score: float = 0.0
 
-    def _calculate_system_habitability(self):
-        pass
+    raw_score: float = 0.0
+    final_score: float = 0.0
 
-    def _calculate_system_economic_potential(self):
-        pass
+    def __post_init__(self):
+        if type(self.system_address) is not int:
+            raise TypeError("system_address must be an integer")
 
-    def _calculate_system_security(self):
-        pass
+        if type(self.habitability_score) is not float:
+            raise TypeError("habitability_score must be a float")
+
+        if type(self.resource_score) is not float:
+            raise TypeError("resource_score must be a float")
+
+        if type(self.research_score) is not float:
+            raise TypeError("research_score must be a float")
+
+        if type(self.security_score) is not float:
+            raise TypeError("security_score must be a float")
+
+        if type(self.economic_score) is not float:
+            raise TypeError("economic_score must be a float")
+
+        if type(self.raw_score) is not float:
+            raise TypeError("raw_score must be a float")
+
+        if type(self.final_score) is not float:
+            raise TypeError("final_score must be a float")
 
 
 if __name__ == '__main__':
