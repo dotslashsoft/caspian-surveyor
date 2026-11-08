@@ -28,7 +28,10 @@ class LogManager:
                 Defaults to DEFAULT_LOG_DIR.
         """
         self.log_dir = Path(log_dir)
-        self.program_name = Path(sys.argv[0]).stem
+        entry_path = Path(sys.argv[0])
+        self.program_name = (
+            entry_path.parent.name if entry_path.name == "__main__.py" else entry_path.stem
+        )
         self.datetimestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_filename = (f"{self.program_name}_{self.datetimestamp}.log")
         self.full_log_path = (self.log_dir / self.log_filename)
