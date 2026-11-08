@@ -22,9 +22,15 @@ where = ["src"]
 include = [
     "caspian_surveyor*"
 ]
+
 [tool.setuptools.package-data]
 caspian_surveyor = [
     "assets/fonts/*.ttf",
     "assets/fonts/*.otf",
     "assets/fonts/*.txt"
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: tests requiring external application resources or database state"
 ]

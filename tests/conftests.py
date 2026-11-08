@@ -9,7 +9,6 @@ def temp_db(tmp_path):
     db_file = tmp_path / "test_caspian.db"
     conn = sqlite3.connect(db_file)
 
-    # Instantiate your class (passing whatever __init__ expects) and build the schema
     db_manager = ConnectionManager()
     db_manager.initialize_schema(conn)
 

@@ -1,3 +1,4 @@
+from math import isfinite
 from pprint import pprint
 from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
@@ -131,44 +132,61 @@ class HumanityRelocationProject:
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
+class CriterionResult:
+    key: str
+    raw_score: float
+    weighted_points: float
+
+    def __post_init__(self):
+        if type(self.key) is not str:
+            raise TypeError("key must be a string.")
+
+        if type(self.raw_score) is not float:
+            raise TypeError("raw_score must be a float.")
+
+        if type(self.weighted_points) is not float:
+            raise TypeError("weighted_points must be a float.")
+
+        if not isfinite(self.raw_score) or not 0.0 <= self.raw_score <= 100.0:
+            raise ValueError(
+                f"raw_score for '{self.key}' must be between 0.0 and 100.0. "
+                f"Value received: {self.raw_score}"
+            )
+
+        if not isfinite(self.weighted_points) or not 0.0 <= self.weighted_points <= 100.0:
+            raise ValueError(
+                f"weighted_points for '{self.key}' must be between 0.0 and 100.0."
+            )
+
+
+@dataclass(frozen=True)
 class SystemScore:
     system_address: int
 
-    habitability_score: float = 0.0
-    resource_score: float = 0.0
-    research_score: float = 0.0
-    security_score: float = 0.0
-    economic_score: float = 0.0
-
-    raw_score: float = 0.0
-    final_score: float = 0.0
+    rubric_version: str
+    criteria: tuple[CriterionResult, ...]
+    preliminary: bool = False
 
     def __post_init__(self):
         if type(self.system_address) is not int:
             raise TypeError("system_address must be an integer")
 
-        if type(self.habitability_score) is not float:
-            raise TypeError("habitability_score must be a float")
+        if type(self.rubric_version) is not str:
+            raise TypeError("rubric_version must be a string")
 
-        if type(self.resource_score) is not float:
-            raise TypeError("resource_score must be a float")
+        if type(self.criteria) is not tuple:
+            raise TypeError("criteria must be a tuple with CriterionResults")
 
-        if type(self.research_score) is not float:
-            raise TypeError("research_score must be a float")
+        if type(self.preliminary) is not bool:
+            raise TypeError("preliminary must be a bool")
 
-        if type(self.security_score) is not float:
-            raise TypeError("security_score must be a float")
-
-        if type(self.economic_score) is not float:
-            raise TypeError("economic_score must be a float")
-
-        if type(self.raw_score) is not float:
-            raise TypeError("raw_score must be a float")
-
-        if type(self.final_score) is not float:
-            raise TypeError("final_score must be a float")
-
+    @property
+    def final_score(self) -> float:
+        return sum(
+            (criterion.weighted_points for criterion in self.criteria),
+            0.0
+        )
 
 if __name__ == '__main__':
     hrp = HumanityRelocationProject()

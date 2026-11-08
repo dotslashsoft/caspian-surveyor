@@ -5,7 +5,6 @@ from caspian_surveyor.db.sql_statements import QUERY_ALL_BODIES, QUERY_ALL_SYSTE
 from caspian_surveyor.db.system_archive_reconstruction import *
 from tests.conftests import *
 
-
 class TestDatabaseQueries:
     def setup_method(self):
         self.connection_manager = Connection().manager
