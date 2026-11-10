@@ -88,7 +88,7 @@ class ReboundDataDisplay(QWidget):
 
     def create_system_address_textbox(self):
         enter_system_address = QHBoxLayout()
-        enter_system_address.setContentsMargins(0, 10, 0, 10)
+        enter_system_address.setContentsMargins(0, 5, 0, 10)
         enter_system_address.addWidget(self.system_address)
         enter_system_address.addWidget(self.submit_address)
         return enter_system_address
@@ -102,23 +102,34 @@ class ReboundDataDisplay(QWidget):
         return run_sim_separator
 
     def create_run_simulation_layout(self):
+        sim_status_layout = QHBoxLayout()
+        sim_status_layout.setContentsMargins(0, 20, 0, 5)
+        sim_status_layout.addWidget(
+            self.simulation_status_label,
+            alignment=Qt.AlignmentFlag.AlignCenter
+        )
+
         run_sim_layout = QHBoxLayout()
-        run_sim_layout.setContentsMargins(0, 10, 0, 10)
+        run_sim_layout.setContentsMargins(0, 5, 0, 5)
         run_sim_layout.addWidget(self.run_simulation_label)
         run_sim_layout.addWidget(self.run_simulation_years)
         run_sim_layout.addWidget(self.run_simulation_button)
 
         snapshot_layout = QHBoxLayout()
+        snapshot_layout.setContentsMargins(0, 5, 0, 5)
         snapshot_layout.addWidget(self.save_archive_checkbox)
         snapshot_layout.addStretch()
         snapshot_layout.addWidget(self.archive_snapshot_count_label)
         snapshot_layout.addWidget(self.archive_snapshot_count)
+        snapshot_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         status_layout = QHBoxLayout()
+        status_layout.setContentsMargins(0, 5, 0, 5)
         status_layout.addWidget(self.archive_status_label)
         status_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         sim_layout = QVBoxLayout()
+        sim_layout.addLayout(sim_status_layout)
         sim_layout.addLayout(run_sim_layout)
         sim_layout.addLayout(snapshot_layout)
         sim_layout.addLayout(status_layout)
@@ -294,14 +305,16 @@ class ReboundDataDisplay(QWidget):
             font-weight: bold;
         """)
 
-        self.run_simulation_label = QLabel("Specify years to simulate:")
+        self.run_simulation_label = QLabel("Specify years to simulate:  ")
         self.run_simulation_label.setStyleSheet(f"""
             color: {self.hud_factory.key_label_color};
             font-size: 12px;
             font-weight: bold;
         """)
 
-        self.run_simulation_years = QLineEdit("100000")
+        self.run_simulation_years = QLineEdit()
+        self.run_simulation_years.setPlaceholderText("<Enter a value in years>")
+
         self.run_simulation_years.setStyleSheet(f"""
             color: {self.hud_factory.key_label_color};
             font-size: 12px;
@@ -319,6 +332,7 @@ class ReboundDataDisplay(QWidget):
             "Save simulation archive (.bin)"
         )
         self.save_archive_checkbox.setChecked(False)
+        self.save_archive_checkbox.setContentsMargins(10, 0, 10, 0)
 
         self.archive_snapshot_count_label = QLabel("Snapshot Count")
         self.archive_snapshot_count_label.setStyleSheet(f"""
@@ -349,9 +363,17 @@ class ReboundDataDisplay(QWidget):
             font-weight: bold;
         """)
 
-        self.archive_status_label = QLabel("")
+        self.archive_status_label = QLabel("Awaiting archive save.")
         self.archive_status_label.setWordWrap(False)
         self.archive_status_label.setStyleSheet(f"""
+            color: {self.hud_factory.value_label_color};
+            font-size: 12px;
+            font-weight: bold;
+        """)
+
+        self.simulation_status_label = QLabel("REBOUND simulation idle.")
+
+        self.simulation_status_label.setStyleSheet(f"""
             color: {self.hud_factory.value_label_color};
             font-size: 12px;
             font-weight: bold;
@@ -405,6 +427,13 @@ class ReboundDataDisplay(QWidget):
             self.selected_system_payload.system.system_address
         )
 
+        self.simulation_status_label.setText(
+            "REBOUND simulation running..."
+        )
+
+        self.archive_status_label.clear()
+        self.archive_status_label.setToolTip("")
+
         run_in_background(
             self.adapter.prepare_system_simulation,
             system_address=system_address,
@@ -412,11 +441,19 @@ class ReboundDataDisplay(QWidget):
             save_archive=self.save_archive_checkbox.isChecked(),
             snapshot_count=self.archive_snapshot_count.value(),
             on_complete=self.simulation_finished,
+            mode="process"
         )
 
-        if self.adapter.last_archive_path is not None:
-            archive_path = self.adapter.last_archive_path
 
+    @Slot(object)
+    def simulation_finished(self, result) -> None:
+        if isinstance(result, Exception):
+            logger.info(f"REBOUND simulation failed: {result}")
+            return
+
+        archive_path = result.archive_path
+
+        if archive_path is not None:
             self.archive_status_label.setText(
                 f"Archive saved: {archive_path.name}"
             )
@@ -427,12 +464,11 @@ class ReboundDataDisplay(QWidget):
 
         else:
             self.archive_status_label.clear()
+            self.archive_status_label.setToolTip("")
 
-    @Slot(object)
-    def simulation_finished(self, result) -> None:
-        if isinstance(result, Exception):
-            logger.info(f"REBOUND simulation failed: {result}")
-            return
+        self.simulation_status_label.setText(
+            "REBOUND simulation completed."
+        )
 
         self.sim_duration_value.setText(
             f"{result.simulation_years:,.0f} years"
@@ -458,21 +494,6 @@ class ReboundDataDisplay(QWidget):
             self.sim_energy_drift_value.setText("N/A")
 
         self.simulation_results_widget.show()
-
-        archive_path = self.adapter.last_archive_path
-
-        if archive_path is not None:
-            self.archive_status_label.setText(
-                f"Archive saved: {archive_path.name}"
-            )
-
-            self.archive_status_label.setToolTip(
-                str(archive_path)
-            )
-
-        else:
-            self.archive_status_label.clear()
-            self.archive_status_label.setToolTip("")
 
 
     def fetch_system_info(self) -> None:

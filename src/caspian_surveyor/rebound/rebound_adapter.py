@@ -1126,7 +1126,8 @@ class ReboundAdapter:
             physical_body_count=simulation.N,
             initial_energy=initial_energy,
             final_energy=final_energy,
-            relative_energy_drift=relative_energy_drift
+            relative_energy_drift=relative_energy_drift,
+            archive_path=archive_path,
         )
 
 if __name__ == '__main__':

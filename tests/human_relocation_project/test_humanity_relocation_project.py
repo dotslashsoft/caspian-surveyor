@@ -24,6 +24,8 @@ class TestHumanityRelocationProject:
         assert isinstance(system_record, FullStarSystemPayload)
 
 
+
+
 class TestSystemScoreDataclass:
     def setup_method(self):
         self.hrp = HumanityRelocationProject()

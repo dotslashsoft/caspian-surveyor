@@ -1,4 +1,4 @@
-from math import isfinite
+from math import isfinite, sqrt, trunc
 from pprint import pprint
 from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
@@ -93,16 +93,7 @@ Things to note and/or look for:
 
 class HumanityRelocationProject:
     """Temporary class for Humanity Relocation Project"""
-    def _get_fullstarsystempayload(self, system_address) -> FullStarSystemPayload | None:
-        """Query SQLite for a system and reconstruct its FullStarSystemPayload.
-
-        Args:
-            system_address (int): Address of the system to reconstruct.
-
-        Returns:
-            FullStarSystemPayload | None: Reconstructed system data if successful,
-            otherwise None.
-        """
+    def _get_fullstarsystempayload(self, system_address) -> FullStarSystemPayload:
         system_query = ArchivedSystemQueries()
         connection = ConnectionManager()
         conn = connection.establish_db_connection()
@@ -111,9 +102,17 @@ class HumanityRelocationProject:
             connection.initialize_schema(conn)
             payload = system_query.get_archived_system_info(conn, system_address)
 
-            return payload
+            verified_payload = self._verify_fullstarsystempayload(payload)
+            return verified_payload
+
         finally:
             connection.close_db_connection(conn)
+
+    def _verify_fullstarsystempayload(self, payload) -> FullStarSystemPayload:
+        if not isinstance(payload, FullStarSystemPayload):
+            raise TypeError("current_system must be a FullStarSystemPayload")
+
+        return payload
 
     def _verify_current_system(self) -> FullStarSystemPayload:
         current_system = load_current_system_record()
@@ -128,8 +127,15 @@ class HumanityRelocationProject:
 
         return 50.0
 
-    def _evaluate_final_system_score(self):
-        pass
+    # distance from sol: sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    def _get_distance_from_sol(self, system: FullStarSystemPayload) -> float:
+        position_x = system.system.system_position[0]
+        position_y = system.system.system_position[1]
+        position_z = system.system.system_position[2]
+
+        distance_from_sol = sqrt(position_x**2 + position_y**2 + position_z**2)
+        return round(distance_from_sol)
+
 
 
 @dataclass(frozen=True)
@@ -190,5 +196,7 @@ class SystemScore:
 
 if __name__ == '__main__':
     hrp = HumanityRelocationProject()
-    system_record = hrp._get_fullstarsystempayload(279114075227)
-    pprint(system_record, sort_dicts=False)
+    payload = hrp._get_fullstarsystempayload(279114075227)
+
+    distance = hrp._get_distance_from_sol(payload)
+    print(f"Distance from Sol: ~{distance} ly")

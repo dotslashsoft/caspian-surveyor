@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -9,3 +10,4 @@ class ReboundSimulationResult:
     initial_energy: float
     final_energy: float
     relative_energy_drift: float | None
+    archive_path: Path | None = None

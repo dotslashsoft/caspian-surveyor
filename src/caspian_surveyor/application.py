@@ -9,6 +9,7 @@ from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
 from caspian_surveyor.ui.historical_ingestion_progress import HistoryProgressbar, HistoryIngestionSignals
 from caspian_surveyor.ui.caspian_theme import load_application_font
+from caspian_surveyor.utils.qtthreads import shutdown_process_pool
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont
@@ -225,10 +226,17 @@ class CaspianSurveyorApplication:
                         data_orchestrator.load_current_system_data_to_dict()
                         data_orchestrator.append_system_record_to_history_file()
 
+                    system_address = event.get("SystemAddress")
+
+                    if not isinstance(system_address, int):
+                        logger.error(
+                            "Invalid SystemAddress in FSDJump event: %r",
+                            system_address
+                        )
+                        return
+
                     # Begin the system just entered.
                     survey_data_aggregator.begin_system(event)
-
-                    system_address = event.get("SystemAddress")
 
                     reconstructed_system = archived_system_queries.get_archived_system_info(
                         conn,
@@ -285,6 +293,10 @@ class CaspianSurveyorApplication:
             if journal_monitor_thread.is_alive():
                 logger.info("Journal is alive. Joining the threads...")
                 journal_monitor_thread.join()
+
+            logger.info("Shutdown process pool requested.")
+            shutdown_process_pool()
+            logger.info("Shutdown process pool completed.")
 
             connection_manager.close_db_connection(conn)
 
