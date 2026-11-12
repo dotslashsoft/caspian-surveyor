@@ -1,6 +1,5 @@
 import logging
 import sys
-import threading
 import caspian_surveyor
 from caspian_surveyor.bootstrap.cs_log_factory import LogManager
 from caspian_surveyor.ui.rebound_system_data import ReboundDataDisplay
@@ -9,12 +8,9 @@ from caspian_surveyor.ui.hotkey_manager import HotkeyManager
 from caspian_surveyor.ui.hud_widgets import CurrentPageStackedWidget, MetricWidget, HudFactory
 from caspian_surveyor.ui.body_display_controller import BodyDisplayController
 from caspian_surveyor.ui.overlay_adapter import OverlayAdapter
-from caspian_surveyor.ui.exobio_targeting import TargetingOverlay
-from caspian_surveyor.utils.monitor_exobio_signals import define_region_of_interest, monitor_screen
-from caspian_surveyor.utils.qtthreads import run_in_background
 import caspian_surveyor.ui.check_for_updates as cfu
 from PySide6 import QtCore
-from PySide6.QtCore import Qt, QEvent, Slot
+from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel,
     QVBoxLayout, QFrame, QSizePolicy,
@@ -45,7 +41,6 @@ class SystemInfoOverlay(QWidget):
     color_picker = QtCore.Signal()
     rebound_display = QtCore.Signal()
     check_updates = QtCore.Signal()
-    toggle_exobio_targeting = QtCore.Signal()
 
     def __init__(self):
         """
@@ -63,31 +58,6 @@ class SystemInfoOverlay(QWidget):
         self.body_display = BodyDisplayController(self.hud_factory)
         self.overlay_adapter = OverlayAdapter()
         self.rebound_data = ReboundDataDisplay()
-        # exobio targeting
-        self.targeting_overlay = TargetingOverlay()
-        self._exobio_stop_event = threading.Event()
-        self._exobio_running = False
-
-        region = define_region_of_interest()
-
-        self._exobio_dpr = (
-            QGuiApplication.primaryScreen().devicePixelRatio()
-        )
-
-        self.targeting_overlay.setGeometry(
-            round(region["left"] / self._exobio_dpr),
-            round(region["top"] / self._exobio_dpr),
-            round(region["width"] / self._exobio_dpr),
-            round(region["height"] / self._exobio_dpr)
-        )
-
-        screen = QGuiApplication.primaryScreen()
-
-        print("Qt geometry:", screen.geometry())
-        print("Qt device pixel ratio:", screen.devicePixelRatio())
-
-        print("MSS capture region:", define_region_of_interest())
-
         super().__init__()
 
         self._connect_signals()
@@ -379,7 +349,6 @@ class SystemInfoOverlay(QWidget):
         self.color_picker.connect(self.toggle_color_picker)
         self.rebound_display.connect(self.toggle_rebound_display)
         self.check_updates.connect(self.call_check_for_updates)
-        self.toggle_exobio_targeting.connect(self._toggle_exobio_targeting)
 
     def _register_hotkeys(self):
         """
@@ -399,8 +368,7 @@ class SystemInfoOverlay(QWidget):
             "ctrl+alt+]": self.toggle_legend.emit,
             "ctrl+shift+*": self.color_picker.emit,
             "ctrl+shift+r": self.rebound_display.emit,
-            "ctrl+shift+u": self.check_updates.emit,
-            "ctrl+alt+x": self.toggle_exobio_targeting.emit
+            "ctrl+shift+u": self.check_updates.emit
         })
 
         self.hotkey_manager.register_hotkeys()
@@ -450,41 +418,6 @@ class SystemInfoOverlay(QWidget):
     def toggle_color_picker(self) -> None:
         if self.custom_color_picker.run_config_workflow():
             self.refresh_overlay_colors()
-
-    def _toggle_exobio_targeting(self) -> None:
-        if self._exobio_running:
-            self._exobio_stop_event.set()
-            self._exobio_running = False
-            self.targeting_overlay.hide()
-            return
-
-        self._exobio_stop_event.clear()
-        self._exobio_running = True
-
-        self.targeting_overlay.show()
-
-        run_in_background(
-            monitor_screen,
-            self._exobio_stop_event,
-            on_update=self.update_targeting_display
-        )
-
-    @Slot(object)
-    def update_targeting_display(self, bounding_boxes):
-        if not self._exobio_running:
-            return
-
-        scaled_boxes = [
-            (
-                round(x / self._exobio_dpr),
-                round(y / self._exobio_dpr),
-                max(1, round(width / self._exobio_dpr)),
-                max(1, round(height / self._exobio_dpr))
-            )
-            for x, y, width, height in bounding_boxes
-        ]
-
-        self.targeting_overlay.update_detections(scaled_boxes)
 
     def toggle_rebound_display(self) -> None:
         if self.rebound_data.isVisible():
