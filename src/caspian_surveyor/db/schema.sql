@@ -13,6 +13,18 @@ CREATE TABLE IF NOT EXISTS systems (
         CHECK (system_fss_complete IN (0, 1))
 );
 
+CREATE TABLE IF NOT EXISTS notable_stellar_phenomena (
+    database_nsp_id      INTEGER PRIMARY KEY,
+    database_system_id   INTEGER NOT NULL,
+    system_address       INTEGER NOT NULL,
+    scan_timestamp       INTEGER NOT NULL,
+    signal_name          TEXT NOT NULL,
+    signal_localised     TEXT NOT NULL,
+    FOREIGN KEY (database_system_id) REFERENCES systems (database_system_id)
+        ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+
 CREATE TABLE IF NOT EXISTS bodies (
     database_body_id     INTEGER PRIMARY KEY,
     database_system_id   INTEGER NOT NULL,
@@ -31,7 +43,7 @@ CREATE TABLE IF NOT EXISTS bodies (
     atmosphere           TEXT,
     atmosphere_type      TEXT,
     distance_from_arrival REAL,
-    FOREIGN KEY (database_system_id) REFERENCES systems (database_system_id) 
+    FOREIGN KEY (database_system_id) REFERENCES systems (database_system_id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
@@ -52,7 +64,7 @@ CREATE TABLE IF NOT EXISTS barycentres (
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_bodies_system_elite_id 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bodies_system_elite_id
 ON bodies (database_system_id, elite_body_id);
 
 
@@ -66,7 +78,7 @@ CREATE TABLE IF NOT EXISTS body_parents (
     parent_elite_body_id INTEGER NOT NULL,
     parent_type          TEXT NOT NULL,
     PRIMARY KEY (database_body_id, parent_order),
-    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
+    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
@@ -75,7 +87,7 @@ CREATE TABLE IF NOT EXISTS body_materials (
     material_name        TEXT NOT NULL,
     material_percentage  REAL NOT NULL,
     PRIMARY KEY (database_body_id, material_name),
-    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
+    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
@@ -95,7 +107,7 @@ CREATE TABLE IF NOT EXISTS body_physical_orbital_properties (
     rotational_period    REAL,
     axial_tilt           REAL,
     periapsis            REAL,
-    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
+    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
@@ -105,7 +117,7 @@ CREATE TABLE IF NOT EXISTS body_signals (
     signal_type_localised  TEXT,
     signal_count           INTEGER NOT NULL,
     PRIMARY KEY (database_body_id, signal_type),
-    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
+    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
@@ -114,7 +126,7 @@ CREATE TABLE IF NOT EXISTS body_detected_genuses (
     genus              TEXT NOT NULL,
     genus_localised    TEXT,
     PRIMARY KEY (database_body_id, genus),
-    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
+    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );
 
@@ -131,6 +143,6 @@ CREATE TABLE IF NOT EXISTS body_exobio_scans (
     variant_localised       TEXT,
     was_logged              INTEGER,
     UNIQUE (database_body_id, scan_type, scan_timestamp),
-    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id) 
+    FOREIGN KEY (database_body_id) REFERENCES bodies (database_body_id)
         ON DELETE NO ACTION ON UPDATE NO ACTION
 );

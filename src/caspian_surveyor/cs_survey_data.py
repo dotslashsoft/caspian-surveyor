@@ -32,7 +32,6 @@ class SurveyDataAggregator:
     """
     def __init__(self):
         self.current_system = None
-        notable_stellar_phenomena = []
 
     def _get_current_system(self, event):
         """
@@ -98,6 +97,7 @@ class SurveyDataAggregator:
             "system_address": event.get("SystemAddress"),
             "system_position": event.get("StarPos"),
             "system_body_count": None,
+            "system_nsp": None,
             "fss_complete": False,
             "bodies": {},
             "barycentres": {},
@@ -396,6 +396,47 @@ class SurveyDataAggregator:
 
         return True
 
+    def record_nsp_discovered(self, event) -> bool:
+        current_system = self._get_current_system(event)
+        if current_system is None:
+            return False
+
+        system_address = event.get("SystemAddress")
+        if system_address is None:
+            logger.error(
+                "Somehow, FDEV fucked up and didn't give a system address "
+                "for one of the rarest events in the game. "
+                "Holy shit dude."
+            )
+            return False
+
+        iso_timestamp = event.get("timestamp")
+        if iso_timestamp is None:
+            logger.error(
+                "Really, FDEV? NO TIMESTAMP? REALLY?"
+            )
+            return False
+        epoch_timestamp = self.translate_scan_timestamp(iso_timestamp)
+
+        system_nsp_scans = current_system.get("system_nsp")
+
+        if system_nsp_scans is None:
+            system_nsp_scans = []
+            current_system["system_nsp"] = system_nsp_scans
+
+        nsp_record = {
+            "system_nsp_timestamp": epoch_timestamp,
+            "system_nsp_address": system_address,
+            "system_nsp_signal_name": event.get("SignalName"),
+            "system_nsp_signal_name_localised": event.get("SignalName_Localised")
+        }
+
+        print(nsp_record)
+
+        system_nsp_scans.append(nsp_record)
+
+        return True
+
     def process_journal_event(self, event) -> bool:
         """
         One journal processor to rule them all.
@@ -434,6 +475,12 @@ class SurveyDataAggregator:
 
         elif event_type == "FSSAllBodiesFound":
             return self.mark_all_bodies_found(event)
+
+        elif event_type == "FSSSignalDiscovered":
+            signal_name = event.get("SignalName")
+            if signal_name in ("$Fixed_Event_Life_Cloud;", "$Fixed_Event_Life_Ring;"):
+                return self.record_nsp_discovered(event)
+
         return False
 
     def translate_body_scalar_fields(self, event: dict[str, Any]) -> dict[str, Any]:
@@ -536,6 +583,7 @@ class SurveyDataBuilder:
             system_address=current_system["system_address"],
             system_position=current_system["system_position"],
             system_body_count=current_system["system_body_count"],
+            system_nsp=current_system["system_nsp"]
         )
 
     def build_system_summary(self, current_system: dict[str, Any]) -> SystemSummaryInfo:

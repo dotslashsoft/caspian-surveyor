@@ -5,12 +5,14 @@ import json
 from caspian_surveyor.db.connection_manager import ConnectionManager
 from caspian_surveyor.cs_data_structures import (
     FullStarSystemPayload, CelestialBody, SystemInfo, BodyParentInfo, BodyMaterialInfo,
-    BodySignalInfo, BodyGenusInfo, ExoBioScanInfo, SystemSummaryInfo, BarycentreInfo
+    BodySignalInfo, BodyGenusInfo, ExoBioScanInfo, SystemSummaryInfo, BarycentreInfo,
+    NotableStellarPhenomena
 )
 from caspian_surveyor.db.sql_statements import (
     GET_SYSTEM_INFO, GET_SYSTEM_BODIES, GET_SYSTEM_PARENTS,
     GET_SYSTEM_MATERIALS, GET_SYSTEM_PHYSORB, GET_SYSTEM_SIGNALS,
-    GET_SYSTEM_GENUSES, GET_SYSTEM_EXOBIO, GET_SYSTEM_BARYCENTRES
+    GET_SYSTEM_GENUSES, GET_SYSTEM_EXOBIO, GET_SYSTEM_BARYCENTRES,
+    GET_NSP_INFO
 )
 
 logger = logging.getLogger(__name__)
@@ -69,7 +71,7 @@ class ArchivedSystemQueries:
 
         return results
 
-    def _construct_archived_system(self, system_row: sqlite3.Row) -> SystemInfo:
+    def _construct_archived_system(self, system_row: sqlite3.Row, nsp_records) -> SystemInfo:
         return SystemInfo(
             system_name=system_row["system_name"],
             system_address=system_row["system_address"],
@@ -79,6 +81,7 @@ class ArchivedSystemQueries:
                 system_row["position_z"]
             ],
             system_body_count=system_row["system_body_count"],
+            system_nsp=nsp_records
         )
 
     def _construct_archived_bodies(self, bodies):
@@ -308,6 +311,17 @@ class ArchivedSystemQueries:
 
         return barycentres_dict
 
+    def _construct_archived_nsp(self, nsp_rows: list[sqlite3.Row]) -> list[NotableStellarPhenomena]:
+        return [
+            NotableStellarPhenomena(
+                system_nsp_address=row["system_address"],
+                system_nsp_timestamp=row["scan_timestamp"],
+                system_nsp_signal_name=row["signal_name"],
+                system_nsp_signal_name_localised=row["signal_localised"]
+            )
+            for row in nsp_rows
+        ]
+
     def get_archived_system_info(self, connection: sqlite3.Connection, system_address: int):
         cursor = connection.cursor()
 
@@ -327,8 +341,10 @@ class ArchivedSystemQueries:
         signals = self._query_archive_fetchall(cursor, GET_SYSTEM_SIGNALS, (database_system_id,))
         genuses = self._query_archive_fetchall(cursor, GET_SYSTEM_GENUSES, (database_system_id,))
         exobio = self._query_archive_fetchall(cursor, GET_SYSTEM_EXOBIO, (database_system_id,))
+        nsp = self._query_archive_fetchall(cursor, GET_NSP_INFO, (database_system_id,))
 
-        system_info = self._construct_archived_system(system)
+        nsp_records = self._construct_archived_nsp(nsp)
+        system_info = self._construct_archived_system(system, nsp_records)
 
         bodies_by_database_id, bodies_by_elite_id = (
             self._construct_archived_bodies(bodies)

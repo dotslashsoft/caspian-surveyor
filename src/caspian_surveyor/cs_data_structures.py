@@ -5,6 +5,14 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
+class NotableStellarPhenomena:
+    """Stores NSP data."""
+    system_nsp_address: int
+    system_nsp_timestamp: int
+    system_nsp_signal_name: str
+    system_nsp_signal_name_localised: str
+
+@dataclass
 class SystemInfo:
     """
     Stores system-level data from the current system record.
@@ -13,6 +21,16 @@ class SystemInfo:
     system_address: int
     system_position: list[float] = field(default_factory=list)
     system_body_count: int = 0
+    system_nsp: list[NotableStellarPhenomena] | None = None
+
+    def __post_init__(self) -> None:
+        if isinstance(self.system_nsp, list):
+            self.system_nsp = [
+                NotableStellarPhenomena(**nsp)
+                if isinstance(nsp, dict)
+                else nsp
+                for nsp in self.system_nsp
+            ]
 
 
 @dataclass

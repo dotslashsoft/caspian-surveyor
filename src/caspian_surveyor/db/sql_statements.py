@@ -67,6 +67,23 @@ WHERE
     OR excluded.system_fss_complete > systems.system_fss_complete;
 """
 
+NSP_INSERT_SQL = """
+INSERT INTO notable_stellar_phenomena (
+    database_system_id,
+    system_address,
+    scan_timestamp,
+    signal_name,
+    signal_localised
+)
+VALUES (
+    :database_system_id,
+    :system_nsp_address,
+    :system_nsp_timestamp,
+    :system_nsp_signal_name,
+    :system_nsp_signal_name_localised
+)
+"""
+
 BODY_UPSERT_SQL = """
 INSERT INTO bodies (
     database_system_id,
@@ -500,6 +517,12 @@ FROM systems
 GET_SYSTEM_INFO = """
 SELECT *
 FROM systems
+WHERE database_system_id = ?
+"""
+
+GET_NSP_INFO = """
+SELECT *
+FROM notable_stellar_phenomena
 WHERE database_system_id = ?
 """
 

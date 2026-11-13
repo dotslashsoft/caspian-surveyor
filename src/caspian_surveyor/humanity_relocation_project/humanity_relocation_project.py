@@ -196,7 +196,8 @@ class SystemScore:
 
 if __name__ == '__main__':
     hrp = HumanityRelocationProject()
-    payload = hrp._get_fullstarsystempayload(279114075227)
+    payload = hrp._get_fullstarsystempayload(18253501780267)
+    pprint(payload, sort_dicts=False)
 
     distance = hrp._get_distance_from_sol(payload)
     print(f"Distance from Sol: ~{distance} ly")

@@ -137,6 +137,9 @@ class SystemInfoOverlay(QWidget):
         self.metric_system_hmc_count.set_value(ui_data.summary.system_hmc_count)
         self.metric_system_landable_count.set_value(ui_data.summary.system_landable_body_count)
 
+        nsp_count = len(ui_data.system.system_nsp or [])
+        self.metric_system_nsp.set_value(nsp_count)
+
 
     def _load_initial_data(self):
         """
@@ -251,6 +254,9 @@ class SystemInfoOverlay(QWidget):
         self.metric_system_hmc_count = MetricWidget("HMC", self.ui_data.summary.system_hmc_count)
         self.metric_system_landable_count = MetricWidget("LANDABLE", self.ui_data.summary.system_landable_body_count)
 
+        nsp_count = len(self.ui_data.system.system_nsp or [])
+        self.metric_system_nsp = MetricWidget("NSP", nsp_count)
+
         metrics = [
             self.metric_system_name,
             self.metric_system_planet_count,
@@ -260,6 +266,7 @@ class SystemInfoOverlay(QWidget):
             self.metric_system_ww_count,
             self.metric_system_hmc_count,
             self.metric_system_landable_count,
+            self.metric_system_nsp
         ]
 
         self.body_display._add_metrics(hud_layout, metrics)

@@ -69,6 +69,12 @@ class SqliteDataAdapter:
                 else:
                     cursor.execute(SYSTEM_UPSERT_SQL, system_dict)
 
+                for nsp in full_system_data.system.system_nsp or []:
+                    nsp_dict = asdict(nsp)
+                    nsp_dict["database_system_id"] = database_system_id
+
+                    cursor.execute(NSP_INSERT_SQL, nsp_dict)
+
                 for body_obj in full_system_data.bodies.values():
                     body_dict = asdict(body_obj)
                     body_dict["system_id"] = database_system_id
