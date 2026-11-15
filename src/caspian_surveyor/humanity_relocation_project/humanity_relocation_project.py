@@ -28,6 +28,7 @@ PLANET_CLASS_SCORES = {
     "Icy body": 0.02
 }
 
+
 PLANET_CLASSES = frozenset({
     "Metal rich body",
     "High metal content body",
@@ -49,6 +50,7 @@ PLANET_CLASSES = frozenset({
     "Helium rich gas giant",
     "Helium gas giant",
 })
+
 
 @dataclass
 class BodyScoreBreakdown:
