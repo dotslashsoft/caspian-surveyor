@@ -1,99 +1,174 @@
-from math import isfinite, sqrt, trunc
-from pprint import pprint
+import math
+from math import sqrt
+from dataclasses import dataclass, field
 from caspian_surveyor.cs_data_structures import FullStarSystemPayload
-from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
 from caspian_surveyor.db.connection_manager import ConnectionManager
-from caspian_surveyor.runtime.cs_runtime import *
-from typing import Any
-import logging
-from dataclasses import dataclass
+from caspian_surveyor.db.system_archive_reconstruction import ArchivedSystemQueries
+from caspian_surveyor.runtime.cs_runtime import load_current_system_record
 
-logger = logging.getLogger(__name__)
 
-"""_summary_
-The priority system is for role-playing strictly and
-its intention is to give exploration a little more narrative
-while also providing (relatively) accurate scientific data
-in which certain criteria will utilize.
+def kelvin_to_celsius(temp_k: float) -> float:
+    return round(temp_k - 273.15, 2)
 
-As you venture out into the void, you're tasked with
-a simple mission: to find the best 'Sol' replacement
-system possible.
+def ms2_to_earth_g(gravity: float) -> float:
+    return round(gravity / 9.80665, 4)
 
-Scoring will be from 0 - X, where X is 'the best possible
-replacement'. That is in quotes, because out of one-hundred
-billion systems, there will be better systems discovered,
-statistically speaking.
+def bell_curve_score(value: float, ideal: float, tolerance: float) -> float:
+    """Returns 0.0 to 1.0 based on proximity to an ideal value."""
+    return math.exp(-0.5 * ((value - ideal) / tolerance) ** 2)
 
-Things to note and/or look for:
 
-    === HABITABLE WORLDS ===
-    - Earthlike Worlds
-        - This will be the highest scoring entity, almost
-            immediately placing it in "HIGH" priority
+PLANET_CLASS_SCORES = {
+    "Earthlike body": 1.0,
+    "Water world": 0.75,
+    "Ammonia world": 0.40,
+    "High metal content body": 0.25,
+    "Rocky body": 0.15,
+    "Rocky ice body": 0.07,
+    "Icy body": 0.02
+}
 
-    - Candidates for terraforming:
-        - Water Worlds
-        - High Metal Content (HMC) planets
-        - Rocky bodies
-        - Metal-rich bodies
+PLANET_CLASSES = frozenset({
+    "Metal rich body",
+    "High metal content body",
+    "Rocky body",
+    "Rocky ice body",
+    "Icy body",
+    "Earthlike body",
+    "Water world",
+    "Ammonia world",
+    "Water giant",
+    "Water giant with life",
+    "Gas giant with water based life",
+    "Gas giant with ammonia based life",
+    "Sudarsky class I gas giant",
+    "Sudarsky class II gas giant",
+    "Sudarsky class III gas giant",
+    "Sudarsky class IV gas giant",
+    "Sudarsky class V gas giant",
+    "Helium rich gas giant",
+    "Helium gas giant",
+})
 
-    - Distance between valuable planets (intra-system)
-    - Long-term system stability (REBOUND BOIII)
+@dataclass
+class BodyScoreBreakdown:
+    body_id: int
+    planet_class: str
+    is_terraformable: bool
+    class_score: float
+    gravity_score: float
+    temp_score: float
+    total_body_score: float = field(init=False)
 
-    === RESOURCE EXTRACTION POTENTIAL ===
-    - Ringed planets
-        - Gas giants
-        - Dwarf and minor planets
-        - Terrestrial and rocky bodies
-        - Stellar remnants
-            - Brown dwarfs
-    - Asteroid belts
-        - Resource types
-    - Planetary bodies (surface and gas)
-        - Pristine high-value surface minerals
-        - Gas giants (yes, ED universe mentions resource extraction
-            from gas giants)
+    def __post_init__(self):
+        # Weighted body score (0.0 to 1.0)
+        base = (
+            (self.class_score * 0.50) +
+            (self.gravity_score * 0.30) +
+            (self.temp_score * 0.20)
+        )
+        # Terraformable bonus without exceeding 1.0
+        bonus = 0.20 if self.is_terraformable else 0.0
+        self.total_body_score = round(min(1.0, base + bonus), 4)
 
-    === SCIENCE AND RESEARCH ===
-    - Notable stellar phenomena
-    - Biological signals
-    - High celestial body diversity
-    - 3+ stars (PHYSICS BOIIIIIIIIII)
 
-    === AREA ("Exo-Bubble") ===
-    - Are the neighboring systems high-value?
-        - Resources
-        - Terrestrial planets
-            - TFWW
-            - TFHMC
-            - TFRB
-            - TFMR
+class BodyScorer:
+    def score_body(self, body) -> BodyScoreBreakdown | None:
+        if not body.body_planet_class or body.body_surface_temperature is None or body.body_surface_gravity is None:
+            return None
 
-    === SECURITY (brainstorming currently) ===
-    - Ideas
-        - Distance from bubble
-            - Are you settling for a power or will you pioneer and
-                begin a new civilization
-        - Distance from thargoids
-        - Have you found raxxla? Dark Wheel?
-            - Automatic MVP, 9000 DKP....PLUS!
-            - No really...
-            - pls tell me
+        gravity_earth_g = ms2_to_earth_g(body.body_surface_gravity)
+        temperature_celsius = kelvin_to_celsius(body.body_surface_temperature)
+        is_terraformable = body.body_terraform_state == "Terraformable"
 
-    === ECONOMY (brainstorming currently) ===
-    - Ideas
-        - Resource values
-        - Neighboring stars habitability
-        - Neutron star highway proximity
-        - Terrestrial planets
+        return BodyScoreBreakdown(
+            body_id=body.body_id,
+            planet_class=body.body_planet_class,
+            is_terraformable=is_terraformable,
+            class_score=PLANET_CLASS_SCORES.get(body.body_planet_class, 0.05),
+            gravity_score=bell_curve_score(gravity_earth_g, ideal=1.0, tolerance=0.5),
+            temp_score=bell_curve_score(temperature_celsius, ideal=15.0, tolerance=35.0),
+        )
 
-"""
+
+@dataclass
+class SystemReport:
+    system_address: int
+    distance_from_sol: float
+    habitability_subscore: float
+    terraformable_subscore: float
+    diversity_subscore: float
+    final_system_score: float
+    body_breakdowns: list[BodyScoreBreakdown]
+
+
+class SystemScorer:
+    def __init__(self, weights: dict[str, float]):
+        self.weights = weights
+        self.body_scorer = BodyScorer()
+
+    def evaluate_system(self, payload, distance_from_sol: float) -> SystemReport:
+        scored_bodies = [
+            score for body in payload.planetary_bodies
+            if (score := self.body_scorer.score_body(body)) is not None
+        ]
+
+        if not scored_bodies:
+            return SystemReport(payload.system.system_address, distance_from_sol, 0.0, 0.0, 0.0, 0.0, [])
+
+        # best body score weighted heavily plus average of others
+        best_body = max(body.total_body_score for body in scored_bodies)
+        average_body = sum(body.total_body_score for body in scored_bodies) / len(scored_bodies)
+        habitability_subscore = (best_body * 0.7) + (average_body * 0.3)
+
+        # diminishing returns - caps around three+ terraformable bodies
+        terraformable_count = sum(1 for b in scored_bodies if b.is_terraformable)
+        terraformable_subscore = min(1.0, terraformable_count / 3.0)
+
+        # unique planet classes in system - greater than five distinct types = 1.0
+        unique_classes = len({b.planet_class for b in scored_bodies})
+        diversity_subscore = min(1.0, unique_classes / 5.0)
+
+        # Final Weighted Sum (0 to 100 scale)
+        raw_total = (
+            habitability_subscore * self.weights["current_habitability"] +
+            terraformable_subscore * self.weights["terraformable_bodies"] +
+            diversity_subscore * self.weights["body_diversity"]
+        )
+
+        return SystemReport(
+            system_address=payload.system.system_address,
+            distance_from_sol=distance_from_sol,
+            habitability_subscore=round(habitability_subscore * 100, 2),
+            terraformable_subscore=round(terraformable_subscore * 100, 2),
+            diversity_subscore=round(diversity_subscore * 100, 2),
+            final_system_score=round(raw_total * 100, 2),
+            body_breakdowns=scored_bodies
+        )
 
 
 class HumanityRelocationProject:
-    """Temporary class for Humanity Relocation Project"""
-    def _get_fullstarsystempayload(self, system_address) -> FullStarSystemPayload:
+    def __init__(self) -> None:
+        self.weighted_mappings = {
+            "current_habitability": 0.50,
+            "terraformable_bodies": 0.30,
+            "body_diversity": 0.20,
+        }
+        self.scorer = SystemScorer(weights=self.weighted_mappings)
+
+    def evaluate_archived_system(self, system_address: int) -> SystemReport:
+        """Fetches a system by address from SQLite DB and returns its habitability report."""
+        payload = self._get_fullstarsystempayload(system_address)
+        distance = self._get_distance_from_sol(payload)
+        return self.scorer.evaluate_system(payload, distance)
+
+    def evaluate_current_system(self) -> SystemReport:
+        """Loads the current system record and returns its habitability report."""
+        payload = self._verify_current_system()
+        distance = self._get_distance_from_sol(payload)
+        return self.scorer.evaluate_system(payload, distance)
+
+    def _get_fullstarsystempayload(self, system_address: int) -> FullStarSystemPayload:
         system_query = ArchivedSystemQueries()
         connection = ConnectionManager()
         conn = connection.establish_db_connection()
@@ -101,103 +176,39 @@ class HumanityRelocationProject:
         try:
             connection.initialize_schema(conn)
             payload = system_query.get_archived_system_info(conn, system_address)
-
-            verified_payload = self._verify_fullstarsystempayload(payload)
-            return verified_payload
-
+            return self._validate_payload(payload)
         finally:
             connection.close_db_connection(conn)
 
-    def _verify_fullstarsystempayload(self, payload) -> FullStarSystemPayload:
-        if not isinstance(payload, FullStarSystemPayload):
-            raise TypeError("current_system must be a FullStarSystemPayload")
-
-        return payload
-
     def _verify_current_system(self) -> FullStarSystemPayload:
         current_system = load_current_system_record()
-        if not isinstance(current_system, FullStarSystemPayload):
-            raise TypeError("current_system must be a FullStarSystemPayload")
+        return self._validate_payload(current_system)
 
-        return current_system
+    def _validate_payload(self, payload) -> FullStarSystemPayload:
+        if not isinstance(payload, FullStarSystemPayload):
+            raise TypeError(f"Expected FullStarSystemPayload, got {type(payload).__name__}")
+        return payload
 
-    def _score_complete_system_discovery(self, current_system: FullStarSystemPayload) -> float:
-        if current_system.summary.system_fss_complete:
-            return 100.0
-
-        return 50.0
-
-    # distance from sol: sqrt((x2 - x1)**2 + (y2 - y1)**2)
     def _get_distance_from_sol(self, system: FullStarSystemPayload) -> float:
-        position_x = system.system.system_position[0]
-        position_y = system.system.system_position[1]
-        position_z = system.system.system_position[2]
-
-        distance_from_sol = sqrt(position_x**2 + position_y**2 + position_z**2)
-        return round(distance_from_sol)
+        position_x, position_y, position_z = system.system.system_position
+        return round(sqrt(position_x**2 + position_y**2 + position_z**2), 4)
 
 
-
-@dataclass(frozen=True)
-class CriterionResult:
-    key: str
-    raw_score: float
-    weighted_points: float
-
-    def __post_init__(self):
-        if type(self.key) is not str:
-            raise TypeError("key must be a string.")
-
-        if type(self.raw_score) is not float:
-            raise TypeError("raw_score must be a float.")
-
-        if type(self.weighted_points) is not float:
-            raise TypeError("weighted_points must be a float.")
-
-        if not isfinite(self.raw_score) or not 0.0 <= self.raw_score <= 100.0:
-            raise ValueError(
-                f"raw_score for '{self.key}' must be between 0.0 and 100.0. "
-                f"Value received: {self.raw_score}"
-            )
-
-        if not isfinite(self.weighted_points) or not 0.0 <= self.weighted_points <= 100.0:
-            raise ValueError(
-                f"weighted_points for '{self.key}' must be between 0.0 and 100.0."
-            )
-
-
-@dataclass(frozen=True)
-class SystemScore:
-    system_address: int
-
-    rubric_version: str
-    criteria: tuple[CriterionResult, ...]
-    preliminary: bool = False
-
-    def __post_init__(self):
-        if type(self.system_address) is not int:
-            raise TypeError("system_address must be an integer")
-
-        if type(self.rubric_version) is not str:
-            raise TypeError("rubric_version must be a string")
-
-        if type(self.criteria) is not tuple:
-            raise TypeError("criteria must be a tuple with CriterionResults")
-
-        if type(self.preliminary) is not bool:
-            raise TypeError("preliminary must be a bool")
-
-    @property
-    def final_score(self) -> float:
-        return sum(
-            (criterion.weighted_points for criterion in self.criteria),
-            0.0
-        )
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     hrp = HumanityRelocationProject()
-    payload = hrp._get_fullstarsystempayload(18253501780267)
-    pprint(payload, sort_dicts=False)
 
-    distance = hrp._get_distance_from_sol(payload)
-    print(f"Distance from Sol: ~{distance} ly")
+    current_system = hrp.evaluate_current_system()
+    print(f"-======= CASPIAN FIELD REPORT - CURRENT SYSTEM =======-")
+    print(f"System Address: {current_system.system_address}")
+    for body in current_system.body_breakdowns:
+        print(f"  - Body {body.body_id} ({body.planet_class}): {body.total_body_score}")
+
+    print(f"\nCurrent System Score: {current_system.final_system_score}/100 ({current_system.distance_from_sol} LY from Sol)\n\n")
+
+    archived_report = hrp.evaluate_archived_system(system_address=3615411171)
+    print(f"-======= CASPIAN FIELD REPORT - ARCHIVED SYSTEM =======-")
+    print(f"System Address: {archived_report.system_address}")
+    for body in archived_report.body_breakdowns:
+        print(f"  - Body {body.body_id} ({body.planet_class}): {body.total_body_score}")
+
+    print(f"\nArchived System Score: {archived_report.final_system_score}/100 ({archived_report.distance_from_sol} LY from Sol)")
