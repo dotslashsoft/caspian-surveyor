@@ -7,6 +7,7 @@ from caspian_surveyor.bootstrap.cs_baseline_config import (
 )
 import logging
 from dataclasses import asdict
+from time import sleep
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,22 @@ def write_current_system_record(system_record: cs_data_structures.FullStarSystem
         logger.debug(
             "Attempting to overwrite CURRENT_SYSTEM_FILE with TEMP_SYSTEM_FILE."
         )
-        TEMP_SYSTEM_FILE.replace(CURRENT_SYSTEM_FILE)
+
+        for attempt in range(5):
+            try:
+                TEMP_SYSTEM_FILE.replace(CURRENT_SYSTEM_FILE)
+                break
+
+            except PermissionError as exc:
+                if exc.winerror not in (5, 32) or attempt == 4:
+                    raise
+
+                logger.warning(
+                    "Runtime file replacement denied. Retrying (%d/5).",
+                    attempt + 1
+                )
+
+                sleep(0.05)
 
     except OSError:
         logger.exception("Unable to write current system record.")
