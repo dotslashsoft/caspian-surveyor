@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QApplication, QWidget, QLabel,
     QVBoxLayout, QFrame, QSizePolicy,
 )
-from PySide6.QtGui import QFont, QFontDatabase, QGuiApplication
+from PySide6.QtGui import QFont, QFontDatabase
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -428,8 +428,12 @@ class SystemInfoOverlay(QWidget):
             self.legend_page.hide()
             self.display_stack.show()
 
+            if self.display_stack.currentIndex() == 0:
+                self.extension.show()
+
         else:
             self.display_stack.hide()
+            self.extension.hide()
             self.legend_page.show()
 
     def toggle_color_picker(self) -> None:
@@ -484,6 +488,7 @@ class SystemInfoOverlay(QWidget):
         self.resize_overlay_to_current_page()
 
         self.body_display.update_body_display_metrics(body)
+        self.extension.hide()
 
     def cycle_display_previous(self) -> None:
         """
@@ -555,6 +560,7 @@ class SystemInfoOverlay(QWidget):
         Changes the primary display to the system-summary page.
         """
         self.display_stack.setCurrentIndex(0)
+        self.extension.show()
         self.resize_overlay_to_current_page()
 
 

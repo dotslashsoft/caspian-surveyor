@@ -1,10 +1,13 @@
-from PySide6.QtCore import QPoint, Qt
+from math import sqrt
+
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from caspian_surveyor.ui import caspian_theme as caspian_theme
 from caspian_surveyor.ui.hud_widgets import HudFactory
+from caspian_surveyor.humanity_relocation_project.humanity_relocation_project import HumanityRelocationProject
+from caspian_surveyor.ui.overlay_adapter import OverlayAdapter
 import logging
-from caspian_surveyor.bootstrap.cs_log_factory import LogManager
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +15,8 @@ logger = logging.getLogger(__name__)
 class HudExtension(QWidget):
     def __init__(self, main_panel):
         self.hud_factory = HudFactory()
+        self.hrp = HumanityRelocationProject()
+        self.overlay_adapter = OverlayAdapter()
         super().__init__()
 
         self.hud = main_panel
@@ -43,10 +48,10 @@ class HudExtension(QWidget):
         path.lineTo(width - 75, 0)
 
         # Sloped right edge.
-        path.lineTo(width - 125, height)
+        path.lineTo(width - 100, height)
 
         # Narrower bottom edge.
-        path.lineTo(125, height)
+        path.lineTo(100, height)
 
         # left edge.
         path.lineTo(75, 0)
@@ -76,14 +81,26 @@ class HudExtension(QWidget):
 
     def _create_extension_layout(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 2, 0, 2)
 
-        self.label = QLabel("Testing")
+        current_system = self._get_current_system_payload()
+        dos = self._get_distance_from_sol(current_system)
+
+        self.label = QLabel(f"Distance from Sol: {dos} LY")
         self.label.setStyleSheet(f"""
             color: {self.hud_factory.key_label_color};
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 12px;
+            font-weight: 750;
         """)
 
         layout.addWidget(self.label)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+    def _get_current_system_payload(self):
+        current_system = self.overlay_adapter.call_load_new_system_record()
+        assert current_system is not None
+        return current_system.system.system_position
+
+    def _get_distance_from_sol(self, system_position: list[float]) -> float:
+        position_x, position_y, position_z = system_position
+        return round(sqrt(position_x**2 + position_y**2 + position_z**2), 4)
