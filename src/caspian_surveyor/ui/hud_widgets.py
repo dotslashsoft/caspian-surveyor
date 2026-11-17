@@ -152,7 +152,7 @@ class HudFactory:
     def create_hud_page(self) -> tuple[QWidget, QHBoxLayout]:
         page = QWidget()
         page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(12, 6, 12, 6)
+        page_layout.setContentsMargins(12, 6, 12, 0)
 
         panel = self._create_hud_panel()
         hud_layout = QHBoxLayout(panel)

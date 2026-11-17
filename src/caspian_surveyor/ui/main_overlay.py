@@ -2,6 +2,7 @@ import logging
 import sys
 import caspian_surveyor
 from caspian_surveyor.bootstrap.cs_log_factory import LogManager
+from caspian_surveyor.ui.hud_extension import HudExtension
 from caspian_surveyor.ui.rebound_system_data import ReboundDataDisplay
 import caspian_surveyor.ui.custom_color_picker as custom_color_picker
 from caspian_surveyor.ui.hotkey_manager import HotkeyManager
@@ -193,10 +194,16 @@ class SystemInfoOverlay(QWidget):
         TODO: once necessary plumbing is completed, integrate _build_exobio_page()
         into the UI construction flow and update this docstring to reflect the change.
         """
+        self.extension = HudExtension(self)
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(10, 10, 10, 10)
+        outer_layout.setSpacing(0)
 
         self.display_stack = CurrentPageStackedWidget()
+
+        logger.debug("BEFORE DISPLAY CONFIG Stack geometry: %s", self.display_stack.geometry())
+        logger.debug("BEFORE DISPLAY CONFIG Extension geometry: %s", self.extension.geometry())
+
 
         self.system_page = self._build_system_page()
         self.body_page = self.body_display.body_page
@@ -211,10 +218,13 @@ class SystemInfoOverlay(QWidget):
         self.position_top_center()
 
         outer_layout.addWidget(self.display_stack)
+        outer_layout.addWidget(self.extension)
+
         outer_layout.addWidget(self.legend_page)
 
         self.legend_page.hide()
-
+        logger.debug("Stack geometry: %s", self.display_stack.geometry())
+        logger.debug("Extension geometry: %s", self.extension.geometry())
 
     def _build_system_page(self) -> QWidget | None:
         """
