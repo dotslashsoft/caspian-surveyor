@@ -2,11 +2,12 @@ from math import sqrt
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QGraphicsDropShadowEffect, QLabel, QVBoxLayout, QWidget
 from caspian_surveyor.ui import caspian_theme as caspian_theme
 from caspian_surveyor.ui.hud_widgets import HudFactory
 from caspian_surveyor.humanity_relocation_project.humanity_relocation_project import HumanityRelocationProject
 from caspian_surveyor.ui.overlay_adapter import OverlayAdapter
+from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,9 @@ class HudExtension(QWidget):
         self.hud_factory = HudFactory()
         self.hrp = HumanityRelocationProject()
         self.overlay_adapter = OverlayAdapter()
+        self.dos_value = 0
+        self.hrp_label = QLabel()
+        self.extension_counter = 0
         super().__init__()
 
         self.hud = main_panel
@@ -59,7 +63,7 @@ class HudExtension(QWidget):
         path.closeSubpath()
 
         pen = QPen(self.border_color)
-        pen.setWidthF(1.0)
+        pen.setWidthF(1.25)
         pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
 
         painter.setPen(pen)
@@ -79,28 +83,56 @@ class HudExtension(QWidget):
 
         self.background_color = QColor(0, 0, 0, 220)
 
+    def set_label_shadow(self, label: QLabel) -> None:
+        shadow = QGraphicsDropShadowEffect(label)
+        shadow.setBlurRadius(2)
+        shadow.setColor(QColor(0, 0, 0, 255))
+        shadow.setXOffset(1)
+        shadow.setYOffset(1)
+
+        label.setGraphicsEffect(shadow)
+
     def _create_extension_layout(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 2, 0, 2)
 
-        current_system = self._get_current_system_payload()
-        dos = self._get_distance_from_sol(current_system)
-
-        self.label = QLabel(f"Distance from Sol: {dos} LY")
-        self.label.setStyleSheet(f"""
-            color: {self.hud_factory.key_label_color};
+        self.extension_label = QLabel()
+        self.extension_label.setStyleSheet(f"""
+            color: {self.hud_factory.value_label_color};
             font-size: 12px;
-            font-weight: 750;
+            font-weight: bold;
         """)
 
-        layout.addWidget(self.label)
+        layout.addWidget(self.extension_label)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-    def _get_current_system_payload(self):
-        current_system = self.overlay_adapter.call_load_new_system_record()
-        assert current_system is not None
-        return current_system.system.system_position
+    def _update_distance_from_sol_label(self, current_system: FullStarSystemPayload):
+        position_x, position_y, position_z = current_system.system.system_position
 
-    def _get_distance_from_sol(self, system_position: list[float]) -> float:
-        position_x, position_y, position_z = system_position
-        return round(sqrt(position_x**2 + position_y**2 + position_z**2), 4)
+        self.dos_value = self._get_distance_from_sol(position_x, position_y, position_z)
+        self.extension_label.setText(f"Distance from Sol:  {self.dos_value} LY")
+
+        self.set_label_shadow(self.extension_label)
+        return self.extension_label
+
+    def _get_distance_from_sol(self, posx, posy, posz) -> float:
+        return round(sqrt(posx**2 + posy**2 + posz**2), 4)
+
+    def _update_hrp_label(self, current_system):
+        report = self.hrp.scorer.evaluate_system(
+            current_system,
+            self.dos_value
+        )
+
+        self.extension_label.setText(
+            f"Current System Score:  {report.final_system_score}/100"
+        )
+
+    def cycle_extension_qwidget(self, current_system):
+        if self.extension_counter == 1:
+            self.extension_counter = 0
+            return self._update_hrp_label(current_system)
+
+        else:
+            self.extension_counter = 1
+            return self._update_distance_from_sol_label(current_system)
