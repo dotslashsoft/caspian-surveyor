@@ -141,6 +141,7 @@ class SystemInfoOverlay(QWidget):
         nsp_count = len(ui_data.system.system_nsp or [])
         self.metric_system_nsp.set_value(nsp_count)
 
+        self.extension.cycle_extension_qwidget(ui_data)
 
     def _load_initial_data(self):
         """
@@ -201,10 +202,6 @@ class SystemInfoOverlay(QWidget):
 
         self.display_stack = CurrentPageStackedWidget()
 
-        logger.debug("BEFORE DISPLAY CONFIG Stack geometry: %s", self.display_stack.geometry())
-        logger.debug("BEFORE DISPLAY CONFIG Extension geometry: %s", self.extension.geometry())
-
-
         self.system_page = self._build_system_page()
         self.body_page = self.body_display.body_page
         self.legend_page = self.body_display.legend_page
@@ -223,8 +220,8 @@ class SystemInfoOverlay(QWidget):
         outer_layout.addWidget(self.legend_page)
 
         self.legend_page.hide()
-        logger.debug("Stack geometry: %s", self.display_stack.geometry())
-        logger.debug("Extension geometry: %s", self.extension.geometry())
+
+        self.extension._update_hrp_label(self.ui_data)
 
     def _build_system_page(self) -> QWidget | None:
         """
@@ -400,7 +397,7 @@ class SystemInfoOverlay(QWidget):
         self.update_timer.timeout.connect(
             self.refresh_system_data
         )
-        self.update_timer.start(5000)
+        self.update_timer.start(2500)
 
     def call_check_for_updates(self):
         cfu.check_for_updates()
