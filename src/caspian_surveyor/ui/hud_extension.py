@@ -17,9 +17,7 @@ class HudExtension(QWidget):
     def __init__(self, main_panel):
         self.hud_factory = HudFactory()
         self.hrp = HumanityRelocationProject()
-        self.overlay_adapter = OverlayAdapter()
         self.dos_value = 0
-        self.hrp_label = QLabel()
         self.extension_counter = 0
         super().__init__()
 
@@ -29,42 +27,24 @@ class HudExtension(QWidget):
         self._set_theme()
         self._create_extension_layout()
         caspian_theme.load_application_font()
-        self.hud.adjustSize()
-
-        logger.debug(
-            "HUD geometry: %s | visible: %s | sizeHint: %s",
-            self.hud.geometry(),
-            self.hud.isVisible(),
-            self.hud.sizeHint()
-        )
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
+        path = QPainterPath()
         width = float(self.width())
         height = float(self.height())
 
-        path = QPainterPath()
-
-        # Top-left, moving clockwise.
-        path.moveTo(75, 0)
-        path.lineTo(width - 75, 0)
-
-        # Sloped right edge.
-        path.lineTo(width - 100, height)
-
-        # Narrower bottom edge.
-        path.lineTo(100, height)
-
-        # left edge.
-        path.lineTo(75, 0)
-
+        path.moveTo(75, 0)                  # Top-left, moving clockwise.
+        path.lineTo(width - 75, 0)          # 75px from right width boundary
+        path.lineTo(width - 100, height)    # Sloped right edge.
+        path.lineTo(100, height)            # Narrower bottom edge.
+        path.lineTo(75, 0)                  # left edge.
         path.closeSubpath()
 
         pen = QPen(self.border_color)
         pen.setWidthF(1.25)
-        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
 
         painter.setPen(pen)
         painter.setBrush(self.background_color)
@@ -95,6 +75,7 @@ class HudExtension(QWidget):
     def _create_extension_layout(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 2, 0, 2)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.extension_label = QLabel()
         self.extension_label.setStyleSheet(f"""
@@ -104,7 +85,7 @@ class HudExtension(QWidget):
         """)
 
         layout.addWidget(self.extension_label)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
 
     def _update_distance_from_sol_label(self, current_system: FullStarSystemPayload):
         position_x, position_y, position_z = current_system.system.system_position
@@ -119,11 +100,7 @@ class HudExtension(QWidget):
         return round(sqrt(posx**2 + posy**2 + posz**2), 4)
 
     def _update_hrp_label(self, current_system):
-        report = self.hrp.scorer.evaluate_system(
-            current_system,
-            self.dos_value
-        )
-
+        report = self.hrp.scorer.evaluate_system(current_system, self.dos_value)
         self.extension_label.setText(
             f"Current System Score:  {report.final_system_score}/100"
         )

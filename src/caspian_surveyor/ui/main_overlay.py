@@ -397,11 +397,10 @@ class SystemInfoOverlay(QWidget):
         self.update_timer.timeout.connect(
             self.refresh_system_data
         )
-        self.update_timer.start(2500)
+        self.update_timer.start(5000)
 
     def call_check_for_updates(self):
         cfu.check_for_updates()
-
 
     def toggle_overlay_visibility(self) -> None:
         """
@@ -456,7 +455,6 @@ class SystemInfoOverlay(QWidget):
         self.hud_factory.refresh_panel_glow_colors()
         self.refresh_title_label_style()
 
-
     def exit_overlay(self) -> None:
         """
         Exits the Caspian Surveyor overlay application.
@@ -473,11 +471,15 @@ class SystemInfoOverlay(QWidget):
         if not self.planetary_bodies:
             return
 
-        self.current_body_index = (
-            self.current_body_index + 1
-        ) % len(self.planetary_bodies)
+        if self.legend_page.isVisible():
+            return
 
-        self.body_display.reset_genus_cycle()
+        if not self.display_stack.currentIndex() == 0:
+            self.current_body_index = (
+                self.current_body_index + 1
+            ) % len(self.planetary_bodies)
+
+            self.body_display.reset_genus_cycle()
 
         body = self.planetary_bodies[self.current_body_index]
 
@@ -499,6 +501,9 @@ class SystemInfoOverlay(QWidget):
         if not self.planetary_bodies:
             return
 
+        if self.legend_page.isVisible():
+            return
+
         self.current_body_index = (
             self.current_body_index - 1
         ) % len(self.planetary_bodies)
@@ -512,7 +517,6 @@ class SystemInfoOverlay(QWidget):
 
         self.body_display.update_body_display_metrics(body)
 
-
     def cycle_display_down(self) -> None:
         """
         Cycles to the next page in the body display stack.
@@ -523,6 +527,9 @@ class SystemInfoOverlay(QWidget):
         Does nothing if no planetary bodies are available.
         """
         if not self.planetary_bodies:
+            return
+
+        if self.legend_page.isVisible():
             return
 
         next_page = (
@@ -544,6 +551,9 @@ class SystemInfoOverlay(QWidget):
         if not self.planetary_bodies:
             return
 
+        if self.legend_page.isVisible():
+            return
+
         previous_page = (
             self.body_display.display_body_stack.currentIndex() - 1
         ) % self.body_display.display_body_stack.count()
@@ -551,15 +561,17 @@ class SystemInfoOverlay(QWidget):
         self.body_display.display_body_stack.setCurrentIndex(previous_page)
         self.body_display.display_body_stack.updateGeometry()
 
-
     def display_system_summary(self) -> None:
         """
         Changes the primary display to the system-summary page.
         """
+        if self.legend_page.isVisible():
+            self.legend_page.hide()
+
         self.display_stack.setCurrentIndex(0)
+        self.current_body_index = 0
         self.extension.show()
         self.resize_overlay_to_current_page()
-
 
     def _create_separator(self) -> QFrame:
         """
