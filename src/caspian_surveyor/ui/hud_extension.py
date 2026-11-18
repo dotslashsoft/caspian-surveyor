@@ -1,12 +1,10 @@
 from math import sqrt
-
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QGraphicsDropShadowEffect, QLabel, QVBoxLayout, QWidget
 from caspian_surveyor.ui import caspian_theme as caspian_theme
 from caspian_surveyor.ui.hud_widgets import HudFactory
 from caspian_surveyor.humanity_relocation_project.humanity_relocation_project import HumanityRelocationProject
-from caspian_surveyor.ui.overlay_adapter import OverlayAdapter
 from caspian_surveyor.cs_data_structures import FullStarSystemPayload
 import logging
 
@@ -60,7 +58,6 @@ class HudExtension(QWidget):
 
         self.border_color = self.value_color.darker(220)
         self.border_color.setAlpha(220)
-
         self.background_color = QColor(0, 0, 0, 220)
 
     def set_label_shadow(self, label: QLabel) -> None:
@@ -69,7 +66,6 @@ class HudExtension(QWidget):
         shadow.setColor(QColor(0, 0, 0, 255))
         shadow.setXOffset(1)
         shadow.setYOffset(1)
-
         label.setGraphicsEffect(shadow)
 
     def _create_extension_layout(self):
@@ -83,27 +79,18 @@ class HudExtension(QWidget):
             font-size: 12px;
             font-weight: bold;
         """)
-
         layout.addWidget(self.extension_label)
 
-
     def _update_distance_from_sol_label(self, current_system: FullStarSystemPayload):
-        position_x, position_y, position_z = current_system.system.system_position
-
-        self.dos_value = self._get_distance_from_sol(position_x, position_y, position_z)
+        self.dos_value = self.hrp._get_distance_from_sol(current_system)
         self.extension_label.setText(f"Distance from Sol:  {self.dos_value} LY")
 
         self.set_label_shadow(self.extension_label)
         return self.extension_label
 
-    def _get_distance_from_sol(self, posx, posy, posz) -> float:
-        return round(sqrt(posx**2 + posy**2 + posz**2), 4)
-
     def _update_hrp_label(self, current_system):
         report = self.hrp.scorer.evaluate_system(current_system, self.dos_value)
-        self.extension_label.setText(
-            f"Current System Score:  {report.final_system_score}/100"
-        )
+        self.extension_label.setText(f"Current System Score:  {report.final_system_score}/100")
 
     def cycle_extension_qwidget(self, current_system):
         if self.extension_counter == 1:
