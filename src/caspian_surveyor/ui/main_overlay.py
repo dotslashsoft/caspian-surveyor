@@ -1,3 +1,7 @@
+if __name__ == "__main__":
+    from multiprocessing import freeze_support
+    freeze_support()
+
 import logging
 import sys
 import caspian_surveyor
@@ -569,6 +573,7 @@ class SystemInfoOverlay(QWidget):
             self.legend_page.hide()
 
         self.display_stack.setCurrentIndex(0)
+        self.display_stack.show()
         self.current_body_index = 0
         self.extension.show()
         self.resize_overlay_to_current_page()
