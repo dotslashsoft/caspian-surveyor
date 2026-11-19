@@ -1,4 +1,4 @@
-## New Alpha Release Available: [Version 0.9.9.2](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.10.0)
+## New Beta Release Available: [Version 0.9.10.0](https://github.com/dotslashsoft/caspian-surveyor/releases/tag/v0.9.10.0)
 
 Jump to: [Keyboard Shortcuts](#keyboard-shortcuts)
 
