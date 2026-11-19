@@ -1129,19 +1129,3 @@ class ReboundAdapter:
             relative_energy_drift=relative_energy_drift,
             archive_path=archive_path,
         )
-
-if __name__ == '__main__':
-    import rebound
-    import matplotlib.pyplot as plt
-    adapter = ReboundAdapter()
-    system_data = adapter.get_system_data(3238296097059)
-    pprint(system_data, sort_dicts=False)
-
-    physical_subsystems, barycentre_subsystems = (
-        adapter._group_system_subsystems(system_data)
-    )
-
-    construction_order = adapter._get_subsystem_construction_order(
-        physical_subsystems,
-        barycentre_subsystems
-    )
